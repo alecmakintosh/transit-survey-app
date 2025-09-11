@@ -1,10 +1,53 @@
 import React, { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Polyline, Popup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Polyline, Popup, useMap, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import { supabase } from '../supabaseClient'
 import { v4 as uuidv4 } from 'uuid';
 import { useNavigate } from 'react-router-dom'; 
 import polyline from "@mapbox/polyline";
+import L from 'leaflet';
+
+// Fix for default markers in react-leaflet
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: require('leaflet/dist/images/marker-icon-2x.png'),
+  iconUrl: require('leaflet/dist/images/marker-icon.png'),
+  shadowUrl: require('leaflet/dist/images/marker-shadow.png'),
+});
+
+// Custom marker icons
+const createCustomIcon = (color, isDestination = false) => {
+  return L.divIcon({
+    className: 'custom-marker',
+    html: `
+      <div style="
+        background-color: ${color};
+        width: 25px;
+        height: 25px;
+        border-radius: 50% 50% 50% 0;
+        border: 3px solid white;
+        transform: rotate(-45deg);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      ">
+        <span style="
+          color: white;
+          font-weight: bold;
+          font-size: 12px;
+          transform: rotate(45deg);
+        ">${isDestination ? 'B' : 'A'}</span>
+      </div>
+    `,
+    iconSize: [25, 25],
+    iconAnchor: [12, 25],
+    popupAnchor: [0, -25]
+  });
+};
+
+const originIcon = createCustomIcon('#28a745', false);
+const destinationIcon = createCustomIcon('#dc3545', true);
 
 const haversineDistance = (coords1, coords2) => {
   const toRad = (x) => x * Math.PI / 180;
@@ -153,6 +196,44 @@ const fetchOTPRoute = async (fromCoords, toCoords) => {
   }
 };
 
+// Component for handling map clicks and marker dragging
+function MapClickHandler({ onOriginSet, onDestinationSet, originCoords, destinationCoords, mapMode }) {
+  useMapEvents({
+    click: (e) => {
+      if (mapMode === 'setOrigin') {
+        onOriginSet([e.latlng.lat, e.latlng.lng]);
+      } else if (mapMode === 'setDestination') {
+        onDestinationSet([e.latlng.lat, e.latlng.lng]);
+      }
+    },
+  });
+
+  return null;
+}
+
+// Component for draggable markers
+function DraggableMarker({ position, onDragEnd, icon, popupText }) {
+  if (!position) return null;
+
+  const eventHandlers = {
+    dragend: (e) => {
+      const { lat, lng } = e.target.getLatLng();
+      onDragEnd([lat, lng]);
+    },
+  };
+
+  return (
+    <Marker
+      position={position}
+      draggable={true}
+      eventHandlers={eventHandlers}
+      icon={icon}
+    >
+      <Popup>{popupText}</Popup>
+    </Marker>
+  );
+}
+
 function FitMap({ originCoords, destinationCoords, routeLegs }) {
   const map = useMap();
   React.useEffect(() => {
@@ -183,6 +264,25 @@ function FitMap({ originCoords, destinationCoords, routeLegs }) {
   return null;
 }
 
+// Reverse geocoding function
+const reverseGeocode = async (coords, mapboxToken) => {
+  try {
+    const [lat, lon] = coords;
+    const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${lon},${lat}.json?access_token=${mapboxToken}`;
+    
+    const response = await fetch(url);
+    const data = await response.json();
+    
+    if (data.features && data.features.length > 0) {
+      return data.features[0].place_name;
+    }
+    return `${lat.toFixed(6)}, ${lon.toFixed(6)}`;
+  } catch (error) {
+    console.error("Reverse geocoding error:", error);
+    return `${coords[0].toFixed(6)}, ${coords[1].toFixed(6)}`;
+  }
+};
+
 function App() {
   const [origin, setOrigin] = useState('');
   const [destination, setDestination] = useState('');
@@ -209,6 +309,10 @@ function App() {
   });
   const [arriveBy, setArriveBy] = useState(false);
   const [dayType, setDayType] = useState('weekday');
+
+  // Map interaction state
+  const [mapMode, setMapMode] = useState('none'); // 'none', 'setOrigin', 'setDestination'
+  const [inputMode, setInputMode] = useState('text'); // 'text' or 'map'
 
   useEffect(() => {
     let storedSessionId = localStorage.getItem('session_id');
@@ -256,6 +360,132 @@ function App() {
     return baseDate.toISOString();
   };
 
+  // Handle setting origin via map click
+  const handleOriginSet = async (coords) => {
+    setOriginCoords(coords);
+    setMapMode('none');
+    
+    // Reverse geocode to get address
+    const address = await reverseGeocode(coords, mapboxToken);
+    setOrigin(address);
+    
+    // Auto-plan trip if both origin and destination are set
+    if (destinationCoords) {
+      planTrip(coords, destinationCoords, address, destination);
+    }
+  };
+
+  // Handle setting destination via map click
+  const handleDestinationSet = async (coords) => {
+    setDestinationCoords(coords);
+    setMapMode('none');
+    
+    // Reverse geocode to get address
+    const address = await reverseGeocode(coords, mapboxToken);
+    setDestination(address);
+    
+    // Auto-plan trip if both origin and destination are set
+    if (originCoords) {
+      planTrip(originCoords, coords, origin, address);
+    }
+  };
+
+  // Handle marker drag
+  const handleOriginDrag = async (coords) => {
+    setOriginCoords(coords);
+    const address = await reverseGeocode(coords, mapboxToken);
+    setOrigin(address);
+    
+    if (destinationCoords) {
+      planTrip(coords, destinationCoords, address, destination);
+    }
+  };
+
+  const handleDestinationDrag = async (coords) => {
+    setDestinationCoords(coords);
+    const address = await reverseGeocode(coords, mapboxToken);
+    setDestination(address);
+    
+    if (originCoords) {
+      planTrip(originCoords, coords, origin, address);
+    }
+  };
+
+  // Centralized trip planning function
+  const planTrip = async (oCoords, dCoords, originAddress, destinationAddress) => {
+    // Clear previous route data
+    setRouteOptions([]);
+    setSelectedRouteIndex(0);
+    setOtpTravelTime(null);
+
+    let finalTravelTime;
+
+    // Always use OTP routing now
+    const dateTime = getDateTimeForOTP();
+    const otpRoutes = await fetchOTPRoute(oCoords, dCoords);
+    if (otpRoutes && otpRoutes.length > 0) {
+      setRouteOptions(otpRoutes);
+      setSelectedRouteIndex(0);
+      setOtpTravelTime(Math.round(otpRoutes[0].duration / 60));
+      finalTravelTime = Math.round(otpRoutes[0].duration / 60);
+    } else {
+      // Fallback to haversine calculation
+      const distance = haversineDistance(oCoords, dCoords);
+      const estimatedTime = estimateTravelTime(distance);
+      finalTravelTime = estimatedTime;
+    }
+
+    setTravelTime(finalTravelTime);
+
+    const odKey = `${originAddress.toLowerCase()}___${destinationAddress.toLowerCase()}`;
+    const isNewPair = !seenODPairs.has(odKey);
+
+    if (!sessionId) {
+      console.warn("Session ID not ready yet. Skipping insert.");
+      return;
+    }
+
+    // Insert log with selected route data
+    const selectedRoute = routeOptions[selectedRouteIndex];
+    const routeDetails = selectedRoute ? {
+      route_option_count: routeOptions.length,
+      selected_route_index: selectedRouteIndex,
+      departure_time: departureTime,
+      day_type: dayType,
+      arrive_by: arriveBy,
+      route_legs_summary: selectedRoute.legs.map(leg => ({
+        mode: leg.mode,
+        duration_min: Math.round(leg.duration / 60),
+        route_name: leg.route?.shortName || null
+      }))
+    } : null;
+
+    const { error } = await supabase.from('survey_responses').insert({
+      origin: originAddress,
+      destination: destinationAddress,
+      travel_time_old_min: finalTravelTime,
+      travel_time_new_min: otpTravelTime,
+      //route_details: routeDetails,
+      would_consider: null,
+      exit_survey_data: null,
+      session_id: sessionId,
+      modal_shown: isNewPair,
+    });
+
+    if (error) console.error("Log insert error:", error);
+
+    if (!seenODPairs.has(odKey)) {
+      setSeenODPairs(prev => new Set(prev).add(odKey));
+      setModalStartTime(Date.now());
+      setShowModal(true);
+    }
+
+    setTripHistory(prev => [
+      ...prev,
+      { origin: originAddress, destination: destinationAddress, travelTime: finalTravelTime, timestamp: new Date().toISOString() }
+    ]);
+  };
+
   const handleMapSubmit = async () => {
     const trimmedOrigin = origin.trim();
     const trimmedDestination = destination.trim();
@@ -290,77 +520,7 @@ function App() {
     setOriginCoords(oCoords);
     setDestinationCoords(dCoords);
 
-    // Clear previous route data
-    setRouteOptions([]);
-    setSelectedRouteIndex(0);
-    setOtpTravelTime(null);
-
-    let finalTravelTime;
-
-    // Always use OTP routing now
-    const dateTime = getDateTimeForOTP();
-    const otpRoutes = await fetchOTPRoute(oCoords, dCoords);
-    if (otpRoutes && otpRoutes.length > 0) {
-      setRouteOptions(otpRoutes);
-      setSelectedRouteIndex(0);
-      setOtpTravelTime(Math.round(otpRoutes[0].duration / 60));
-      finalTravelTime = Math.round(otpRoutes[0].duration / 60);
-    } else {
-      // Fallback to haversine calculation
-      const distance = haversineDistance(oCoords, dCoords);
-      const estimatedTime = estimateTravelTime(distance);
-      finalTravelTime = estimatedTime;
-    }
-
-    setTravelTime(finalTravelTime);
-
-    const odKey = `${origin.toLowerCase()}___${destination.toLowerCase()}`;
-    const isNewPair = !seenODPairs.has(odKey);
-
-    if (!sessionId) {
-      console.warn("Session ID not ready yet. Skipping insert.");
-      return;
-    }
-
-    // Insert log with selected route data
-    const selectedRoute = routeOptions[selectedRouteIndex];
-    const routeDetails = selectedRoute ? {
-      route_option_count: routeOptions.length,
-      selected_route_index: selectedRouteIndex,
-      departure_time: departureTime,
-      day_type: dayType,
-      arrive_by: arriveBy,
-      route_legs_summary: selectedRoute.legs.map(leg => ({
-        mode: leg.mode,
-        duration_min: Math.round(leg.duration / 60),
-        route_name: leg.route?.shortName || null
-      }))
-    } : null;
-
-    const { error } = await supabase.from('survey_responses').insert({
-      origin,
-      destination,
-      travel_time_old_min: finalTravelTime,
-      travel_time_new_min: otpTravelTime,
-      //route_details: routeDetails,
-      would_consider: null,
-      exit_survey_data: null,
-      session_id: sessionId,
-      modal_shown: isNewPair,
-    });
-
-    if (error) console.error("Log insert error:", error);
-
-    if (!seenODPairs.has(odKey)) {
-      setSeenODPairs(prev => new Set(prev).add(odKey));
-      setModalStartTime(Date.now());
-      setShowModal(true);
-    }
-
-    setTripHistory(prev => [
-      ...prev,
-      { origin, destination, travelTime: finalTravelTime, timestamp: new Date().toISOString() }
-    ]);
+    planTrip(oCoords, dCoords, trimmedOrigin, trimmedDestination);
   };
 
   const handleResponse = async (response) => {
@@ -394,6 +554,19 @@ function App() {
       minute: '2-digit',
       hour12: true 
     });
+  };
+
+  // Clear all markers and routes
+  const handleClear = () => {
+    setOrigin('');
+    setDestination('');
+    setOriginCoords(null);
+    setDestinationCoords(null);
+    setTravelTime(null);
+    setRouteOptions([]);
+    setSelectedRouteIndex(0);
+    setOtpTravelTime(null);
+    setMapMode('none');
   };
 
   // Sidebar styles
@@ -445,6 +618,19 @@ function App() {
     marginBottom: '20px'
   };
 
+  const smallButtonStyle = {
+    padding: '8px 12px',
+    backgroundColor: '#6c757d',
+    color: 'white',
+    border: 'none',
+    borderRadius: '6px',
+    fontSize: '14px',
+    cursor: 'pointer',
+    marginRight: '8px',
+    marginBottom: '8px',
+    transition: 'background-color 0.2s'
+  };
+
   return (
     <div style={{ margin: 0, padding: 0, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
       {/* Sidebar */}
@@ -456,30 +642,128 @@ function App() {
           Plan your trip and help us improve transit services
         </p>
 
-        {/* Location Inputs */}
-        <div style={{ marginBottom: '24px' }}>
-          <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: '#495057' }}>
-            From
-          </label>
-          <input 
-            type="text"
-            value={origin} 
-            onChange={e => setOrigin(e.target.value)} 
-            placeholder="Enter starting address..."
-            style={{...inputStyle, ':focus': {borderColor: '#007bff', outline: 'none'}}}
-          />
+        {/* Input Mode Toggle */}
+        <div style={{ marginBottom: '20px', padding: '16px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
+          <h3 style={{ margin: '0 0 12px 0', fontSize: '16px', fontWeight: '600', color: '#495057' }}>
+            Input Method
+          </h3>
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+            <button
+              style={{
+                ...smallButtonStyle,
+                backgroundColor: inputMode === 'text' ? '#007bff' : '#6c757d',
+                marginRight: '8px'
+              }}
+              onClick={() => {
+                setInputMode('text');
+                setMapMode('none');
+              }}
+            >
+              Type Addresses
+            </button>
+            <button
+              style={{
+                ...smallButtonStyle,
+                backgroundColor: inputMode === 'map' ? '#007bff' : '#6c757d'
+              }}
+              onClick={() => setInputMode('map')}
+            >
+              Click on Map
+            </button>
+          </div>
           
-          <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: '#495057' }}>
-            To
-          </label>
-          <input 
-            type="text"
-            value={destination} 
-            onChange={e => setDestination(e.target.value)} 
-            placeholder="Enter destination address..."
-            style={inputStyle}
-          />
+          {inputMode === 'map' && (
+            <div>
+              <p style={{ fontSize: '12px', color: '#6c757d', marginBottom: '12px' }}>
+                Click the buttons below, then click on the map to set locations:
+              </p>
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                <button
+                  style={{
+                    ...smallButtonStyle,
+                    backgroundColor: mapMode === 'setOrigin' ? '#28a745' : '#6c757d'
+                  }}
+                  onClick={() => setMapMode('setOrigin')}
+                >
+                  Set Origin (A)
+                </button>
+                <button
+                  style={{
+                    ...smallButtonStyle,
+                    backgroundColor: mapMode === 'setDestination' ? '#dc3545' : '#6c757d'
+                  }}
+                  onClick={() => setMapMode('setDestination')}
+                >
+                  Set Destination (B)
+                </button>
+              </div>
+              <button
+                style={{
+                  ...smallButtonStyle,
+                  backgroundColor: '#ffc107',
+                  color: '#000'
+                }}
+                onClick={handleClear}
+              >
+                Clear All
+              </button>
+              {mapMode !== 'none' && (
+                <p style={{ fontSize: '12px', color: '#007bff', marginTop: '8px' }}>
+                  {mapMode === 'setOrigin' ? 'Click on map to set origin (green pin)' : 'Click on map to set destination (red pin)'}
+                </p>
+              )}
+            </div>
+          )}
         </div>
+
+        {/* Location Inputs - only show in text mode */}
+        {inputMode === 'text' && (
+          <div style={{ marginBottom: '24px' }}>
+            <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: '#495057' }}>
+              From
+            </label>
+            <input 
+              type="text"
+              value={origin} 
+              onChange={e => setOrigin(e.target.value)} 
+              placeholder="Enter starting address..."
+              style={{...inputStyle, ':focus': {borderColor: '#007bff', outline: 'none'}}}
+            />
+            
+            <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: '#495057' }}>
+              To
+            </label>
+            <input 
+              type="text"
+              value={destination} 
+              onChange={e => setDestination(e.target.value)} 
+              placeholder="Enter destination address..."
+              style={inputStyle}
+            />
+          </div>
+        )}
+
+        {/* Show current locations if set via map */}
+        {inputMode === 'map' && (originCoords || destinationCoords) && (
+          <div style={{ marginBottom: '24px', padding: '12px', backgroundColor: '#e8f4f8', borderRadius: '8px' }}>
+            <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', fontWeight: '600', color: '#0c5460' }}>
+              Selected Locations:
+            </h4>
+            {originCoords && (
+              <div style={{ fontSize: '12px', color: '#0c5460', marginBottom: '4px' }}>
+                <strong>Origin (A):</strong> {origin || `${originCoords[0].toFixed(4)}, ${originCoords[1].toFixed(4)}`}
+              </div>
+            )}
+            {destinationCoords && (
+              <div style={{ fontSize: '12px', color: '#0c5460' }}>
+                <strong>Destination (B):</strong> {destination || `${destinationCoords[0].toFixed(4)}, ${destinationCoords[1].toFixed(4)}`}
+              </div>
+            )}
+            <p style={{ fontSize: '11px', color: '#6c757d', marginTop: '8px', marginBottom: '0' }}>
+              Drag the pins on the map to adjust locations
+            </p>
+          </div>
+        )}
 
         {/* Time Controls */}
         <div style={{ marginBottom: '24px', padding: '16px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
@@ -525,14 +809,17 @@ function App() {
           </select>
         </div>
 
-        <button 
-          onClick={handleMapSubmit}
-          style={buttonStyle}
-          onMouseOver={e => e.target.style.backgroundColor = '#0056b3'}
-          onMouseOut={e => e.target.style.backgroundColor = '#007bff'}
-        >
-          Plan Trip
-        </button>
+        {/* Plan Trip Button - only show in text mode */}
+        {inputMode === 'text' && (
+          <button 
+            onClick={handleMapSubmit}
+            style={buttonStyle}
+            onMouseOver={e => e.target.style.backgroundColor = '#0056b3'}
+            onMouseOut={e => e.target.style.backgroundColor = '#007bff'}
+          >
+            Plan Trip
+          </button>
+        )}
 
         {/* Travel Time Display */}
         {travelTime && (
@@ -697,9 +984,28 @@ function App() {
             url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
           />
           
-          {/* Origin and destination markers */}
-          {originCoords && <Marker position={originCoords} />}
-          {destinationCoords && <Marker position={destinationCoords} />}
+          {/* Map click handler for setting origins/destinations */}
+          <MapClickHandler 
+            onOriginSet={handleOriginSet}
+            onDestinationSet={handleDestinationSet}
+            originCoords={originCoords}
+            destinationCoords={destinationCoords}
+            mapMode={mapMode}
+          />
+          
+          {/* Draggable markers */}
+          <DraggableMarker
+            position={originCoords}
+            onDragEnd={handleOriginDrag}
+            icon={originIcon}
+            popupText="Origin (A) - Drag to move"
+          />
+          <DraggableMarker
+            position={destinationCoords}
+            onDragEnd={handleDestinationDrag}
+            icon={destinationIcon}
+            popupText="Destination (B) - Drag to move"
+          />
           
           {/* Render only the selected route */}
           {routeOptions.length > 0 && routeOptions[selectedRouteIndex] ? (
