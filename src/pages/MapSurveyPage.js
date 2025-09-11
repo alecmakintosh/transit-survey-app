@@ -30,12 +30,10 @@ const estimateTravelTime = (distanceKm) => {
 
 // Helper function to get route colors from GTFS or fallback to defaults
 const getRouteColor = (leg) => {
-  // Use GTFS route color if available
   if (leg.route && leg.route.color) {
     return `#${leg.route.color}`;
   }
   
-  // Fallback to mode-based colors
   const modeColors = {
     WALK: '#28a745',      // Green
     BUS: '#007bff',       // Blue  
@@ -45,7 +43,7 @@ const getRouteColor = (leg) => {
     FERRY: '#17a2b8'      // Teal
   };
   
-  return modeColors[leg.mode] || '#6c757d'; // Gray as ultimate fallback
+  return modeColors[leg.mode] || '#6c757d';
 };
 
 const fetchOTPRoute = async (fromCoords, toCoords) => {
@@ -159,7 +157,6 @@ function FitMap({ originCoords, destinationCoords, routeLegs }) {
   const map = useMap();
   React.useEffect(() => {
     if (routeLegs && routeLegs.length > 0) {
-      // Collect all points from all legs
       const allPoints = [];
       routeLegs.forEach(leg => {
         if (leg.legGeometry && leg.legGeometry.points) {
@@ -167,12 +164,10 @@ function FitMap({ originCoords, destinationCoords, routeLegs }) {
             const legPoints = polyline.decode(leg.legGeometry.points);
             allPoints.push(...legPoints);
           } catch (error) {
-            // Fallback to leg endpoints if polyline decode fails
             allPoints.push([leg.from.lat, leg.from.lon]);
             allPoints.push([leg.to.lat, leg.to.lon]);
           }
         } else {
-          // Fallback to leg endpoints
           allPoints.push([leg.from.lat, leg.from.lon]);
           allPoints.push([leg.to.lat, leg.to.lon]);
         }
@@ -205,7 +200,15 @@ function App() {
   const [routeOptions, setRouteOptions] = useState([]);
   const [selectedRouteIndex, setSelectedRouteIndex] = useState(0);
   const [otpTravelTime, setOtpTravelTime] = useState(null);
-  const [useOTPRouting, setUseOTPRouting] = useState(true);
+  
+  // New time/date controls
+  const [departureTime, setDepartureTime] = useState('08:00');
+  const [travelDate, setTravelDate] = useState(() => {
+    const today = new Date();
+    return today.toISOString().split('T')[0];
+  });
+  const [arriveBy, setArriveBy] = useState(false);
+  const [dayType, setDayType] = useState('weekday');
 
   useEffect(() => {
     let storedSessionId = localStorage.getItem('session_id');
@@ -239,6 +242,18 @@ function App() {
       alert("Geocoding failed. Please try again.");
       return null;
     }
+  };
+
+  const getDateTimeForOTP = () => {
+    // Create a date that represents the selected day type
+    const baseDate = dayType === 'weekday' ? 
+      new Date('2024-01-02') : // Tuesday (weekday)
+      new Date('2024-01-06');  // Saturday (weekend)
+    
+    const [hours, minutes] = departureTime.split(':');
+    baseDate.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+    
+    return baseDate.toISOString();
   };
 
   const handleMapSubmit = async () => {
@@ -282,22 +297,16 @@ function App() {
 
     let finalTravelTime;
 
-    if (useOTPRouting) {
-      // Try to get OTP route options
-      const otpRoutes = await fetchOTPRoute(oCoords, dCoords);
-      if (otpRoutes && otpRoutes.length > 0) {
-        setRouteOptions(otpRoutes);
-        setSelectedRouteIndex(0); // Default to first route
-        setOtpTravelTime(Math.round(otpRoutes[0].duration / 60)); // Convert seconds to minutes
-        finalTravelTime = Math.round(otpRoutes[0].duration / 60);
-      } else {
-        // Fallback to haversine calculation
-        const distance = haversineDistance(oCoords, dCoords);
-        const estimatedTime = estimateTravelTime(distance);
-        finalTravelTime = estimatedTime;
-      }
+    // Always use OTP routing now
+    const dateTime = getDateTimeForOTP();
+    const otpRoutes = await fetchOTPRoute(oCoords, dCoords);
+    if (otpRoutes && otpRoutes.length > 0) {
+      setRouteOptions(otpRoutes);
+      setSelectedRouteIndex(0);
+      setOtpTravelTime(Math.round(otpRoutes[0].duration / 60));
+      finalTravelTime = Math.round(otpRoutes[0].duration / 60);
     } else {
-      // Use original haversine calculation
+      // Fallback to haversine calculation
       const distance = haversineDistance(oCoords, dCoords);
       const estimatedTime = estimateTravelTime(distance);
       finalTravelTime = estimatedTime;
@@ -318,6 +327,9 @@ function App() {
     const routeDetails = selectedRoute ? {
       route_option_count: routeOptions.length,
       selected_route_index: selectedRouteIndex,
+      departure_time: departureTime,
+      day_type: dayType,
+      arrive_by: arriveBy,
       route_legs_summary: selectedRoute.legs.map(leg => ({
         mode: leg.mode,
         duration_min: Math.round(leg.duration / 60),
@@ -330,7 +342,7 @@ function App() {
       destination,
       travel_time_old_min: finalTravelTime,
       travel_time_new_min: otpTravelTime,
-      route_details: routeDetails, // Store additional route info as JSON
+      //route_details: routeDetails,
       would_consider: null,
       exit_survey_data: null,
       session_id: sessionId,
@@ -375,221 +387,383 @@ function App() {
     setModalStartTime(null);
   };
 
+  const formatTime = (timeString) => {
+    const date = new Date(timeString);
+    return date.toLocaleTimeString('en-US', { 
+      hour: 'numeric', 
+      minute: '2-digit',
+      hour12: true 
+    });
+  };
+
+  // Sidebar styles
+  const sidebarStyle = {
+    position: 'fixed',
+    left: 0,
+    top: 0,
+    width: '400px',
+    height: '100vh',
+    backgroundColor: '#ffffff',
+    borderRight: '1px solid #e0e0e0',
+    padding: '20px',
+    overflowY: 'auto',
+    zIndex: 1000,
+    boxShadow: '2px 0 10px rgba(0,0,0,0.1)'
+  };
+
+  const mapStyle = {
+    position: 'fixed',
+    left: '400px',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    height: '100vh'
+  };
+
+  const inputStyle = {
+    width: '100%',
+    padding: '12px',
+    border: '2px solid #e1e5e9',
+    borderRadius: '8px',
+    fontSize: '16px',
+    marginBottom: '16px',
+    transition: 'border-color 0.2s',
+    boxSizing: 'border-box'
+  };
+
+  const buttonStyle = {
+    width: '100%',
+    padding: '14px',
+    backgroundColor: '#007bff',
+    color: 'white',
+    border: 'none',
+    borderRadius: '8px',
+    fontSize: '16px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    transition: 'background-color 0.2s',
+    marginBottom: '20px'
+  };
+
   return (
-    <div style={{ fontFamily: 'sans-serif' }}>
-      <h1 style={{ padding: '1rem' }}>Neighborhood Travel Survey (Map)</h1>
-      
-      <div style={{ padding: '1rem' }}>
-        <label>
+    <div style={{ margin: 0, padding: 0, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
+      {/* Sidebar */}
+      <div style={sidebarStyle}>
+        <h1 style={{ fontSize: '24px', fontWeight: '700', marginBottom: '8px', color: '#2c3e50' }}>
+          Transit Survey
+        </h1>
+        <p style={{ color: '#6c757d', marginBottom: '30px', fontSize: '14px' }}>
+          Plan your trip and help us improve transit services
+        </p>
+
+        {/* Location Inputs */}
+        <div style={{ marginBottom: '24px' }}>
+          <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: '#495057' }}>
+            From
+          </label>
           <input 
-            type="checkbox" 
-            checked={useOTPRouting} 
-            onChange={e => setUseOTPRouting(e.target.checked)}
+            type="text"
+            value={origin} 
+            onChange={e => setOrigin(e.target.value)} 
+            placeholder="Enter starting address..."
+            style={{...inputStyle, ':focus': {borderColor: '#007bff', outline: 'none'}}}
           />
-          Use transit routing (requires OTP server)
-        </label>
-      </div>
-
-      <div style={{ padding: '1rem' }}>
-        <label>
-          Origin:
-          <input value={origin} onChange={e => setOrigin(e.target.value)} style={{ marginLeft: '1rem' }} />
-        </label>
-        <br /><br />
-        <label>
-          Destination:
-          <input value={destination} onChange={e => setDestination(e.target.value)} style={{ marginLeft: '1rem' }} />
-        </label>
-        <br /><br />
-        <button onClick={handleMapSubmit}>Show on Map</button>
-      </div>
-
-      {travelTime && (
-        <div style={{ padding: '1rem', fontWeight: 'bold' }}>
-          Estimated Travel Time: {travelTime} minutes
-          {otpTravelTime && (
-            <div style={{ fontSize: '0.9em', fontWeight: 'normal', color: '#666' }}>
-              (Transit route: {otpTravelTime} minutes)
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Route Options Selector */}
-      {routeOptions.length > 1 && (
-        <div style={{ padding: '1rem', backgroundColor: '#f8f9fa', border: '1px solid #dee2e6', borderRadius: '4px', margin: '1rem' }}>
-          <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.1em' }}>Route Options (showing option {selectedRouteIndex + 1}):</h3>
-          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
-            {routeOptions.map((route, index) => (
-              <button
-                key={route.id}
-                style={{
-                  padding: '0.5rem 1rem',
-                  backgroundColor: selectedRouteIndex === index ? '#007bff' : '#fff',
-                  color: selectedRouteIndex === index ? '#fff' : '#000',
-                  border: '1px solid #007bff',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  fontSize: '0.9em'
-                }}
-                onClick={() => {
-                  setSelectedRouteIndex(index);
-                  setOtpTravelTime(Math.round(route.duration / 60));
-                  setTravelTime(Math.round(route.duration / 60));
-                }}
-              >
-                Option {index + 1}<br/>
-                {Math.round(route.duration / 60)}min
-              </button>
-            ))}
-          </div>
           
-          {/* Selected Route Details */}
+          <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: '#495057' }}>
+            To
+          </label>
+          <input 
+            type="text"
+            value={destination} 
+            onChange={e => setDestination(e.target.value)} 
+            placeholder="Enter destination address..."
+            style={inputStyle}
+          />
+        </div>
+
+        {/* Time Controls */}
+        <div style={{ marginBottom: '24px', padding: '16px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
+          <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: '600', color: '#495057' }}>
+            Travel Time
+          </h3>
+          
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
+              <input 
+                type="radio" 
+                checked={!arriveBy} 
+                onChange={() => setArriveBy(false)}
+                style={{ marginRight: '8px' }}
+              />
+              <span style={{ fontWeight: '500' }}>Leave at</span>
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center' }}>
+              <input 
+                type="radio" 
+                checked={arriveBy} 
+                onChange={() => setArriveBy(true)}
+                style={{ marginRight: '8px' }}
+              />
+              <span style={{ fontWeight: '500' }}>Arrive by</span>
+            </label>
+          </div>
+
+          <input 
+            type="time" 
+            value={departureTime}
+            onChange={e => setDepartureTime(e.target.value)}
+            style={{...inputStyle, marginBottom: '12px'}}
+          />
+
+          <select 
+            value={dayType}
+            onChange={e => setDayType(e.target.value)}
+            style={inputStyle}
+          >
+            <option value="weekday">Weekday</option>
+            <option value="weekend">Weekend</option>
+          </select>
+        </div>
+
+        <button 
+          onClick={handleMapSubmit}
+          style={buttonStyle}
+          onMouseOver={e => e.target.style.backgroundColor = '#0056b3'}
+          onMouseOut={e => e.target.style.backgroundColor = '#007bff'}
+        >
+          Plan Trip
+        </button>
+
+        {/* Travel Time Display */}
+        {travelTime && (
           <div style={{ 
-            padding: '0.75rem',
-            backgroundColor: '#e3f2fd',
-            border: '1px solid #2196f3',
-            borderRadius: '4px'
+            padding: '16px', 
+            backgroundColor: '#e8f4f8', 
+            borderRadius: '8px', 
+            marginBottom: '20px',
+            border: '1px solid #17a2b8'
           }}>
-            <div style={{ fontWeight: 'bold' }}>
-              Selected: {Math.round(routeOptions[selectedRouteIndex].duration / 60)} minutes
+            <div style={{ fontWeight: '600', fontSize: '18px', color: '#0c5460' }}>
+              {travelTime} minutes
             </div>
-            <div style={{ fontSize: '0.9em', marginTop: '0.25rem' }}>
-              {routeOptions[selectedRouteIndex].legs.map((leg, legIndex) => {
-                if (leg.mode === 'WALK') {
-                  return `Walk ${Math.round(leg.duration / 60)}min`;
-                } else if (leg.route) {
-                  return `${leg.route.shortName || leg.mode} ${Math.round(leg.duration / 60)}min`;
-                } else {
-                  return `${leg.mode} ${Math.round(leg.duration / 60)}min`;
-                }
-              }).join(' → ')}
+            <div style={{ fontSize: '14px', color: '#0c5460', marginTop: '4px' }}>
+              Estimated travel time
             </div>
           </div>
-        </div>
-      )}
-
-      {showModal && (
-        <div style={{
-          position: 'fixed',
-          top: '30%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          backgroundColor: '#fff',
-          border: '1px solid #ccc',
-          padding: '2rem',
-          zIndex: 9999,
-          borderRadius: '8px',
-          width: '400px',
-          boxShadow: '0 0 10px rgba(0,0,0,0.3)'
-        }}>
-          <h2>Quick Survey</h2>
-          <p>This trip takes approximately {travelTime} minutes.</p>
-          <p>Would you consider using this service?</p>
-          <button onClick={() => handleResponse(true)}>Yes</button>
-          <button onClick={() => handleResponse(false)} style={{ marginLeft: '1rem' }}>No</button>
-        </div>
-      )}
-
-      <MapContainer center={[43.7, -79.4]} zoom={11} style={{ height: "500px", width: "100%" }}>
-        <TileLayer
-          attribution='&copy; OpenStreetMap contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
-        
-        {/* Origin and destination markers */}
-        {originCoords && <Marker position={originCoords} />}
-        {destinationCoords && <Marker position={destinationCoords} />}
-        
-        {/* Render only the selected route */}
-        {routeOptions.length > 0 && routeOptions[selectedRouteIndex] ? (
-          <div>
-            {routeOptions[selectedRouteIndex].legs.map((leg, legIndex) => {
-              try {
-                if (!leg.legGeometry || !leg.legGeometry.points) {
-                  // Fallback to straight line if no geometry
-                  return (
-                    <Polyline 
-                      key={`selected-${legIndex}`}
-                      positions={[[leg.from.lat, leg.from.lon], [leg.to.lat, leg.to.lon]]}
-                      color={getRouteColor(leg)}
-                      weight={5}
-                      opacity={1}
-                      dashArray={leg.mode === 'WALK' ? '5, 5' : null}
-                    />
-                  );
-                }
-                
-                // Decode polyline geometry
-                const coords = polyline.decode(leg.legGeometry.points);
-                
-                return (
-                  <React.Fragment key={`selected-${legIndex}`}>
-                    <Polyline 
-                      positions={coords} 
-                      color={getRouteColor(leg)}
-                      weight={5}
-                      opacity={1}
-                      dashArray={leg.mode === 'WALK' ? '5, 5' : null}
-                    />
-                    {/* Markers for each leg */}
-                    <Marker position={[leg.from.lat, leg.from.lon]}>
-                      <Popup>
-                        <strong>{leg.from.name}</strong><br/>
-                        {leg.mode} - Start
-                        {leg.route && (
-                          <>
-                            <br/>{leg.route.shortName} {leg.route.longName}
-                            <br/>Duration: {Math.round(leg.duration / 60)} minutes
-                          </>
-                        )}
-                      </Popup>
-                    </Marker>
-                    <Marker position={[leg.to.lat, leg.to.lon]}>
-                      <Popup>
-                        <strong>{leg.to.name}</strong><br/>
-                        {leg.mode} - End
-                      </Popup>
-                    </Marker>
-                  </React.Fragment>
-                );
-              } catch (error) {
-                console.error("Error rendering leg", legIndex, error);
-                return null;
-              }
-            })}
-          </div>
-        ) : (
-          /* Fallback: simple straight line */
-          originCoords && destinationCoords && 
-          <Polyline positions={[originCoords, destinationCoords]} color="blue" />
         )}
-        
-        <FitMap 
-          originCoords={originCoords} 
-          destinationCoords={destinationCoords} 
-          routeLegs={routeOptions[selectedRouteIndex]?.legs || []}
-        />
-      </MapContainer>
-      
-      {tripHistory.length > 0 && (
-        <div style={{ padding: '1rem', marginTop: '1rem' }}>
+
+        {/* Route Options */}
+        {routeOptions.length > 1 && (
+          <div style={{ marginBottom: '20px' }}>
+            <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: '600', color: '#495057' }}>
+              Route Options
+            </h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {routeOptions.map((route, index) => (
+                <button
+                  key={route.id}
+                  style={{
+                    padding: '12px',
+                    backgroundColor: selectedRouteIndex === index ? '#007bff' : '#fff',
+                    color: selectedRouteIndex === index ? '#fff' : '#000',
+                    border: `2px solid ${selectedRouteIndex === index ? '#007bff' : '#e1e5e9'}`,
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    textAlign: 'left',
+                    transition: 'all 0.2s'
+                  }}
+                  onClick={() => {
+                    setSelectedRouteIndex(index);
+                    setOtpTravelTime(Math.round(route.duration / 60));
+                    setTravelTime(Math.round(route.duration / 60));
+                  }}
+                >
+                  <div style={{ fontWeight: '600', marginBottom: '4px' }}>
+                    Option {index + 1}: {Math.round(route.duration / 60)} min
+                  </div>
+                  <div style={{ fontSize: '12px', opacity: 0.8 }}>
+                    {formatTime(route.startTime)} → {formatTime(route.endTime)}
+                  </div>
+                  <div style={{ fontSize: '12px', marginTop: '4px' }}>
+                    {route.legs.map((leg, legIndex) => {
+                      if (leg.mode === 'WALK') {
+                        return `Walk ${Math.round(leg.duration / 60)}min`;
+                      } else if (leg.route) {
+                        return `${leg.route.shortName || leg.mode} ${Math.round(leg.duration / 60)}min`;
+                      } else {
+                        return `${leg.mode} ${Math.round(leg.duration / 60)}min`;
+                      }
+                    }).join(' → ')}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Finish Survey Button */}
+        {tripHistory.length > 0 && (
           <button
             onClick={() => navigate('/exit')}
             style={{
+              ...buttonStyle,
               backgroundColor: '#28a745',
-              color: 'white',
-              padding: '0.5rem 1rem',
-              border: 'none',
-              borderRadius: '4px',
-              fontSize: '16px',
-              cursor: 'pointer',
+              marginTop: '20px'
             }}
+            onMouseOver={e => e.target.style.backgroundColor = '#218838'}
+            onMouseOut={e => e.target.style.backgroundColor = '#28a745'}
           >
             Finish Survey
           </button>
+        )}
+      </div>
+
+      {/* Modal */}
+      {showModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          zIndex: 2000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <div style={{
+            backgroundColor: '#fff',
+            padding: '32px',
+            borderRadius: '12px',
+            width: '400px',
+            maxWidth: '90vw',
+            boxShadow: '0 10px 25px rgba(0,0,0,0.3)'
+          }}>
+            <h2 style={{ margin: '0 0 16px 0', fontSize: '20px', fontWeight: '600' }}>Quick Survey</h2>
+            <p style={{ marginBottom: '20px', color: '#6c757d' }}>
+              This trip takes approximately {travelTime} minutes.
+            </p>
+            <p style={{ marginBottom: '24px', fontWeight: '500' }}>
+              Would you consider using this service?
+            </p>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button 
+                onClick={() => handleResponse(true)}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  backgroundColor: '#28a745',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  fontSize: '16px',
+                  cursor: 'pointer'
+                }}
+              >
+                Yes
+              </button>
+              <button 
+                onClick={() => handleResponse(false)}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  backgroundColor: '#dc3545',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  fontSize: '16px',
+                  cursor: 'pointer'
+                }}
+              >
+                No
+              </button>
+            </div>
+          </div>
         </div>
       )}
+
+      {/* Full-screen Map */}
+      <div style={mapStyle}>
+        <MapContainer 
+          center={[43.7, -79.4]} 
+          zoom={11} 
+          style={{ height: "100%", width: "100%" }}
+          zoomControl={true}
+        >
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+            url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+          />
+          
+          {/* Origin and destination markers */}
+          {originCoords && <Marker position={originCoords} />}
+          {destinationCoords && <Marker position={destinationCoords} />}
+          
+          {/* Render only the selected route */}
+          {routeOptions.length > 0 && routeOptions[selectedRouteIndex] ? (
+            <div>
+              {routeOptions[selectedRouteIndex].legs.map((leg, legIndex) => {
+                try {
+                  if (!leg.legGeometry || !leg.legGeometry.points) {
+                    return (
+                      <Polyline 
+                        key={`selected-${legIndex}`}
+                        positions={[[leg.from.lat, leg.from.lon], [leg.to.lat, leg.to.lon]]}
+                        color={getRouteColor(leg)}
+                        weight={6}
+                        opacity={0.8}
+                        dashArray={leg.mode === 'WALK' ? '10, 5' : null}
+                      />
+                    );
+                  }
+                  
+                  const coords = polyline.decode(leg.legGeometry.points);
+                  
+                  return (
+                    <React.Fragment key={`selected-${legIndex}`}>
+                      <Polyline 
+                        positions={coords} 
+                        color={getRouteColor(leg)}
+                        weight={6}
+                        opacity={0.8}
+                        dashArray={leg.mode === 'WALK' ? '10, 5' : null}
+                      />
+                      <Marker position={[leg.from.lat, leg.from.lon]}>
+                        <Popup>
+                          <div style={{ minWidth: '200px' }}>
+                            <strong>{leg.from.name}</strong><br/>
+                            <span style={{ color: '#6c757d' }}>{leg.mode} - Start</span>
+                            {leg.route && (
+                              <>
+                                <br/><strong>{leg.route.shortName}</strong> {leg.route.longName}
+                                <br/>Duration: {Math.round(leg.duration / 60)} minutes
+                              </>
+                            )}
+                          </div>
+                        </Popup>
+                      </Marker>
+                    </React.Fragment>
+                  );
+                } catch (error) {
+                  console.error("Error rendering leg", legIndex, error);
+                  return null;
+                }
+              })}
+            </div>
+          ) : (
+            originCoords && destinationCoords && 
+            <Polyline positions={[originCoords, destinationCoords]} color="#007bff" weight={4} opacity={0.7} />
+          )}
+          
+          <FitMap 
+            originCoords={originCoords} 
+            destinationCoords={destinationCoords} 
+            routeLegs={routeOptions[selectedRouteIndex]?.legs || []}
+          />
+        </MapContainer>
+      </div>
     </div>
   );
 }
