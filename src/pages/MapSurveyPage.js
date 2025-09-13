@@ -79,9 +79,9 @@ const getRouteColor = (leg) => {
   
   const modeColors = {
     WALK: '#28a745',      // Green
-    BUS: '#007bff',       // Blue  
-    SUBWAY: '#dc3545',    // Red
-    TRAM: '#ffc107',      // Yellow
+    BUS: '#000000',//'#007bff',       // Blue  
+    SUBWAY: '#000000',//'#dc3545',    // Red
+    TRAM: '#000000',//'#ffc107',      // Yellow
     RAIL: '#6f42c1',      // Purple
     FERRY: '#17a2b8'      // Teal
   };
@@ -845,46 +845,135 @@ function App() {
             <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: '600', color: '#495057' }}>
               Route Options
             </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {routeOptions.map((route, index) => (
-                <button
-                  key={route.id}
-                  style={{
-                    padding: '12px',
-                    backgroundColor: selectedRouteIndex === index ? '#007bff' : '#fff',
-                    color: selectedRouteIndex === index ? '#fff' : '#000',
-                    border: `2px solid ${selectedRouteIndex === index ? '#007bff' : '#e1e5e9'}`,
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontSize: '14px',
-                    textAlign: 'left',
-                    transition: 'all 0.2s'
-                  }}
-                  onClick={() => {
-                    setSelectedRouteIndex(index);
-                    setOtpTravelTime(Math.round(route.duration / 60));
-                    setTravelTime(Math.round(route.duration / 60));
-                  }}
-                >
-                  <div style={{ fontWeight: '600', marginBottom: '4px' }}>
-                    Option {index + 1}: {Math.round(route.duration / 60)} min
-                  </div>
-                  <div style={{ fontSize: '12px', opacity: 0.8 }}>
-                    {formatTime(route.startTime)} → {formatTime(route.endTime)}
-                  </div>
-                  <div style={{ fontSize: '12px', marginTop: '4px' }}>
-                    {route.legs.map((leg, legIndex) => {
-                      if (leg.mode === 'WALK') {
-                        return `Walk ${Math.round(leg.duration / 60)}min`;
-                      } else if (leg.route) {
-                        return `${leg.route.shortName || leg.mode} ${Math.round(leg.duration / 60)}min`;
-                      } else {
-                        return `${leg.mode} ${Math.round(leg.duration / 60)}min`;
-                      }
-                    }).join(' → ')}
-                  </div>
-                </button>
-              ))}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {routeOptions.map((route, index) => {
+                // Create visual representation of the route legs
+                const renderLegPill = (leg, legIndex) => {
+                  const legColor = getRouteColor(leg);
+                  const duration = Math.round(leg.duration / 60);
+                  
+                  let displayText = '';
+                  let icon = '';
+                  
+                  if (leg.mode === 'WALK') {
+                    displayText = `${duration} min`;
+                    icon = '🚶';
+                  } else if (leg.route && leg.route.shortName) {
+                    displayText = leg.route.shortName;
+                    icon = leg.mode === 'BUS' ? '🚌' : leg.mode === 'SUBWAY' ? '🚇' : leg.mode === 'TRAM' ? '🚊' : '🚌';
+                  } else {
+                    displayText = `${leg.mode.toLowerCase()} ${duration}min`;
+                    icon = '🚌';
+                  }
+
+                  return (
+                    <div
+                      key={legIndex}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        backgroundColor: legColor,
+                        color: leg.mode === 'WALK' ? '#000' : '#fff',
+                        padding: '4px 8px',
+                        borderRadius: '12px',
+                        fontSize: '11px',
+                        fontWeight: '600',
+                        margin: '2px',
+                        minWidth: leg.mode === 'WALK' ? '50px' : '40px',
+                        justifyContent: 'center',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+                      }}
+                      title={`${leg.mode}: ${leg.from.name} → ${leg.to.name} (${duration} min)`}
+                    >
+                      <span style={{ marginRight: '2px', fontSize: '10px' }}>{icon}</span>
+                      {displayText}
+                    </div>
+                  );
+                };
+
+                return (
+                  <button
+                    key={route.id}
+                    style={{
+                      padding: '16px',
+                      backgroundColor: selectedRouteIndex === index ? '#f8f9fa' : '#fff',
+                      color: '#000',
+                      border: `2px solid ${selectedRouteIndex === index ? '#007bff' : '#e1e5e9'}`,
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      textAlign: 'left',
+                      transition: 'all 0.2s',
+                      boxShadow: selectedRouteIndex === index ? '0 2px 8px rgba(0,123,255,0.2)' : '0 1px 3px rgba(0,0,0,0.1)'
+                    }}
+                    onClick={() => {
+                      setSelectedRouteIndex(index);
+                      setOtpTravelTime(Math.round(route.duration / 60));
+                      setTravelTime(Math.round(route.duration / 60));
+                    }}
+                  >
+                    {/* Route header */}
+                    <div style={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'center',
+                      marginBottom: '12px' 
+                    }}>
+                      <div style={{ fontWeight: '700', fontSize: '16px', color: '#2c3e50' }}>
+                        Option {index + 1}
+                      </div>
+                      <div style={{ 
+                        fontWeight: '700', 
+                        fontSize: '18px', 
+                        color: selectedRouteIndex === index ? '#007bff' : '#28a745' 
+                      }}>
+                        {Math.round(route.duration / 60)} min
+                      </div>
+                    </div>
+                    
+                    {/* Visual route representation */}
+                    <div style={{ 
+                      display: 'flex', 
+                      flexWrap: 'wrap', 
+                      alignItems: 'center',
+                      marginBottom: '8px',
+                      minHeight: '30px'
+                    }}>
+                      {route.legs.map((leg, legIndex) => (
+                        <React.Fragment key={legIndex}>
+                          {renderLegPill(leg, legIndex)}
+                          {legIndex < route.legs.length - 1 && (
+                            <span style={{ 
+                              margin: '0 4px', 
+                              color: '#6c757d',
+                              fontSize: '12px'
+                            }}>→</span>
+                          )}
+                        </React.Fragment>
+                      ))}
+                    </div>
+                    
+                    {/* Time range */}
+                    <div style={{ 
+                      fontSize: '12px', 
+                      color: '#6c757d',
+                      fontWeight: '500'
+                    }}>
+                      {formatTime(route.startTime)} → {formatTime(route.endTime)}
+                    </div>
+                    
+                    {/* Debug info - you can remove this later */}
+                    <div style={{ 
+                      fontSize: '10px', 
+                      color: '#999',
+                      marginTop: '4px',
+                      fontFamily: 'monospace'
+                    }}>
+                      Colors: {route.legs.map(leg => getRouteColor(leg).slice(1, 4)).join(', ')}
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}
