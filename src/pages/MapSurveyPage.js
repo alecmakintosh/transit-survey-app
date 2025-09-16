@@ -821,26 +821,8 @@ function App() {
           </button>
         )}
 
-        {/* Travel Time Display */}
-        {travelTime && (
-          <div style={{ 
-            padding: '16px', 
-            backgroundColor: '#e8f4f8', 
-            borderRadius: '8px', 
-            marginBottom: '20px',
-            border: '1px solid #17a2b8'
-          }}>
-            <div style={{ fontWeight: '600', fontSize: '18px', color: '#0c5460' }}>
-              {travelTime} minutes
-            </div>
-            <div style={{ fontSize: '14px', color: '#0c5460', marginTop: '4px' }}>
-              Estimated travel time
-            </div>
-          </div>
-        )}
-
         {/* Route Options */}
-        {routeOptions.length > 1 && (
+        {routeOptions.length > 0 && (
           <div style={{ marginBottom: '20px' }}>
             <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: '600', color: '#495057' }}>
               Route Options
