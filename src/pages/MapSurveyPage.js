@@ -656,7 +656,9 @@ function App() {
     padding: '16px',
     overflowY: 'auto',
     zIndex: 1000,
-    boxShadow: '2px 0 10px rgba(0,0,0,0.1)'
+    boxShadow: '2px 0 10px rgba(0,0,0,0.1)',
+    display: 'flex',
+    flexDirection: 'column'
   };
 
   const mapStyle = {
@@ -722,11 +724,11 @@ function App() {
 
         {/* Unified Trip Information Container */}
         <div style={{ 
-          marginBottom: '12px', 
+          marginBottom: '8px',
           padding: '12px', 
           backgroundColor: '#f8f9fa', 
           borderRadius: '6px',
-          height: '380px',
+          height: '340px',
           display: 'flex',
           flexDirection: 'column'
         }}>
@@ -883,54 +885,57 @@ function App() {
             </div>
           </div>
 
-          {/* Map interaction controls - only show when Click on Map is selected */}
-          {inputMode === 'map' && (
-            <div style={{ marginBottom: '12px' }}>
-              <p style={{ fontSize: '12px', color: '#6c757d', marginBottom: '8px', margin: '0 0 8px 0' }}>
-                Click the buttons below, then click on the map to set locations:
-              </p>
-              <div style={{ display: 'flex', gap: '6px', marginBottom: '8px' }}>
-                <button
-                  style={{
-                    ...smallButtonStyle,
-                    backgroundColor: mapMode === 'setOrigin' ? '#28a745' : '#6c757d',
-                    marginBottom: '0'
-                  }}
-                  onClick={() => setMapMode('setOrigin')}
-                >
-                  Set Origin (A)
-                </button>
-                <button
-                  style={{
-                    ...smallButtonStyle,
-                    backgroundColor: mapMode === 'setDestination' ? '#dc3545' : '#6c757d',
-                    marginBottom: '0'
-                  }}
-                  onClick={() => setMapMode('setDestination')}
-                >
-                  Set Destination (B)
-                </button>
-                <button
-                  style={{
-                    ...smallButtonStyle,
-                    backgroundColor: '#ffc107',
-                    color: '#000',
-                    marginBottom: '0'
-                  }}
-                  onClick={handleClear}
-                >
-                  Clear All
-                </button>
-              </div>
-              {mapMode !== 'none' && (
-                <p style={{ fontSize: '11px', color: '#007bff', margin: '0' }}>
-                  {mapMode === 'setOrigin' ? 'Click on map to set origin (green pin)' : 'Click on map to set destination (red pin)'}
+          {/* Fixed height space for map controls - prevents layout shift */}
+          <div style={{ height: '60px', marginBottom: '12px' }}>
+            {/* Map interaction controls - only show when Click on Map is selected */}
+            {inputMode === 'map' && (
+              <div>
+                <p style={{ fontSize: '12px', color: '#6c757d', margin: '0 0 8px 0' }}>
+                  Click the buttons below, then click on the map to set locations:
                 </p>
-              )}
-            </div>
-          )}
+                <div style={{ display: 'flex', gap: '6px', marginBottom: '8px' }}>
+                  <button
+                    style={{
+                      ...smallButtonStyle,
+                      backgroundColor: mapMode === 'setOrigin' ? '#28a745' : '#6c757d',
+                      marginBottom: '0'
+                    }}
+                    onClick={() => setMapMode('setOrigin')}
+                  >
+                    Set Origin (A)
+                  </button>
+                  <button
+                    style={{
+                      ...smallButtonStyle,
+                      backgroundColor: mapMode === 'setDestination' ? '#dc3545' : '#6c757d',
+                      marginBottom: '0'
+                    }}
+                    onClick={() => setMapMode('setDestination')}
+                  >
+                    Set Destination (B)
+                  </button>
+                  <button
+                    style={{
+                      ...smallButtonStyle,
+                      backgroundColor: '#ffc107',
+                      color: '#000',
+                      marginBottom: '0'
+                    }}
+                    onClick={handleClear}
+                  >
+                    Clear All
+                  </button>
+                </div>
+                {mapMode !== 'none' && (
+                  <p style={{ fontSize: '11px', color: '#007bff', margin: '0' }}>
+                    {mapMode === 'setOrigin' ? 'Click on map to set origin (green pin)' : 'Click on map to set destination (red pin)'}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
 
-          {/* Travel Time Controls - Compact horizontal layout */}
+          {/* Travel Time Controls - Improved single line layout */}
           <div style={{ 
             border: '2px solid #e1e5e9', 
             borderRadius: '6px', 
@@ -938,53 +943,55 @@ function App() {
             padding: '8px 12px',
             marginBottom: '12px'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <label style={{ display: 'flex', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', whiteSpace: 'nowrap' }}>
                   <input 
                     type="radio" 
                     checked={!arriveBy} 
                     onChange={() => setArriveBy(false)}
                     style={{ marginRight: '4px' }}
                   />
-                  <span style={{ fontSize: '12px', color: '#495057' }}>Leave By</span>
+                  <span style={{ fontSize: '12px', color: '#495057' }}>Leave</span>
                 </label>
-                <label style={{ display: 'flex', alignItems: 'center' }}>
+                <label style={{ display: 'flex', alignItems: 'center', whiteSpace: 'nowrap' }}>
                   <input 
                     type="radio" 
                     checked={arriveBy} 
                     onChange={() => setArriveBy(true)}
                     style={{ marginRight: '4px' }}
                   />
-                  <span style={{ fontSize: '12px', color: '#495057' }}>Arrive By</span>
+                  <span style={{ fontSize: '12px', color: '#495057' }}>Arrive</span>
                 </label>
               </div>
               
-              <input 
-                type="time" 
-                value={departureTime}
-                onChange={e => setDepartureTime(e.target.value)}
-                style={{
-                  border: '1px solid #ddd',
-                  borderRadius: '4px',
-                  padding: '4px 6px',
-                  fontSize: '12px'
-                }}
-              />
-              
-              <select 
-                value={dayType}
-                onChange={e => setDayType(e.target.value)}
-                style={{
-                  border: '1px solid #ddd',
-                  borderRadius: '4px',
-                  padding: '4px 6px',
-                  fontSize: '12px'
-                }}
-              >
-                <option value="weekday">Weekday</option>
-                <option value="weekend">Weekend</option>
-              </select>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <input 
+                  type="time" 
+                  value={departureTime}
+                  onChange={e => setDepartureTime(e.target.value)}
+                  style={{
+                    border: '1px solid #ddd',
+                    borderRadius: '4px',
+                    padding: '4px 6px',
+                    fontSize: '12px'
+                  }}
+                />
+                
+                <select 
+                  value={dayType}
+                  onChange={e => setDayType(e.target.value)}
+                  style={{
+                    border: '1px solid #ddd',
+                    borderRadius: '4px',
+                    padding: '4px 6px',
+                    fontSize: '12px'
+                  }}
+                >
+                  <option value="weekday">Weekday</option>
+                  <option value="weekend">Weekend</option>
+                </select>
+              </div>
             </div>
           </div>
 
@@ -1014,166 +1021,207 @@ function App() {
           </button>
         </div>
 
-        {/* Route Options - Transitous-inspired design */}
-        {routeOptions.length > 0 && (
-          <div style={{ marginBottom: '16px' }}>
-            <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', fontWeight: '600', color: '#495057' }}>
-              Route Options
-            </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              {routeOptions.map((route, index) => {
-                // Calculate total walking time
-                const walkingTime = route.legs
-                  .filter(leg => leg.mode === 'WALK')
-                  .reduce((total, leg) => total + Math.round(leg.duration / 60), 0);
-                
-                // Filter out walk legs under 1.5 minutes for display
-                const displayLegs = route.legs.filter(leg => {
-                  if (leg.mode === 'WALK') {
-                    return leg.duration >= 90;
-                  }
-                  return true;
-                });
+        {/* Scrollable Route Options Container */}
+        <div style={{ 
+          flex: '1 1 auto',
+          display: 'flex',
+          flexDirection: 'column',
+          minHeight: 0,
+          paddingBottom: '80px'
+        }}>
+          {/* Route Options - Improved layout for vital information */}
+          {routeOptions.length > 0 && (
+            <div style={{ flex: '1 1 auto', overflow: 'auto' }}>
+              <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', fontWeight: '600', color: '#495057' }}>
+                Route Options
+              </h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {routeOptions.map((route, index) => {
+                  // Calculate total walking time
+                  const walkingTime = route.legs
+                    .filter(leg => leg.mode === 'WALK')
+                    .reduce((total, leg) => total + Math.round(leg.duration / 60), 0);
+                  
+                  // Filter out walk legs under 1.5 minutes for display
+                  const displayLegs = route.legs.filter(leg => {
+                    if (leg.mode === 'WALK') {
+                      return leg.duration >= 90;
+                    }
+                    return true;
+                  });
 
-                // Count transfers (number of transit legs - 1)
-                const transitLegs = route.legs.filter(leg => leg.mode !== 'WALK');
-                const transfers = Math.max(0, transitLegs.length - 1);
+                  // Count transfers (number of transit legs - 1)
+                  const transitLegs = route.legs.filter(leg => leg.mode !== 'WALK');
+                  const transfers = Math.max(0, transitLegs.length - 1);
 
-                return (
-                  <button
-                    key={route.id}
-                    style={{
-                      padding: '12px',
-                      backgroundColor: selectedRouteIndex === index ? '#f0f8ff' : '#fff',
-                      color: '#000',
-                      border: `2px solid ${selectedRouteIndex === index ? '#007bff' : '#e1e5e9'}`,
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      fontSize: '12px',
-                      textAlign: 'left',
-                      transition: 'all 0.2s',
-                      boxShadow: selectedRouteIndex === index ? '0 2px 6px rgba(0,123,255,0.15)' : '0 1px 2px rgba(0,0,0,0.05)'
-                    }}
-                    onClick={() => {
-                      setSelectedRouteIndex(index);
-                      setOtpTravelTime(Math.round(route.duration / 60));
-                      setTravelTime(Math.round(route.duration / 60));
-                    }}
-                  >
-                    {/* Header with departure time, arrival time, and total duration */}
-                    <div style={{ 
-                      display: 'flex', 
-                      justifyContent: 'space-between', 
-                      alignItems: 'center',
-                      marginBottom: '8px',
-                      fontWeight: '600'
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px' }}>
-                        <span>{formatTime(route.startTime)}</span>
-                        <span style={{ color: '#6c757d' }}>→</span>
-                        <span>{formatTime(route.endTime)}</span>
-                      </div>
+                  return (
+                    <button
+                      key={route.id}
+                      style={{
+                        padding: '16px',
+                        backgroundColor: selectedRouteIndex === index ? '#f0f8ff' : '#fff',
+                        color: '#000',
+                        border: `2px solid ${selectedRouteIndex === index ? '#007bff' : '#e1e5e9'}`,
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontSize: '12px',
+                        textAlign: 'left',
+                        transition: 'all 0.2s',
+                        boxShadow: selectedRouteIndex === index ? '0 2px 6px rgba(0,123,255,0.15)' : '0 1px 2px rgba(0,0,0,0.05)'
+                      }}
+                      onClick={() => {
+                        setSelectedRouteIndex(index);
+                        setOtpTravelTime(Math.round(route.duration / 60));
+                        setTravelTime(Math.round(route.duration / 60));
+                      }}
+                    >
+                      {/* Top row: Trip duration prominently displayed */}
                       <div style={{ 
-                        fontSize: '16px', 
-                        color: selectedRouteIndex === index ? '#007bff' : '#28a745',
-                        fontWeight: '700'
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        alignItems: 'center',
+                        marginBottom: '12px'
                       }}>
-                        {Math.round(route.duration / 60)} min
+                        <div style={{ 
+                          fontSize: '24px', 
+                          fontWeight: '700',
+                          color: selectedRouteIndex === index ? '#007bff' : '#28a745'
+                        }}>
+                          {Math.round(route.duration / 60)} min
+                        </div>
+                        <div style={{ fontSize: '11px', color: '#6c757d', textAlign: 'right' }}>
+                          Option {index + 1}
+                        </div>
                       </div>
-                    </div>
-                    
-                    {/* Route visualization pills */}
-                    <div style={{ 
-                      display: 'flex', 
-                      flexWrap: 'wrap', 
-                      alignItems: 'center',
-                      marginBottom: '8px',
-                      minHeight: '20px'
-                    }}>
-                      {displayLegs.map((leg, legIndex) => {
-                        const legColor = getRouteColor(leg);
-                        const duration = Math.round(leg.duration / 60);
-                        let displayText = '';
-                        let iconClass = getModeIcon(leg);
-                        
-                        if (leg.mode === 'WALK') {
-                          displayText = `${duration}min`;
-                        } else if (leg.route && leg.route.shortName) {
-                          displayText = leg.route.shortName;
-                        } else {
-                          displayText = leg.mode.toLowerCase();
-                        }
 
-                        return (
-                          <React.Fragment key={legIndex}>
-                            <div
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                backgroundColor: legColor,
-                                color: leg.mode === 'WALK' ? '#000' : '#fff',
-                                padding: '2px 6px',
-                                borderRadius: '8px',
-                                fontSize: '10px',
-                                fontWeight: '600',
-                                margin: '1px',
-                                minWidth: '24px',
-                                justifyContent: 'center'
-                              }}
-                            >
-                              <i className={iconClass} style={{ marginRight: '2px', fontSize: '8px' }}></i>
-                              {displayText}
-                            </div>
-                            {legIndex < displayLegs.length - 1 && (
-                              <span style={{ 
-                                margin: '0 2px', 
-                                color: '#6c757d',
-                                fontSize: '10px'
-                              }}>→</span>
-                            )}
-                          </React.Fragment>
-                        );
-                      })}
-                    </div>
-                    
-                    {/* Stats row - Walking time and transfers */}
-                    <div style={{ 
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      fontSize: '11px',
-                      color: '#6c757d'
-                    }}>
-                      <span>
-                        {walkingTime > 0 && `${walkingTime} min walking`}
-                        {walkingTime > 0 && transfers > 0 && ' • '}
-                        {transfers > 0 && `${transfers} transfer${transfers > 1 ? 's' : ''}`}
-                        {walkingTime === 0 && transfers === 0 && 'Direct route'}
-                      </span>
-                      <span>Option {index + 1}</span>
-                    </div>
-                  </button>
-                );
-              })}
+                      {/* Second row: Times and key stats in one line */}
+                      <div style={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        alignItems: 'center',
+                        marginBottom: '10px',
+                        fontSize: '13px',
+                        fontWeight: '500'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span>{formatTime(route.startTime)}</span>
+                          <span style={{ color: '#6c757d' }}>→</span>
+                          <span>{formatTime(route.endTime)}</span>
+                        </div>
+                        <div style={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: '12px',
+                          fontSize: '11px',
+                          color: '#6c757d'
+                        }}>
+                          {walkingTime > 0 && (
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                              <i className="fas fa-walking" style={{ fontSize: '10px' }}></i>
+                              {walkingTime}min
+                            </span>
+                          )}
+                          {transfers > 0 && (
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                              <i className="fas fa-exchange-alt" style={{ fontSize: '10px' }}></i>
+                              {transfers}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {/* Third row: Route visualization pills */}
+                      <div style={{ 
+                        display: 'flex', 
+                        flexWrap: 'wrap', 
+                        alignItems: 'center',
+                        minHeight: '20px'
+                      }}>
+                        {displayLegs.map((leg, legIndex) => {
+                          const legColor = getRouteColor(leg);
+                          const duration = Math.round(leg.duration / 60);
+                          let displayText = '';
+                          let iconClass = getModeIcon(leg);
+                          
+                          if (leg.mode === 'WALK') {
+                            displayText = `${duration}min`;
+                          } else if (leg.route && leg.route.shortName) {
+                            displayText = leg.route.shortName;
+                          } else {
+                            displayText = leg.mode.toLowerCase();
+                          }
+
+                          return (
+                            <React.Fragment key={legIndex}>
+                              <div
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  backgroundColor: legColor,
+                                  color: leg.mode === 'WALK' ? '#000' : '#fff',
+                                  padding: '2px 6px',
+                                  borderRadius: '8px',
+                                  fontSize: '10px',
+                                  fontWeight: '600',
+                                  margin: '1px',
+                                  minWidth: '24px',
+                                  justifyContent: 'center'
+                                }}
+                              >
+                                <i className={iconClass} style={{ marginRight: '2px', fontSize: '8px' }}></i>
+                                {displayText}
+                              </div>
+                              {legIndex < displayLegs.length - 1 && (
+                                <span style={{ 
+                                  margin: '0 2px', 
+                                  color: '#6c757d',
+                                  fontSize: '10px'
+                                }}>→</span>
+                              )}
+                            </React.Fragment>
+                          );
+                        })}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Finish Survey Button */}
-        {tripHistory.length > 0 && (
-          <button
-            onClick={() => navigate('/exit')}
-            style={{
-              ...buttonStyle,
-              backgroundColor: '#28a745',
-              marginTop: '20px'
-            }}
-            onMouseOver={e => e.target.style.backgroundColor = '#218838'}
-            onMouseOut={e => e.target.style.backgroundColor = '#28a745'}
-          >
-            Finish Survey
-          </button>
-        )}
+          {/* Fixed Finish Survey Button */}
+          {tripHistory.length > 0 && (
+            <div style={{
+              position: 'fixed',
+              bottom: '16px',
+              left: '16px',
+              right: '416px',
+              zIndex: 1001
+            }}>
+              <button
+                onClick={() => navigate('/exit')}
+                style={{
+                  width: '368px',
+                  padding: '12px',
+                  backgroundColor: '#28a745',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'background-color 0.2s',
+                  boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
+                }}
+                onMouseOver={e => e.target.style.backgroundColor = '#218838'}
+                onMouseOut={e => e.target.style.backgroundColor = '#28a745'}
+              >
+                Finish Survey
+              </button>
+            </div>
+          )}
+        </div>
+
       </div>
 
       {/* Modal */}
@@ -1248,6 +1296,7 @@ function App() {
           zoom={11} 
           style={{ height: "100%", width: "100%" }}
           zoomControl={true}
+          zoomControlOptions={{ position: 'topright' }}
         >
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
