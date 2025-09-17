@@ -1080,13 +1080,13 @@ function App() {
           
           {/* Render only the selected route */}
           {routeOptions.length > 0 && routeOptions[selectedRouteIndex] ? (
-            <div>
+            <div key={`route-${selectedRouteIndex}`}>
               {routeOptions[selectedRouteIndex].legs.map((leg, legIndex) => {
                 try {
                   if (!leg.legGeometry || !leg.legGeometry.points) {
                     return (
-                      <Polyline 
-                        key={`selected-${legIndex}`}
+                      <Polyline
+                        key={`route-${selectedRouteIndex}-leg-${legIndex}`}
                         positions={[[leg.from.lat, leg.from.lon], [leg.to.lat, leg.to.lon]]}
                         color={getRouteColor(leg)}
                         weight={6}
@@ -1095,13 +1095,13 @@ function App() {
                       />
                     );
                   }
-                  
+
                   const coords = polyline.decode(leg.legGeometry.points);
-                  
+
                   return (
-                    <React.Fragment key={`selected-${legIndex}`}>
-                      <Polyline 
-                        positions={coords} 
+                    <React.Fragment key={`route-${selectedRouteIndex}-leg-${legIndex}`}>
+                      <Polyline
+                        positions={coords}
                         color={getRouteColor(leg)}
                         weight={6}
                         opacity={0.8}
