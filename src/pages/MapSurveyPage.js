@@ -46,8 +46,40 @@ const createCustomIcon = (color, isDestination = false) => {
   });
 };
 
+// Transfer point icon - matches the style of origin/destination markers
+const createTransferIcon = () => {
+  return L.divIcon({
+    className: 'transfer-marker',
+    html: `
+      <div style="
+        background-color: #ffc107;
+        width: 20px;
+        height: 20px;
+        border-radius: 50% 50% 50% 0;
+        border: 2px solid white;
+        transform: rotate(-45deg);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      ">
+        <span style="
+          color: white;
+          font-weight: bold;
+          font-size: 10px;
+          transform: rotate(45deg);
+        ">T</span>
+      </div>
+    `,
+    iconSize: [20, 20],
+    iconAnchor: [10, 20],
+    popupAnchor: [0, -20]
+  });
+};
+
 const originIcon = createCustomIcon('#28a745', false);
 const destinationIcon = createCustomIcon('#dc3545', true);
+const transferIcon = createTransferIcon();
 
 const haversineDistance = (coords1, coords2) => {
   const toRad = (x) => x * Math.PI / 180;
@@ -79,14 +111,44 @@ const getRouteColor = (leg) => {
   
   const modeColors = {
     WALK: '#28a745',      // Green
-    BUS: '#000000',//'#007bff',       // Blue  
-    SUBWAY: '#000000',//'#dc3545',    // Red
-    TRAM: '#000000',//'#ffc107',      // Yellow
+    BUS: '#000000',       // Black
+    SUBWAY: '#000000',    // Black
+    TRAM: '#000000',      // Black
     RAIL: '#6f42c1',      // Purple
     FERRY: '#17a2b8'      // Teal
   };
   
   return modeColors[leg.mode] || '#6c757d';
+};
+
+// Helper function to get Font Awesome class for transport modes
+const getModeIcon = (leg) => {
+  const modeIcons = {
+    WALK: 'fas fa-walking',
+    BUS: 'fas fa-bus',
+    SUBWAY: 'fas fa-subway',
+    TRAM: 'fas fa-tram',
+    RAIL: 'fas fa-train',
+    FERRY: 'fas fa-ship'
+  };
+  
+  return modeIcons[leg.mode] || 'fas fa-bus';
+};
+
+// Helper function to check if an itinerary is exclusively walking
+const isWalkOnlyItinerary = (itinerary) => {
+  return itinerary.legs.every(leg => leg.mode === 'WALK');
+};
+
+// Helper function to sort itineraries (non-walk-only first)
+const sortItineraries = (itineraries) => {
+  if (itineraries.length <= 1) return itineraries;
+  
+  const nonWalkOnly = itineraries.filter(itinerary => !isWalkOnlyItinerary(itinerary));
+  const walkOnly = itineraries.filter(itinerary => isWalkOnlyItinerary(itinerary));
+  
+  // If there are non-walk-only routes, put them first
+  return [...nonWalkOnly, ...walkOnly];
 };
 
 const fetchOTPRoute = async (fromCoords, toCoords) => {
@@ -157,7 +219,8 @@ const fetchOTPRoute = async (fromCoords, toCoords) => {
     
     if (data.data && data.data.plan && data.data.plan.itineraries && data.data.plan.itineraries.length > 0) {
       console.log("Found", data.data.plan.itineraries.length, "route options");
-      return data.data.plan.itineraries.map((itinerary, index) => ({
+      
+      const processedItineraries = data.data.plan.itineraries.map((itinerary, index) => ({
         id: index,
         duration: itinerary.duration,
         startTime: itinerary.startTime,
@@ -185,6 +248,9 @@ const fetchOTPRoute = async (fromCoords, toCoords) => {
           } : null
         }))
       }));
+      
+      // Sort itineraries to prioritize non-walk-only routes
+      return sortItineraries(processedItineraries);
     }
     
     console.log("No itineraries found in GraphQL response");
@@ -314,6 +380,10 @@ function App() {
   const [mapMode, setMapMode] = useState('none'); // 'none', 'setOrigin', 'setDestination'
   const [inputMode, setInputMode] = useState('text'); // 'text' or 'map'
 
+  // Route calculation state
+  const [isCalculating, setIsCalculating] = useState(false);
+  const [readyToCalculate, setReadyToCalculate] = useState(false);
+
   useEffect(() => {
     let storedSessionId = localStorage.getItem('session_id');
     if (!storedSessionId) {
@@ -322,6 +392,15 @@ function App() {
     }
     setSessionId(storedSessionId);  
   }, []);
+
+  // Check if both origin and destination are set
+  useEffect(() => {
+    if (inputMode === 'text') {
+      setReadyToCalculate(origin.trim().length > 0 && destination.trim().length > 0);
+    } else {
+      setReadyToCalculate(originCoords && destinationCoords);
+    }
+  }, [origin, destination, originCoords, destinationCoords, inputMode]);
 
   const mapboxToken = process.env.REACT_APP_MAPBOX_TOKEN;
 
@@ -360,7 +439,7 @@ function App() {
     return baseDate.toISOString();
   };
 
-  // Handle setting origin via map click
+  // Handle setting origin via map click (no auto-calculation)
   const handleOriginSet = async (coords) => {
     setOriginCoords(coords);
     setMapMode('none');
@@ -368,14 +447,9 @@ function App() {
     // Reverse geocode to get address
     const address = await reverseGeocode(coords, mapboxToken);
     setOrigin(address);
-    
-    // Auto-plan trip if both origin and destination are set
-    if (destinationCoords) {
-      planTrip(coords, destinationCoords, address, destination);
-    }
   };
 
-  // Handle setting destination via map click
+  // Handle setting destination via map click (no auto-calculation)
   const handleDestinationSet = async (coords) => {
     setDestinationCoords(coords);
     setMapMode('none');
@@ -383,36 +457,25 @@ function App() {
     // Reverse geocode to get address
     const address = await reverseGeocode(coords, mapboxToken);
     setDestination(address);
-    
-    // Auto-plan trip if both origin and destination are set
-    if (originCoords) {
-      planTrip(originCoords, coords, origin, address);
-    }
   };
 
-  // Handle marker drag
+  // Handle marker drag (no auto-calculation)
   const handleOriginDrag = async (coords) => {
     setOriginCoords(coords);
     const address = await reverseGeocode(coords, mapboxToken);
     setOrigin(address);
-    
-    if (destinationCoords) {
-      planTrip(coords, destinationCoords, address, destination);
-    }
   };
 
   const handleDestinationDrag = async (coords) => {
     setDestinationCoords(coords);
     const address = await reverseGeocode(coords, mapboxToken);
     setDestination(address);
-    
-    if (originCoords) {
-      planTrip(originCoords, coords, origin, address);
-    }
   };
 
   // Centralized trip planning function
   const planTrip = async (oCoords, dCoords, originAddress, destinationAddress) => {
+    setIsCalculating(true);
+    
     // Clear previous route data
     setRouteOptions([]);
     setSelectedRouteIndex(0);
@@ -442,6 +505,7 @@ function App() {
 
     if (!sessionId) {
       console.warn("Session ID not ready yet. Skipping insert.");
+      setIsCalculating(false);
       return;
     }
 
@@ -465,7 +529,6 @@ function App() {
       destination: destinationAddress,
       travel_time_old_min: finalTravelTime,
       travel_time_new_min: otpTravelTime,
-      //route_details: routeDetails,
       would_consider: null,
       exit_survey_data: null,
       session_id: sessionId,
@@ -484,43 +547,53 @@ function App() {
       ...prev,
       { origin: originAddress, destination: destinationAddress, travelTime: finalTravelTime, timestamp: new Date().toISOString() }
     ]);
+    
+    setIsCalculating(false);
   };
 
-  const handleMapSubmit = async () => {
-    const trimmedOrigin = origin.trim();
-    const trimmedDestination = destination.trim();
+  const handleCalculateRoute = async () => {
+    if (inputMode === 'text') {
+      // Text mode - geocode addresses first
+      const trimmedOrigin = origin.trim();
+      const trimmedDestination = destination.trim();
 
-    if (!trimmedOrigin || !trimmedDestination) {
-      alert("Please enter both origin and destination.");
-      return;
+      if (!trimmedOrigin || !trimmedDestination) {
+        alert("Please enter both origin and destination.");
+        return;
+      }
+
+      if (trimmedOrigin.length < 2 || trimmedDestination.length < 2) {
+        alert("Please enter more complete addresses.");
+        return;
+      }
+
+      const originValidPattern = /[a-zA-Z]/.test(trimmedOrigin) && /[0-9]/.test(trimmedOrigin);
+      if (!originValidPattern) {
+        alert("Origin must contain both letters and numbers.");
+        return;
+      }
+
+      const destinationValidPattern = /[a-zA-Z]/.test(trimmedDestination) && /[0-9]/.test(trimmedDestination);
+      if (!destinationValidPattern) {
+        alert("Destination must contain both letters and numbers.");
+        return;
+      }
+
+      const oCoords = await geocodeAddress(trimmedOrigin);
+      const dCoords = await geocodeAddress(trimmedDestination);
+
+      if (!oCoords || !dCoords) return;
+
+      setOriginCoords(oCoords);
+      setDestinationCoords(dCoords);
+
+      planTrip(oCoords, dCoords, trimmedOrigin, trimmedDestination);
+    } else {
+      // Map mode - use existing coordinates
+      if (originCoords && destinationCoords) {
+        planTrip(originCoords, destinationCoords, origin, destination);
+      }
     }
-
-    if (trimmedOrigin.length < 2 || trimmedDestination.length < 2) {
-      alert("Please enter more complete addresses.");
-      return;
-    }
-
-    const originValidPattern = /[a-zA-Z]/.test(trimmedOrigin) && /[0-9]/.test(trimmedOrigin);
-    if (!originValidPattern) {
-      alert("Origin must contain both letters and numbers.");
-      return;
-    }
-
-    const destinationValidPattern = /[a-zA-Z]/.test(trimmedDestination) && /[0-9]/.test(trimmedDestination);
-    if (!destinationValidPattern) {
-      alert("Destination must contain both letters and numbers.");
-      return;
-    }
-
-    const oCoords = await geocodeAddress(trimmedOrigin);
-    const dCoords = await geocodeAddress(trimmedDestination);
-
-    if (!oCoords || !dCoords) return;
-
-    setOriginCoords(oCoords);
-    setDestinationCoords(dCoords);
-
-    planTrip(oCoords, dCoords, trimmedOrigin, trimmedDestination);
   };
 
   const handleResponse = async (response) => {
@@ -631,8 +704,17 @@ function App() {
     transition: 'background-color 0.2s'
   };
 
+  // Fixed height container style for location selection
+  const locationContainerStyle = {
+    minHeight: '280px', // Fixed height to prevent jumping
+    marginBottom: '24px'
+  };
+
   return (
     <div style={{ margin: 0, padding: 0, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
+      {/* Include Font Awesome CSS */}
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
+      
       {/* Sidebar */}
       <div style={sidebarStyle}>
         <h1 style={{ fontSize: '24px', fontWeight: '700', marginBottom: '8px', color: '#2c3e50' }}>
@@ -642,128 +724,154 @@ function App() {
           Plan your trip and help us improve transit services
         </p>
 
-        {/* Input Mode Toggle */}
-        <div style={{ marginBottom: '20px', padding: '16px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
-          <h3 style={{ margin: '0 0 12px 0', fontSize: '16px', fontWeight: '600', color: '#495057' }}>
-            Input Method
-          </h3>
-          <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
-            <button
-              style={{
-                ...smallButtonStyle,
-                backgroundColor: inputMode === 'text' ? '#007bff' : '#6c757d',
-                marginRight: '8px'
-              }}
-              onClick={() => {
-                setInputMode('text');
-                setMapMode('none');
-              }}
-            >
-              Type Addresses
-            </button>
-            <button
-              style={{
-                ...smallButtonStyle,
-                backgroundColor: inputMode === 'map' ? '#007bff' : '#6c757d'
-              }}
-              onClick={() => setInputMode('map')}
-            >
-              Click on Map
-            </button>
-          </div>
-          
-          {inputMode === 'map' && (
-            <div>
-              <p style={{ fontSize: '12px', color: '#6c757d', marginBottom: '12px' }}>
-                Click the buttons below, then click on the map to set locations:
-              </p>
-              <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-                <button
-                  style={{
-                    ...smallButtonStyle,
-                    backgroundColor: mapMode === 'setOrigin' ? '#28a745' : '#6c757d'
-                  }}
-                  onClick={() => setMapMode('setOrigin')}
-                >
-                  Set Origin (A)
-                </button>
-                <button
-                  style={{
-                    ...smallButtonStyle,
-                    backgroundColor: mapMode === 'setDestination' ? '#dc3545' : '#6c757d'
-                  }}
-                  onClick={() => setMapMode('setDestination')}
-                >
-                  Set Destination (B)
-                </button>
-              </div>
+        {/* Fixed height location selection container */}
+        <div style={locationContainerStyle}>
+          {/* Input Mode Toggle */}
+          <div style={{ marginBottom: '20px', padding: '16px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
+            <h3 style={{ margin: '0 0 12px 0', fontSize: '16px', fontWeight: '600', color: '#495057' }}>
+              Input Method
+            </h3>
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
               <button
                 style={{
                   ...smallButtonStyle,
-                  backgroundColor: '#ffc107',
-                  color: '#000'
+                  backgroundColor: inputMode === 'text' ? '#007bff' : '#6c757d',
+                  marginRight: '8px'
                 }}
-                onClick={handleClear}
+                onClick={() => {
+                  setInputMode('text');
+                  setMapMode('none');
+                }}
               >
-                Clear All
+                Type Addresses
               </button>
-              {mapMode !== 'none' && (
-                <p style={{ fontSize: '12px', color: '#007bff', marginTop: '8px' }}>
-                  {mapMode === 'setOrigin' ? 'Click on map to set origin (green pin)' : 'Click on map to set destination (red pin)'}
+              <button
+                style={{
+                  ...smallButtonStyle,
+                  backgroundColor: inputMode === 'map' ? '#007bff' : '#6c757d'
+                }}
+                onClick={() => setInputMode('map')}
+              >
+                Click on Map
+              </button>
+            </div>
+            
+            {inputMode === 'map' && (
+              <div>
+                <p style={{ fontSize: '12px', color: '#6c757d', marginBottom: '12px' }}>
+                  Click the buttons below, then click on the map to set locations:
                 </p>
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                  <button
+                    style={{
+                      ...smallButtonStyle,
+                      backgroundColor: mapMode === 'setOrigin' ? '#28a745' : '#6c757d'
+                    }}
+                    onClick={() => setMapMode('setOrigin')}
+                  >
+                    Set Origin (A)
+                  </button>
+                  <button
+                    style={{
+                      ...smallButtonStyle,
+                      backgroundColor: mapMode === 'setDestination' ? '#dc3545' : '#6c757d'
+                    }}
+                    onClick={() => setMapMode('setDestination')}
+                  >
+                    Set Destination (B)
+                  </button>
+                </div>
+                <button
+                  style={{
+                    ...smallButtonStyle,
+                    backgroundColor: '#ffc107',
+                    color: '#000'
+                  }}
+                  onClick={handleClear}
+                >
+                  Clear All
+                </button>
+                {mapMode !== 'none' && (
+                  <p style={{ fontSize: '12px', color: '#007bff', marginTop: '8px' }}>
+                    {mapMode === 'setOrigin' ? 'Click on map to set origin (green pin)' : 'Click on map to set destination (red pin)'}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Location Inputs - only show in text mode */}
+          {inputMode === 'text' && (
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: '#495057' }}>
+                From
+              </label>
+              <input 
+                type="text"
+                value={origin} 
+                onChange={e => setOrigin(e.target.value)} 
+                placeholder="Enter starting address..."
+                style={{...inputStyle, ':focus': {borderColor: '#007bff', outline: 'none'}}}
+              />
+              
+              <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: '#495057' }}>
+                To
+              </label>
+              <input 
+                type="text"
+                value={destination} 
+                onChange={e => setDestination(e.target.value)} 
+                placeholder="Enter destination address..."
+                style={inputStyle}
+              />
+            </div>
+          )}
+
+          {/* Show current locations if set via map */}
+          {inputMode === 'map' && (originCoords || destinationCoords) && (
+            <div style={{ marginBottom: '24px', padding: '12px', backgroundColor: '#e8f4f8', borderRadius: '8px' }}>
+              <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', fontWeight: '600', color: '#0c5460' }}>
+                Selected Locations:
+              </h4>
+              {originCoords && (
+                <div style={{ fontSize: '12px', color: '#0c5460', marginBottom: '4px' }}>
+                  <strong>Origin (A):</strong> {origin || `${originCoords[0].toFixed(4)}, ${originCoords[1].toFixed(4)}`}
+                </div>
               )}
+              {destinationCoords && (
+                <div style={{ fontSize: '12px', color: '#0c5460' }}>
+                  <strong>Destination (B):</strong> {destination || `${destinationCoords[0].toFixed(4)}, ${destinationCoords[1].toFixed(4)}`}
+                </div>
+              )}
+              <p style={{ fontSize: '11px', color: '#6c757d', marginTop: '8px', marginBottom: '0' }}>
+                Drag the pins on the map to adjust locations
+              </p>
             </div>
           )}
         </div>
 
-        {/* Location Inputs - only show in text mode */}
-        {inputMode === 'text' && (
-          <div style={{ marginBottom: '24px' }}>
-            <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: '#495057' }}>
-              From
-            </label>
-            <input 
-              type="text"
-              value={origin} 
-              onChange={e => setOrigin(e.target.value)} 
-              placeholder="Enter starting address..."
-              style={{...inputStyle, ':focus': {borderColor: '#007bff', outline: 'none'}}}
-            />
-            
-            <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: '#495057' }}>
-              To
-            </label>
-            <input 
-              type="text"
-              value={destination} 
-              onChange={e => setDestination(e.target.value)} 
-              placeholder="Enter destination address..."
-              style={inputStyle}
-            />
-          </div>
-        )}
-
-        {/* Show current locations if set via map */}
-        {inputMode === 'map' && (originCoords || destinationCoords) && (
-          <div style={{ marginBottom: '24px', padding: '12px', backgroundColor: '#e8f4f8', borderRadius: '8px' }}>
-            <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', fontWeight: '600', color: '#0c5460' }}>
-              Selected Locations:
-            </h4>
-            {originCoords && (
-              <div style={{ fontSize: '12px', color: '#0c5460', marginBottom: '4px' }}>
-                <strong>Origin (A):</strong> {origin || `${originCoords[0].toFixed(4)}, ${originCoords[1].toFixed(4)}`}
-              </div>
-            )}
-            {destinationCoords && (
-              <div style={{ fontSize: '12px', color: '#0c5460' }}>
-                <strong>Destination (B):</strong> {destination || `${destinationCoords[0].toFixed(4)}, ${destinationCoords[1].toFixed(4)}`}
-              </div>
-            )}
-            <p style={{ fontSize: '11px', color: '#6c757d', marginTop: '8px', marginBottom: '0' }}>
-              Drag the pins on the map to adjust locations
-            </p>
-          </div>
-        )}
+        {/* Calculate Route Button */}
+        <button 
+          onClick={handleCalculateRoute}
+          disabled={!readyToCalculate || isCalculating}
+          style={{
+            ...buttonStyle,
+            backgroundColor: !readyToCalculate || isCalculating ? '#6c757d' : '#007bff',
+            cursor: !readyToCalculate || isCalculating ? 'not-allowed' : 'pointer'
+          }}
+          onMouseOver={e => {
+            if (readyToCalculate && !isCalculating) {
+              e.target.style.backgroundColor = '#0056b3';
+            }
+          }}
+          onMouseOut={e => {
+            if (readyToCalculate && !isCalculating) {
+              e.target.style.backgroundColor = '#007bff';
+            }
+          }}
+        >
+          {isCalculating ? 'Calculating Route...' : 'Calculate Route'}
+        </button>
 
         {/* Time Controls */}
         <div style={{ marginBottom: '24px', padding: '16px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
@@ -809,18 +917,6 @@ function App() {
           </select>
         </div>
 
-        {/* Plan Trip Button - only show in text mode */}
-        {inputMode === 'text' && (
-          <button 
-            onClick={handleMapSubmit}
-            style={buttonStyle}
-            onMouseOver={e => e.target.style.backgroundColor = '#0056b3'}
-            onMouseOut={e => e.target.style.backgroundColor = '#007bff'}
-          >
-            Plan Trip
-          </button>
-        )}
-
         {/* Route Options */}
         {routeOptions.length > 0 && (
           <div style={{ marginBottom: '20px' }}>
@@ -829,23 +925,28 @@ function App() {
             </h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {routeOptions.map((route, index) => {
+                // Filter out walk legs under 1.5 minutes for display (but keep them for map rendering)
+                const displayLegs = route.legs.filter(leg => {
+                  if (leg.mode === 'WALK') {
+                    return leg.duration >= 90; // 90 seconds = 1.5 minutes
+                  }
+                  return true;
+                });
+
                 // Create visual representation of the route legs
                 const renderLegPill = (leg, legIndex) => {
                   const legColor = getRouteColor(leg);
                   const duration = Math.round(leg.duration / 60);
                   
                   let displayText = '';
-                  let icon = '';
+                  let iconClass = getModeIcon(leg);
                   
                   if (leg.mode === 'WALK') {
                     displayText = `${duration} min`;
-                    icon = '🚶';
                   } else if (leg.route && leg.route.shortName) {
                     displayText = leg.route.shortName;
-                    icon = leg.mode === 'BUS' ? '🚌' : leg.mode === 'SUBWAY' ? '🚇' : leg.mode === 'TRAM' ? '🚊' : '🚌';
                   } else {
                     displayText = `${leg.mode.toLowerCase()} ${duration}min`;
-                    icon = '🚌';
                   }
 
                   return (
@@ -867,7 +968,7 @@ function App() {
                       }}
                       title={`${leg.mode}: ${leg.from.name} → ${leg.to.name} (${duration} min)`}
                     >
-                      <span style={{ marginRight: '2px', fontSize: '10px' }}>{icon}</span>
+                      <i className={iconClass} style={{ marginRight: '4px', fontSize: '10px' }}></i>
                       {displayText}
                     </div>
                   );
@@ -913,7 +1014,7 @@ function App() {
                       </div>
                     </div>
                     
-                    {/* Visual route representation */}
+                    {/* Visual route representation - only show legs >= 1.5 min for walking */}
                     <div style={{ 
                       display: 'flex', 
                       flexWrap: 'wrap', 
@@ -921,10 +1022,10 @@ function App() {
                       marginBottom: '8px',
                       minHeight: '30px'
                     }}>
-                      {route.legs.map((leg, legIndex) => (
+                      {displayLegs.map((leg, legIndex) => (
                         <React.Fragment key={legIndex}>
                           {renderLegPill(leg, legIndex)}
-                          {legIndex < route.legs.length - 1 && (
+                          {legIndex < displayLegs.length - 1 && (
                             <span style={{ 
                               margin: '0 4px', 
                               color: '#6c757d',
@@ -942,16 +1043,6 @@ function App() {
                       fontWeight: '500'
                     }}>
                       {formatTime(route.startTime)} → {formatTime(route.endTime)}
-                    </div>
-                    
-                    {/* Debug info - you can remove this later */}
-                    <div style={{ 
-                      fontSize: '10px', 
-                      color: '#999',
-                      marginTop: '4px',
-                      fontFamily: 'monospace'
-                    }}>
-                      Colors: {route.legs.map(leg => getRouteColor(leg).slice(1, 4)).join(', ')}
                     </div>
                   </button>
                 );
@@ -1107,20 +1198,23 @@ function App() {
                         opacity={0.8}
                         dashArray={leg.mode === 'WALK' ? '10, 5' : null}
                       />
-                      <Marker position={[leg.from.lat, leg.from.lon]}>
-                        <Popup>
-                          <div style={{ minWidth: '200px' }}>
-                            <strong>{leg.from.name}</strong><br/>
-                            <span style={{ color: '#6c757d' }}>{leg.mode} - Start</span>
-                            {leg.route && (
-                              <>
-                                <br/><strong>{leg.route.shortName}</strong> {leg.route.longName}
-                                <br/>Duration: {Math.round(leg.duration / 60)} minutes
-                              </>
-                            )}
-                          </div>
-                        </Popup>
-                      </Marker>
+                      {/* Only show transfer markers for non-start/end points */}
+                      {legIndex > 0 && (
+                        <Marker position={[leg.from.lat, leg.from.lon]} icon={transferIcon}>
+                          <Popup>
+                            <div style={{ minWidth: '200px' }}>
+                              <strong>{leg.from.name}</strong><br/>
+                              <span style={{ color: '#6c757d' }}>Transfer Point</span>
+                              {leg.route && (
+                                <>
+                                  <br/><strong>Next: {leg.route.shortName}</strong> {leg.route.longName}
+                                  <br/>Duration: {Math.round(leg.duration / 60)} minutes
+                                </>
+                              )}
+                            </div>
+                          </Popup>
+                        </Marker>
+                      )}
                     </React.Fragment>
                   );
                 } catch (error) {
