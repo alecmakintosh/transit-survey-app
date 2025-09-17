@@ -43,7 +43,7 @@ const createCustomIcon = (color, isDestination = false) => {
     iconSize: [25, 25],
     iconAnchor: [12, 25],
     popupAnchor: [0, -25],
-    zIndexOffset: 1000 // Higher z-index to appear above transfer markers
+    zIndexOffset: 1000
   });
 };
 
@@ -75,7 +75,7 @@ const createTransferIcon = () => {
     iconSize: [20, 20],
     iconAnchor: [10, 20],
     popupAnchor: [0, -20],
-    zIndexOffset: -1000 // Lower z-index to appear under A and B markers
+    zIndexOffset: -1000
   });
 };
 
@@ -644,7 +644,7 @@ function App() {
     setMapMode('none');
   };
 
-  // Sidebar styles
+  // Styles
   const sidebarStyle = {
     position: 'fixed',
     left: 0,
@@ -653,7 +653,7 @@ function App() {
     height: '100vh',
     backgroundColor: '#ffffff',
     borderRight: '1px solid #e0e0e0',
-    padding: '20px',
+    padding: '16px',
     overflowY: 'auto',
     zIndex: 1000,
     boxShadow: '2px 0 10px rgba(0,0,0,0.1)'
@@ -670,46 +670,40 @@ function App() {
 
   const inputStyle = {
     width: '100%',
-    padding: '12px',
+    padding: '8px 12px',
     border: '2px solid #e1e5e9',
-    borderRadius: '8px',
-    fontSize: '16px',
-    marginBottom: '16px',
+    borderRadius: '6px',
+    fontSize: '14px',
+    marginBottom: '12px',
     transition: 'border-color 0.2s',
     boxSizing: 'border-box'
   };
 
   const buttonStyle = {
     width: '100%',
-    padding: '14px',
+    padding: '12px',
     backgroundColor: '#007bff',
-    color: 'white',
-    border: 'none',
-    borderRadius: '8px',
-    fontSize: '16px',
-    fontWeight: '600',
-    cursor: 'pointer',
-    transition: 'background-color 0.2s',
-    marginBottom: '20px'
-  };
-
-  const smallButtonStyle = {
-    padding: '8px 12px',
-    backgroundColor: '#6c757d',
     color: 'white',
     border: 'none',
     borderRadius: '6px',
     fontSize: '14px',
+    fontWeight: '600',
     cursor: 'pointer',
-    marginRight: '8px',
-    marginBottom: '8px',
-    transition: 'background-color 0.2s'
+    transition: 'background-color 0.2s',
+    marginBottom: '16px'
   };
 
-  // Fixed height container style for location selection
-  const locationContainerStyle = {
-    minHeight: '280px', // Fixed height to prevent jumping
-    marginBottom: '24px'
+  const smallButtonStyle = {
+    padding: '6px 10px',
+    backgroundColor: '#6c757d',
+    color: 'white',
+    border: 'none',
+    borderRadius: '4px',
+    fontSize: '12px',
+    cursor: 'pointer',
+    marginRight: '6px',
+    marginBottom: '6px',
+    transition: 'background-color 0.2s'
   };
 
   return (
@@ -719,189 +713,280 @@ function App() {
       
       {/* Sidebar */}
       <div style={sidebarStyle}>
-        <h1 style={{ fontSize: '24px', fontWeight: '700', marginBottom: '8px', color: '#2c3e50' }}>
+        <h1 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '4px', color: '#2c3e50' }}>
           Transit Survey
         </h1>
-        <p style={{ color: '#6c757d', marginBottom: '30px', fontSize: '14px' }}>
+        <p style={{ color: '#6c757d', marginBottom: '16px', fontSize: '12px' }}>
           Plan your trip and help us improve transit services
         </p>
 
-        {/* Unified Trip Planning Container */}
+        {/* Unified Trip Information Container */}
         <div style={{ 
-          marginBottom: '24px', 
-          padding: '16px', 
+          marginBottom: '12px', 
+          padding: '12px', 
           backgroundColor: '#f8f9fa', 
-          borderRadius: '8px',
-          height: '520px', // Fixed height instead of minHeight
+          borderRadius: '6px',
+          height: '380px',
           display: 'flex',
           flexDirection: 'column'
         }}>
-          {/* Input Method Toggle */}
-          <h3 style={{ margin: '0 0 12px 0', fontSize: '16px', fontWeight: '600', color: '#495057' }}>
-            Input Method
-          </h3>
-          <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
-            <button
-              style={{
-                ...smallButtonStyle,
-                backgroundColor: inputMode === 'text' ? '#007bff' : '#6c757d',
-                marginRight: '8px'
-              }}
-              onClick={() => {
-                setInputMode('text');
-                setMapMode('none');
-              }}
-            >
-              Type Addresses
-            </button>
-            <button
-              style={{
-                ...smallButtonStyle,
-                backgroundColor: inputMode === 'map' ? '#007bff' : '#6c757d'
-              }}
-              onClick={() => setInputMode('map')}
-            >
-              Click on Map
-            </button>
+          {/* Trip Information Header with Input Mode Toggle */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+            <h3 style={{ margin: '0', fontSize: '14px', fontWeight: '600', color: '#495057' }}>
+              Trip Information
+            </h3>
+            <div style={{ display: 'flex', gap: '4px' }}>
+              <button
+                style={{
+                  ...smallButtonStyle,
+                  backgroundColor: inputMode === 'text' ? '#007bff' : '#6c757d',
+                  marginRight: '4px',
+                  marginBottom: '0',
+                  fontSize: '11px',
+                  padding: '4px 8px'
+                }}
+                onClick={() => {
+                  setInputMode('text');
+                  setMapMode('none');
+                }}
+              >
+                Type Addresses
+              </button>
+              <button
+                style={{
+                  ...smallButtonStyle,
+                  backgroundColor: inputMode === 'map' ? '#007bff' : '#6c757d',
+                  marginBottom: '0',
+                  fontSize: '11px',
+                  padding: '4px 8px'
+                }}
+                onClick={() => setInputMode('map')}
+              >
+                Click on Map
+              </button>
+            </div>
           </div>
           
-          {/* Dynamic content area with fixed height */}
+          {/* Address Input Container - Always Visible */}
           <div style={{ 
-            height: '200px', // Fixed height instead of minHeight
-            marginBottom: '20px',
-            overflow: 'auto' // Allow scrolling if content exceeds height
+            border: '2px solid #e1e5e9', 
+            borderRadius: '6px', 
+            backgroundColor: '#fff',
+            overflow: 'hidden',
+            marginBottom: '12px',
+            position: 'relative'
           }}>
-            {inputMode === 'text' ? (
-              <div>
-                <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: '#495057' }}>
-                  From
-                </label>
-                <input 
-                  type="text"
-                  value={origin} 
-                  onChange={e => setOrigin(e.target.value)} 
-                  placeholder="Enter starting address..."
-                  style={{...inputStyle, ':focus': {borderColor: '#007bff', outline: 'none'}}}
-                />
-                
-                <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: '#495057' }}>
-                  To
-                </label>
-                <input 
-                  type="text"
-                  value={destination} 
-                  onChange={e => setDestination(e.target.value)} 
-                  placeholder="Enter destination address..."
-                  style={inputStyle}
-                />
-              </div>
-            ) : (
-              <div>
-                <p style={{ fontSize: '12px', color: '#6c757d', marginBottom: '12px' }}>
-                  Click the buttons below, then click on the map to set locations:
-                </p>
-                <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-                  <button
-                    style={{
-                      ...smallButtonStyle,
-                      backgroundColor: mapMode === 'setOrigin' ? '#28a745' : '#6c757d'
-                    }}
-                    onClick={() => setMapMode('setOrigin')}
-                  >
-                    Set Origin (A)
-                  </button>
-                  <button
-                    style={{
-                      ...smallButtonStyle,
-                      backgroundColor: mapMode === 'setDestination' ? '#dc3545' : '#6c757d'
-                    }}
-                    onClick={() => setMapMode('setDestination')}
-                  >
-                    Set Destination (B)
-                  </button>
-                </div>
+            {/* Origin input */}
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              padding: '8px 12px',
+              borderBottom: '1px solid #e1e5e9'
+            }}>
+              <div style={{
+                width: '20px',
+                height: '20px',
+                borderRadius: '50%',
+                backgroundColor: '#28a745',
+                color: 'white',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '12px',
+                fontWeight: 'bold',
+                marginRight: '10px',
+                flexShrink: 0
+              }}>A</div>
+              <input 
+                type="text"
+                value={origin} 
+                onChange={e => setOrigin(e.target.value)} 
+                placeholder="Enter starting address..."
+                style={{
+                  border: 'none',
+                  outline: 'none',
+                  fontSize: '14px',
+                  width: '100%',
+                  backgroundColor: 'transparent'
+                }}
+                readOnly={inputMode === 'map'}
+              />
+            </div>
+            
+            {/* Swap button */}
+            <button
+              style={{
+                position: 'absolute',
+                right: '8px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                backgroundColor: '#f8f9fa',
+                border: '1px solid #dee2e6',
+                borderRadius: '4px',
+                width: '24px',
+                height: '24px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                fontSize: '12px',
+                color: '#6c757d'
+              }}
+              onClick={() => {
+                // Swap origin and destination
+                const tempOrigin = origin;
+                const tempOriginCoords = originCoords;
+                setOrigin(destination);
+                setDestination(tempOrigin);
+                setOriginCoords(destinationCoords);
+                setDestinationCoords(tempOriginCoords);
+              }}
+              title="Swap origin and destination"
+            >
+              ⇅
+            </button>
+            
+            {/* Destination input */}
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              padding: '8px 12px'
+            }}>
+              <div style={{
+                width: '20px',
+                height: '20px',
+                borderRadius: '50%',
+                backgroundColor: '#dc3545',
+                color: 'white',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '12px',
+                fontWeight: 'bold',
+                marginRight: '10px',
+                flexShrink: 0
+              }}>B</div>
+              <input 
+                type="text"
+                value={destination} 
+                onChange={e => setDestination(e.target.value)} 
+                placeholder="Enter destination address..."
+                style={{
+                  border: 'none',
+                  outline: 'none',
+                  fontSize: '14px',
+                  width: '100%',
+                  backgroundColor: 'transparent'
+                }}
+                readOnly={inputMode === 'map'}
+              />
+            </div>
+          </div>
+
+          {/* Map interaction controls - only show when Click on Map is selected */}
+          {inputMode === 'map' && (
+            <div style={{ marginBottom: '12px' }}>
+              <p style={{ fontSize: '12px', color: '#6c757d', marginBottom: '8px', margin: '0 0 8px 0' }}>
+                Click the buttons below, then click on the map to set locations:
+              </p>
+              <div style={{ display: 'flex', gap: '6px', marginBottom: '8px' }}>
+                <button
+                  style={{
+                    ...smallButtonStyle,
+                    backgroundColor: mapMode === 'setOrigin' ? '#28a745' : '#6c757d',
+                    marginBottom: '0'
+                  }}
+                  onClick={() => setMapMode('setOrigin')}
+                >
+                  Set Origin (A)
+                </button>
+                <button
+                  style={{
+                    ...smallButtonStyle,
+                    backgroundColor: mapMode === 'setDestination' ? '#dc3545' : '#6c757d',
+                    marginBottom: '0'
+                  }}
+                  onClick={() => setMapMode('setDestination')}
+                >
+                  Set Destination (B)
+                </button>
                 <button
                   style={{
                     ...smallButtonStyle,
                     backgroundColor: '#ffc107',
-                    color: '#000'
+                    color: '#000',
+                    marginBottom: '0'
                   }}
                   onClick={handleClear}
                 >
                   Clear All
                 </button>
-                {mapMode !== 'none' && (
-                  <p style={{ fontSize: '12px', color: '#007bff', marginTop: '8px' }}>
-                    {mapMode === 'setOrigin' ? 'Click on map to set origin (green pin)' : 'Click on map to set destination (red pin)'}
-                  </p>
-                )}
-                
-                {/* Show current locations if set via map */}
-                {(originCoords || destinationCoords) && (
-                  <div style={{ marginTop: '16px', padding: '12px', backgroundColor: '#e8f4f8', borderRadius: '8px' }}>
-                    <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', fontWeight: '600', color: '#0c5460' }}>
-                      Selected Locations:
-                    </h4>
-                    {originCoords && (
-                      <div style={{ fontSize: '12px', color: '#0c5460', marginBottom: '4px' }}>
-                        <strong>Origin (A):</strong> {origin || `${originCoords[0].toFixed(4)}, ${originCoords[1].toFixed(4)}`}
-                      </div>
-                    )}
-                    {destinationCoords && (
-                      <div style={{ fontSize: '12px', color: '#0c5460' }}>
-                        <strong>Destination (B):</strong> {destination || `${destinationCoords[0].toFixed(4)}, ${destinationCoords[1].toFixed(4)}`}
-                      </div>
-                    )}
-                    <p style={{ fontSize: '11px', color: '#6c757d', marginTop: '8px', marginBottom: '0' }}>
-                      Drag the pins on the map to adjust locations
-                    </p>
-                  </div>
-                )}
               </div>
-            )}
-          </div>
+              {mapMode !== 'none' && (
+                <p style={{ fontSize: '11px', color: '#007bff', margin: '0' }}>
+                  {mapMode === 'setOrigin' ? 'Click on map to set origin (green pin)' : 'Click on map to set destination (red pin)'}
+                </p>
+              )}
+            </div>
+          )}
 
-          {/* Travel Time Controls */}
-          <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: '600', color: '#495057' }}>
-            Travel Time
-          </h3>
-          
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
+          {/* Travel Time Controls - Compact horizontal layout */}
+          <div style={{ 
+            border: '2px solid #e1e5e9', 
+            borderRadius: '6px', 
+            backgroundColor: '#fff',
+            padding: '8px 12px',
+            marginBottom: '12px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <label style={{ display: 'flex', alignItems: 'center' }}>
+                  <input 
+                    type="radio" 
+                    checked={!arriveBy} 
+                    onChange={() => setArriveBy(false)}
+                    style={{ marginRight: '4px' }}
+                  />
+                  <span style={{ fontSize: '12px', color: '#495057' }}>Leave By</span>
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center' }}>
+                  <input 
+                    type="radio" 
+                    checked={arriveBy} 
+                    onChange={() => setArriveBy(true)}
+                    style={{ marginRight: '4px' }}
+                  />
+                  <span style={{ fontSize: '12px', color: '#495057' }}>Arrive By</span>
+                </label>
+              </div>
+              
               <input 
-                type="radio" 
-                checked={!arriveBy} 
-                onChange={() => setArriveBy(false)}
-                style={{ marginRight: '8px' }}
+                type="time" 
+                value={departureTime}
+                onChange={e => setDepartureTime(e.target.value)}
+                style={{
+                  border: '1px solid #ddd',
+                  borderRadius: '4px',
+                  padding: '4px 6px',
+                  fontSize: '12px'
+                }}
               />
-              <span style={{ fontWeight: '500' }}>Leave at</span>
-            </label>
-            <label style={{ display: 'flex', alignItems: 'center' }}>
-              <input 
-                type="radio" 
-                checked={arriveBy} 
-                onChange={() => setArriveBy(true)}
-                style={{ marginRight: '8px' }}
-              />
-              <span style={{ fontWeight: '500' }}>Arrive by</span>
-            </label>
+              
+              <select 
+                value={dayType}
+                onChange={e => setDayType(e.target.value)}
+                style={{
+                  border: '1px solid #ddd',
+                  borderRadius: '4px',
+                  padding: '4px 6px',
+                  fontSize: '12px'
+                }}
+              >
+                <option value="weekday">Weekday</option>
+                <option value="weekend">Weekend</option>
+              </select>
+            </div>
           </div>
-
-          <input 
-            type="time" 
-            value={departureTime}
-            onChange={e => setDepartureTime(e.target.value)}
-            style={{...inputStyle, marginBottom: '12px'}}
-          />
-
-          <select 
-            value={dayType}
-            onChange={e => setDayType(e.target.value)}
-            style={{...inputStyle, marginBottom: '20px'}}
-          >
-            <option value="weekday">Weekday</option>
-            <option value="weekend">Weekend</option>
-          </select>
 
           {/* Calculate Route Button */}
           <button 
@@ -911,7 +996,8 @@ function App() {
               ...buttonStyle,
               backgroundColor: !readyToCalculate || isCalculating ? '#6c757d' : '#007bff',
               cursor: !readyToCalculate || isCalculating ? 'not-allowed' : 'pointer',
-              marginBottom: '0' // Remove bottom margin since it's the last element
+              marginBottom: '0',
+              flex: '0 0 auto'
             }}
             onMouseOver={e => {
               if (readyToCalculate && !isCalculating) {
@@ -928,77 +1014,45 @@ function App() {
           </button>
         </div>
 
-        {/* Route Options */}
+        {/* Route Options - Transitous-inspired design */}
         {routeOptions.length > 0 && (
-          <div style={{ marginBottom: '20px' }}>
-            <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: '600', color: '#495057' }}>
+          <div style={{ marginBottom: '16px' }}>
+            <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', fontWeight: '600', color: '#495057' }}>
               Route Options
             </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               {routeOptions.map((route, index) => {
-                // Filter out walk legs under 1.5 minutes for display (but keep them for map rendering)
+                // Calculate total walking time
+                const walkingTime = route.legs
+                  .filter(leg => leg.mode === 'WALK')
+                  .reduce((total, leg) => total + Math.round(leg.duration / 60), 0);
+                
+                // Filter out walk legs under 1.5 minutes for display
                 const displayLegs = route.legs.filter(leg => {
                   if (leg.mode === 'WALK') {
-                    return leg.duration >= 90; // 90 seconds = 1.5 minutes
+                    return leg.duration >= 90;
                   }
                   return true;
                 });
 
-                // Create visual representation of the route legs
-                const renderLegPill = (leg, legIndex) => {
-                  const legColor = getRouteColor(leg);
-                  const duration = Math.round(leg.duration / 60);
-                  
-                  let displayText = '';
-                  let iconClass = getModeIcon(leg);
-                  
-                  if (leg.mode === 'WALK') {
-                    displayText = `${duration} min`;
-                  } else if (leg.route && leg.route.shortName) {
-                    displayText = leg.route.shortName;
-                  } else {
-                    displayText = `${leg.mode.toLowerCase()} ${duration}min`;
-                  }
-
-                  return (
-                    <div
-                      key={legIndex}
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        backgroundColor: legColor,
-                        color: leg.mode === 'WALK' ? '#000' : '#fff',
-                        padding: '4px 8px',
-                        borderRadius: '12px',
-                        fontSize: '11px',
-                        fontWeight: '600',
-                        margin: '2px',
-                        minWidth: leg.mode === 'WALK' ? '50px' : '40px',
-                        justifyContent: 'center',
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
-                      }}
-                      title={`${leg.mode}: ${leg.from.name} → ${leg.to.name} (${duration} min)`}
-                    >
-                      <i className={iconClass} style={{ marginRight: '4px', fontSize: '10px' }}></i>
-                      {displayText}
-                    </div>
-                  );
-                };
+                // Count transfers (number of transit legs - 1)
+                const transitLegs = route.legs.filter(leg => leg.mode !== 'WALK');
+                const transfers = Math.max(0, transitLegs.length - 1);
 
                 return (
                   <button
                     key={route.id}
                     style={{
-                      padding: '16px',
-                      backgroundColor: selectedRouteIndex === index ? '#f8f9fa' : '#fff',
+                      padding: '12px',
+                      backgroundColor: selectedRouteIndex === index ? '#f0f8ff' : '#fff',
                       color: '#000',
                       border: `2px solid ${selectedRouteIndex === index ? '#007bff' : '#e1e5e9'}`,
-                      borderRadius: '8px',
+                      borderRadius: '6px',
                       cursor: 'pointer',
-                      fontSize: '14px',
+                      fontSize: '12px',
                       textAlign: 'left',
                       transition: 'all 0.2s',
-                      boxShadow: selectedRouteIndex === index ? '0 2px 8px rgba(0,123,255,0.2)' : '0 1px 3px rgba(0,0,0,0.1)'
+                      boxShadow: selectedRouteIndex === index ? '0 2px 6px rgba(0,123,255,0.15)' : '0 1px 2px rgba(0,0,0,0.05)'
                     }}
                     onClick={() => {
                       setSelectedRouteIndex(index);
@@ -1006,54 +1060,97 @@ function App() {
                       setTravelTime(Math.round(route.duration / 60));
                     }}
                   >
-                    {/* Route header */}
+                    {/* Header with departure time, arrival time, and total duration */}
                     <div style={{ 
                       display: 'flex', 
                       justifyContent: 'space-between', 
                       alignItems: 'center',
-                      marginBottom: '12px' 
+                      marginBottom: '8px',
+                      fontWeight: '600'
                     }}>
-                      <div style={{ fontWeight: '700', fontSize: '16px', color: '#2c3e50' }}>
-                        Option {index + 1}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px' }}>
+                        <span>{formatTime(route.startTime)}</span>
+                        <span style={{ color: '#6c757d' }}>→</span>
+                        <span>{formatTime(route.endTime)}</span>
                       </div>
                       <div style={{ 
-                        fontWeight: '700', 
-                        fontSize: '18px', 
-                        color: selectedRouteIndex === index ? '#007bff' : '#28a745' 
+                        fontSize: '16px', 
+                        color: selectedRouteIndex === index ? '#007bff' : '#28a745',
+                        fontWeight: '700'
                       }}>
                         {Math.round(route.duration / 60)} min
                       </div>
                     </div>
                     
-                    {/* Visual route representation - only show legs >= 1.5 min for walking */}
+                    {/* Route visualization pills */}
                     <div style={{ 
                       display: 'flex', 
                       flexWrap: 'wrap', 
                       alignItems: 'center',
                       marginBottom: '8px',
-                      minHeight: '30px'
+                      minHeight: '20px'
                     }}>
-                      {displayLegs.map((leg, legIndex) => (
-                        <React.Fragment key={legIndex}>
-                          {renderLegPill(leg, legIndex)}
-                          {legIndex < displayLegs.length - 1 && (
-                            <span style={{ 
-                              margin: '0 4px', 
-                              color: '#6c757d',
-                              fontSize: '12px'
-                            }}>→</span>
-                          )}
-                        </React.Fragment>
-                      ))}
+                      {displayLegs.map((leg, legIndex) => {
+                        const legColor = getRouteColor(leg);
+                        const duration = Math.round(leg.duration / 60);
+                        let displayText = '';
+                        let iconClass = getModeIcon(leg);
+                        
+                        if (leg.mode === 'WALK') {
+                          displayText = `${duration}min`;
+                        } else if (leg.route && leg.route.shortName) {
+                          displayText = leg.route.shortName;
+                        } else {
+                          displayText = leg.mode.toLowerCase();
+                        }
+
+                        return (
+                          <React.Fragment key={legIndex}>
+                            <div
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                backgroundColor: legColor,
+                                color: leg.mode === 'WALK' ? '#000' : '#fff',
+                                padding: '2px 6px',
+                                borderRadius: '8px',
+                                fontSize: '10px',
+                                fontWeight: '600',
+                                margin: '1px',
+                                minWidth: '24px',
+                                justifyContent: 'center'
+                              }}
+                            >
+                              <i className={iconClass} style={{ marginRight: '2px', fontSize: '8px' }}></i>
+                              {displayText}
+                            </div>
+                            {legIndex < displayLegs.length - 1 && (
+                              <span style={{ 
+                                margin: '0 2px', 
+                                color: '#6c757d',
+                                fontSize: '10px'
+                              }}>→</span>
+                            )}
+                          </React.Fragment>
+                        );
+                      })}
                     </div>
                     
-                    {/* Time range */}
+                    {/* Stats row - Walking time and transfers */}
                     <div style={{ 
-                      fontSize: '12px', 
-                      color: '#6c757d',
-                      fontWeight: '500'
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      fontSize: '11px',
+                      color: '#6c757d'
                     }}>
-                      {formatTime(route.startTime)} → {formatTime(route.endTime)}
+                      <span>
+                        {walkingTime > 0 && `${walkingTime} min walking`}
+                        {walkingTime > 0 && transfers > 0 && ' • '}
+                        {transfers > 0 && `${transfers} transfer${transfers > 1 ? 's' : ''}`}
+                        {walkingTime === 0 && transfers === 0 && 'Direct route'}
+                      </span>
+                      <span>Option {index + 1}</span>
                     </div>
                   </button>
                 );
