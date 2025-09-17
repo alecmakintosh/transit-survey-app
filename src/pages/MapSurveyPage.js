@@ -42,7 +42,8 @@ const createCustomIcon = (color, isDestination = false) => {
     `,
     iconSize: [25, 25],
     iconAnchor: [12, 25],
-    popupAnchor: [0, -25]
+    popupAnchor: [0, -25],
+    zIndexOffset: 1000 // Higher z-index to appear above transfer markers
   });
 };
 
@@ -73,7 +74,8 @@ const createTransferIcon = () => {
     `,
     iconSize: [20, 20],
     iconAnchor: [10, 20],
-    popupAnchor: [0, -20]
+    popupAnchor: [0, -20],
+    zIndexOffset: -1000 // Lower z-index to appear under A and B markers
   });
 };
 
@@ -724,39 +726,76 @@ function App() {
           Plan your trip and help us improve transit services
         </p>
 
-        {/* Fixed height location selection container */}
-        <div style={locationContainerStyle}>
-          {/* Input Mode Toggle */}
-          <div style={{ marginBottom: '20px', padding: '16px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
-            <h3 style={{ margin: '0 0 12px 0', fontSize: '16px', fontWeight: '600', color: '#495057' }}>
-              Input Method
-            </h3>
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
-              <button
-                style={{
-                  ...smallButtonStyle,
-                  backgroundColor: inputMode === 'text' ? '#007bff' : '#6c757d',
-                  marginRight: '8px'
-                }}
-                onClick={() => {
-                  setInputMode('text');
-                  setMapMode('none');
-                }}
-              >
-                Type Addresses
-              </button>
-              <button
-                style={{
-                  ...smallButtonStyle,
-                  backgroundColor: inputMode === 'map' ? '#007bff' : '#6c757d'
-                }}
-                onClick={() => setInputMode('map')}
-              >
-                Click on Map
-              </button>
-            </div>
-            
-            {inputMode === 'map' && (
+        {/* Unified Trip Planning Container */}
+        <div style={{ 
+          marginBottom: '24px', 
+          padding: '16px', 
+          backgroundColor: '#f8f9fa', 
+          borderRadius: '8px',
+          height: '520px', // Fixed height instead of minHeight
+          display: 'flex',
+          flexDirection: 'column'
+        }}>
+          {/* Input Method Toggle */}
+          <h3 style={{ margin: '0 0 12px 0', fontSize: '16px', fontWeight: '600', color: '#495057' }}>
+            Input Method
+          </h3>
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+            <button
+              style={{
+                ...smallButtonStyle,
+                backgroundColor: inputMode === 'text' ? '#007bff' : '#6c757d',
+                marginRight: '8px'
+              }}
+              onClick={() => {
+                setInputMode('text');
+                setMapMode('none');
+              }}
+            >
+              Type Addresses
+            </button>
+            <button
+              style={{
+                ...smallButtonStyle,
+                backgroundColor: inputMode === 'map' ? '#007bff' : '#6c757d'
+              }}
+              onClick={() => setInputMode('map')}
+            >
+              Click on Map
+            </button>
+          </div>
+          
+          {/* Dynamic content area with fixed height */}
+          <div style={{ 
+            height: '200px', // Fixed height instead of minHeight
+            marginBottom: '20px',
+            overflow: 'auto' // Allow scrolling if content exceeds height
+          }}>
+            {inputMode === 'text' ? (
+              <div>
+                <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: '#495057' }}>
+                  From
+                </label>
+                <input 
+                  type="text"
+                  value={origin} 
+                  onChange={e => setOrigin(e.target.value)} 
+                  placeholder="Enter starting address..."
+                  style={{...inputStyle, ':focus': {borderColor: '#007bff', outline: 'none'}}}
+                />
+                
+                <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: '#495057' }}>
+                  To
+                </label>
+                <input 
+                  type="text"
+                  value={destination} 
+                  onChange={e => setDestination(e.target.value)} 
+                  placeholder="Enter destination address..."
+                  style={inputStyle}
+                />
+              </div>
+            ) : (
               <div>
                 <p style={{ fontSize: '12px', color: '#6c757d', marginBottom: '12px' }}>
                   Click the buttons below, then click on the map to set locations:
@@ -796,85 +835,33 @@ function App() {
                     {mapMode === 'setOrigin' ? 'Click on map to set origin (green pin)' : 'Click on map to set destination (red pin)'}
                   </p>
                 )}
+                
+                {/* Show current locations if set via map */}
+                {(originCoords || destinationCoords) && (
+                  <div style={{ marginTop: '16px', padding: '12px', backgroundColor: '#e8f4f8', borderRadius: '8px' }}>
+                    <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', fontWeight: '600', color: '#0c5460' }}>
+                      Selected Locations:
+                    </h4>
+                    {originCoords && (
+                      <div style={{ fontSize: '12px', color: '#0c5460', marginBottom: '4px' }}>
+                        <strong>Origin (A):</strong> {origin || `${originCoords[0].toFixed(4)}, ${originCoords[1].toFixed(4)}`}
+                      </div>
+                    )}
+                    {destinationCoords && (
+                      <div style={{ fontSize: '12px', color: '#0c5460' }}>
+                        <strong>Destination (B):</strong> {destination || `${destinationCoords[0].toFixed(4)}, ${destinationCoords[1].toFixed(4)}`}
+                      </div>
+                    )}
+                    <p style={{ fontSize: '11px', color: '#6c757d', marginTop: '8px', marginBottom: '0' }}>
+                      Drag the pins on the map to adjust locations
+                    </p>
+                  </div>
+                )}
               </div>
             )}
           </div>
 
-          {/* Location Inputs - only show in text mode */}
-          {inputMode === 'text' && (
-            <div style={{ marginBottom: '24px' }}>
-              <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: '#495057' }}>
-                From
-              </label>
-              <input 
-                type="text"
-                value={origin} 
-                onChange={e => setOrigin(e.target.value)} 
-                placeholder="Enter starting address..."
-                style={{...inputStyle, ':focus': {borderColor: '#007bff', outline: 'none'}}}
-              />
-              
-              <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: '#495057' }}>
-                To
-              </label>
-              <input 
-                type="text"
-                value={destination} 
-                onChange={e => setDestination(e.target.value)} 
-                placeholder="Enter destination address..."
-                style={inputStyle}
-              />
-            </div>
-          )}
-
-          {/* Show current locations if set via map */}
-          {inputMode === 'map' && (originCoords || destinationCoords) && (
-            <div style={{ marginBottom: '24px', padding: '12px', backgroundColor: '#e8f4f8', borderRadius: '8px' }}>
-              <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', fontWeight: '600', color: '#0c5460' }}>
-                Selected Locations:
-              </h4>
-              {originCoords && (
-                <div style={{ fontSize: '12px', color: '#0c5460', marginBottom: '4px' }}>
-                  <strong>Origin (A):</strong> {origin || `${originCoords[0].toFixed(4)}, ${originCoords[1].toFixed(4)}`}
-                </div>
-              )}
-              {destinationCoords && (
-                <div style={{ fontSize: '12px', color: '#0c5460' }}>
-                  <strong>Destination (B):</strong> {destination || `${destinationCoords[0].toFixed(4)}, ${destinationCoords[1].toFixed(4)}`}
-                </div>
-              )}
-              <p style={{ fontSize: '11px', color: '#6c757d', marginTop: '8px', marginBottom: '0' }}>
-                Drag the pins on the map to adjust locations
-              </p>
-            </div>
-          )}
-        </div>
-
-        {/* Calculate Route Button */}
-        <button 
-          onClick={handleCalculateRoute}
-          disabled={!readyToCalculate || isCalculating}
-          style={{
-            ...buttonStyle,
-            backgroundColor: !readyToCalculate || isCalculating ? '#6c757d' : '#007bff',
-            cursor: !readyToCalculate || isCalculating ? 'not-allowed' : 'pointer'
-          }}
-          onMouseOver={e => {
-            if (readyToCalculate && !isCalculating) {
-              e.target.style.backgroundColor = '#0056b3';
-            }
-          }}
-          onMouseOut={e => {
-            if (readyToCalculate && !isCalculating) {
-              e.target.style.backgroundColor = '#007bff';
-            }
-          }}
-        >
-          {isCalculating ? 'Calculating Route...' : 'Calculate Route'}
-        </button>
-
-        {/* Time Controls */}
-        <div style={{ marginBottom: '24px', padding: '16px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
+          {/* Travel Time Controls */}
           <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: '600', color: '#495057' }}>
             Travel Time
           </h3>
@@ -910,11 +897,35 @@ function App() {
           <select 
             value={dayType}
             onChange={e => setDayType(e.target.value)}
-            style={inputStyle}
+            style={{...inputStyle, marginBottom: '20px'}}
           >
             <option value="weekday">Weekday</option>
             <option value="weekend">Weekend</option>
           </select>
+
+          {/* Calculate Route Button */}
+          <button 
+            onClick={handleCalculateRoute}
+            disabled={!readyToCalculate || isCalculating}
+            style={{
+              ...buttonStyle,
+              backgroundColor: !readyToCalculate || isCalculating ? '#6c757d' : '#007bff',
+              cursor: !readyToCalculate || isCalculating ? 'not-allowed' : 'pointer',
+              marginBottom: '0' // Remove bottom margin since it's the last element
+            }}
+            onMouseOver={e => {
+              if (readyToCalculate && !isCalculating) {
+                e.target.style.backgroundColor = '#0056b3';
+              }
+            }}
+            onMouseOut={e => {
+              if (readyToCalculate && !isCalculating) {
+                e.target.style.backgroundColor = '#007bff';
+              }
+            }}
+          >
+            {isCalculating ? 'Calculating Route...' : 'Calculate Route'}
+          </button>
         </div>
 
         {/* Route Options */}
