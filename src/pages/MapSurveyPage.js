@@ -279,7 +279,65 @@ function MapClickHandler({ onOriginSet, onDestinationSet, originCoords, destinat
   return null;
 }
 
-// Component for draggable markers
+// Custom Zoom Control Component
+function CustomZoomControl() {
+  const map = useMap();
+  
+  return (
+    <div style={{
+      position: 'absolute',
+      top: '20px',
+      right: '20px',
+      zIndex: 1000,
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '2px'
+    }}>
+      <button
+        style={{
+          width: '34px',
+          height: '34px',
+          backgroundColor: '#fff',
+          border: '2px solid rgba(0,0,0,0.2)',
+          borderRadius: '4px',
+          cursor: 'pointer',
+          fontSize: '18px',
+          fontWeight: 'bold',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          boxShadow: '0 1px 5px rgba(0,0,0,0.65)'
+        }}
+        onClick={() => map.zoomIn()}
+        onMouseOver={e => e.target.style.backgroundColor = '#f4f4f4'}
+        onMouseOut={e => e.target.style.backgroundColor = '#fff'}
+      >
+        +
+      </button>
+      <button
+        style={{
+          width: '34px',
+          height: '34px',
+          backgroundColor: '#fff',
+          border: '2px solid rgba(0,0,0,0.2)',
+          borderRadius: '4px',
+          cursor: 'pointer',
+          fontSize: '18px',
+          fontWeight: 'bold',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          boxShadow: '0 1px 5px rgba(0,0,0,0.65)'
+        }}
+        onClick={() => map.zoomOut()}
+        onMouseOver={e => e.target.style.backgroundColor = '#f4f4f4'}
+        onMouseOut={e => e.target.style.backgroundColor = '#fff'}
+      >
+        −
+      </button>
+    </div>
+  );
+}
 function DraggableMarker({ position, onDragEnd, icon, popupText }) {
   if (!position) return null;
 
@@ -724,11 +782,11 @@ function App() {
 
         {/* Unified Trip Information Container */}
         <div style={{ 
-          marginBottom: '8px',
+          marginBottom: '4px', // Further reduced gap to Route Options
           padding: '12px', 
           backgroundColor: '#f8f9fa', 
           borderRadius: '6px',
-          height: '340px',
+          height: '290px', // Reduced height since we removed instruction text
           display: 'flex',
           flexDirection: 'column'
         }}>
@@ -886,14 +944,14 @@ function App() {
           </div>
 
           {/* Fixed height space for map controls - prevents layout shift */}
-          <div style={{ height: '60px', marginBottom: '12px' }}>
+          <div style={{ height: '52px', marginBottom: '12px' }}> {/* Reduced height */}
             {/* Map interaction controls - only show when Click on Map is selected */}
             {inputMode === 'map' && (
               <div>
                 <p style={{ fontSize: '12px', color: '#6c757d', margin: '0 0 8px 0' }}>
                   Click the buttons below, then click on the map to set locations:
                 </p>
-                <div style={{ display: 'flex', gap: '6px', marginBottom: '8px' }}>
+                <div style={{ display: 'flex', gap: '6px' }}>
                   <button
                     style={{
                       ...smallButtonStyle,
@@ -926,11 +984,6 @@ function App() {
                     Clear All
                   </button>
                 </div>
-                {mapMode !== 'none' && (
-                  <p style={{ fontSize: '11px', color: '#007bff', margin: '0' }}>
-                    {mapMode === 'setOrigin' ? 'Click on map to set origin (green pin)' : 'Click on map to set destination (red pin)'}
-                  </p>
-                )}
               </div>
             )}
           </div>
@@ -1295,13 +1348,15 @@ function App() {
           center={[43.7, -79.4]} 
           zoom={11} 
           style={{ height: "100%", width: "100%" }}
-          zoomControl={true}
-          zoomControlOptions={{ position: 'topright' }}
+          zoomControl={false} // Disable default zoom control
         >
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
             url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
           />
+          
+          {/* Custom zoom control */}
+          <CustomZoomControl />
           
           {/* Map click handler for setting origins/destinations */}
           <MapClickHandler 
