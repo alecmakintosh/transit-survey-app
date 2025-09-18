@@ -551,7 +551,7 @@ function TransitLines({ showLines, transitLines = TRANSIT_LINES }) {
             positions={line.coordinates}
             color={line.color}
             weight={2}
-            opacity={0.6}
+            opacity={1}
             //dashArray="5, 5"
           />
         );
