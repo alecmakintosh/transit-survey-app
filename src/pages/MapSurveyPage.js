@@ -80,9 +80,25 @@ const createTransferIcon = () => {
 };
 
 // FIXED: Create route pill icon for map display with better sizing
-const createRoutePillIcon = (routeName, duration, color, textColor = 'white') => {
+// Updated createRoutePillIcon function with mode icons
+const createRoutePillIcon = (routeName, duration, color, textColor = 'white', mode = null) => {
+  // Only show icons for TRAM, SUBWAY, RAIL
+  const shouldShowIcon = ['TRAM', 'SUBWAY', 'RAIL'].includes(mode);
+  
+  let iconHTML = '';
+  if (shouldShowIcon) {
+    const modeIcons = {
+      SUBWAY: 'fas fa-subway',
+      TRAM: 'fas fa-tram', 
+      RAIL: 'fas fa-train'
+    };
+    
+    const iconClass = modeIcons[mode] || '';
+    iconHTML = `<i class="${iconClass}" style="margin-right: 6px; font-size: 10px;"></i>`;
+  }
+  
   const textContent = `${routeName} • ${duration}min`;
-  const approxWidth = Math.max(80, textContent.length * 7 + 16);
+  const approxWidth = Math.max(80, textContent.length * 7 + 16 + (shouldShowIcon ? 20 : 0));
   
   return L.divIcon({
     className: 'route-pill',
@@ -102,8 +118,11 @@ const createRoutePillIcon = (routeName, duration, color, textColor = 'white') =>
         min-width: 80px;
         position: relative;
         z-index: 500;
+        display: flex;
+        align-items: center;
+        justify-content: center;
       ">
-        ${routeName} • ${duration}min
+        ${iconHTML}${routeName} • ${duration}min
       </div>
     `,
     iconSize: [approxWidth, 26],
@@ -598,7 +617,9 @@ function TransferMarkers({ route, selectedRouteIndex }) {
 function ClickableTransitLeg({ leg, legIndex, selectedRouteIndex, coords }) {
   const [showPopup, setShowPopup] = useState(false);
   
-  const handleClick = () => {
+  const handleClick = (e) => {
+    e.originalEvent.preventDefault(); // Prevent default behavior
+    e.originalEvent.stopPropagation(); // Stop event bubbling
     setShowPopup(true);
   };
 
@@ -606,10 +627,9 @@ function ClickableTransitLeg({ leg, legIndex, selectedRouteIndex, coords }) {
     switch (mode) {
       case 'SUBWAY':
       case 'RAIL':
-      //case 'TRAM':
-        return 8; // Thicker for rail modes
+        return 8;
       case 'TRAM':
-        return 6; // Thinner for bus
+        return 6;
       default:
         return 4;
     }
@@ -627,7 +647,10 @@ function ClickableTransitLeg({ leg, legIndex, selectedRouteIndex, coords }) {
       }}
     >
       {showPopup && (
-        <Popup onClose={() => setShowPopup(false)}>
+        <Popup 
+          onClose={() => setShowPopup(false)}
+          autoPan={true}
+        >
           <div style={{ minWidth: '200px' }}>
             <strong>{leg.route?.shortName || leg.mode}</strong><br/>
             {leg.route?.longName && <><em>{leg.route.longName}</em><br/></>}
@@ -885,73 +908,50 @@ const parseGTFSData = (routesData, tripsData, shapesData, agencyName) => {
   }
 };
 
-const loadGTFSData = async () => {
+const loadPreprocessedData = async () => {
   try {
-    // Load agencies configuration
-    const agenciesResponse = await fetch('/gtfs/agencies.json');
-    const agenciesConfig = await agenciesResponse.json();
+    console.log('Loading preprocessed transit data...');
+    const response = await fetch('/gtfs/processed-transit-lines.json');
     
-    const allTransitLines = [];
-    
-    // Process each agency
-    for (const agency of agenciesConfig.agencies) {
-      console.log(`Loading GTFS data for ${agency.name}...`);
-      
-      try {
-        // Load the three required files for this agency
-        const [routesResponse, tripsResponse, shapesResponse] = await Promise.all([
-          fetch(`/gtfs/${agency.folder}/routes.txt`),
-          fetch(`/gtfs/${agency.folder}/trips.txt`),
-          fetch(`/gtfs/${agency.folder}/shapes.txt`)
-        ]);
-        
-        if (!routesResponse.ok || !tripsResponse.ok || !shapesResponse.ok) {
-          console.warn(`Missing files for agency ${agency.name}, skipping...`);
-          continue;
-        }
-        
-        const [routesData, tripsData, shapesData] = await Promise.all([
-          routesResponse.text(),
-          tripsResponse.text(),
-          shapesResponse.text()
-        ]);
-        
-        // Parse GTFS data for this agency
-        const agencyLines = parseGTFSData(routesData, tripsData, shapesData, agency.name);
-        allTransitLines.push(...agencyLines);
-        
-      } catch (error) {
-        console.error(`Error loading GTFS data for ${agency.name}:`, error);
-      }
+    if (!response.ok) {
+      console.warn('Preprocessed data not found, falling back to hardcoded data');
+      return TRANSIT_LINES;
     }
     
-    console.log(`Loaded ${allTransitLines.length} transit lines from ${agenciesConfig.agencies.length} agencies`);
-    return allTransitLines;
+    const data = await response.json();
+    console.log(`Loaded ${data.transitLines.length} transit lines (processed on ${new Date(data.lastUpdated).toLocaleDateString()})`);
     
+    return data.transitLines;
   } catch (error) {
-    console.error('Error loading GTFS configuration:', error);
-    return [];
+    console.error('Error loading preprocessed data:', error);
+    console.warn('Falling back to hardcoded transit lines');
+    return TRANSIT_LINES;
   }
 };
 
 function ClickableRoutePill({ pill, leg }) {
   const [showPopup, setShowPopup] = useState(false);
   
-  const handleClick = () => {
+  const handleClick = (e) => {
+    e.originalEvent.preventDefault();
+    e.originalEvent.stopPropagation();
     setShowPopup(true);
   };
 
   return (
     <Marker 
       position={pill.position} 
-      icon={createRoutePillIcon(pill.routeName, pill.duration, pill.color, pill.textColor)}
+      icon={createRoutePillIcon(pill.routeName, pill.duration, pill.color, pill.textColor, leg?.mode)}
       zIndexOffset={500}
       eventHandlers={{
         click: handleClick
       }}
     >
       {showPopup && (
-        <Popup onClose={() => setShowPopup(false)}>
+        <Popup 
+          onClose={() => setShowPopup(false)}
+          autoPan={true}
+        >
           <div style={{ minWidth: '200px' }}>
             <strong>{leg?.route?.shortName || leg?.mode || pill.routeName}</strong><br/>
             {leg?.route?.longName && <><em>{leg.route.longName}</em><br/></>}
@@ -1234,13 +1234,13 @@ function App() {
   }, [origin, destination, originCoords, destinationCoords, inputMode]);
 
   useEffect(() => {
-    const initializeGTFS = async () => {
-      const transitLines = await loadGTFSData();
+    const initializeTransitData = async () => {
+      const transitLines = await loadPreprocessedData(); // Changed from loadGTFSData
       setParsedTransitLines(transitLines);
     };
       
-    initializeGTFS();
-  }, []); // Empty dependency array
+    initializeTransitData();
+  }, []);
 
   const mapboxToken = process.env.REACT_APP_MAPBOX_TOKEN;
 
