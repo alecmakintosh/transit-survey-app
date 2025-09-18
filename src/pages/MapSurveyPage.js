@@ -161,7 +161,9 @@ const fetchOTPRoute = async (fromCoords, toCoords) => {
       plan(
         from: {lat: ${fromCoords[0]}, lon: ${fromCoords[1]}}
         to: {lat: ${toCoords[0]}, lon: ${toCoords[1]}}
-        numItineraries: 3
+        numItineraries: 5
+        transferPenalty: 60
+        modeWeight: {BUS: 1.2, SUBWAY: 0.9, RAIL: 0.85, TRAM: 0.95}
       ) {
         itineraries {
           duration
@@ -1070,7 +1072,7 @@ function App() {
               }
             }}
           >
-            {isCalculating ? 'Calculating Route...' : 'Calculate Route'}
+            {isCalculating ? 'Finding Route...' : 'Find Route'}
           </button>
         </div>
 
