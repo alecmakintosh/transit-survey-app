@@ -934,7 +934,7 @@ const loadGTFSData = async () => {
   }
 };
 
-function ClickableRoutePill({ pill, onClose }) {
+function ClickableRoutePill({ pill, leg }) {
   const [showPopup, setShowPopup] = useState(false);
   
   const handleClick = () => {
@@ -952,20 +952,12 @@ function ClickableRoutePill({ pill, onClose }) {
     >
       {showPopup && (
         <Popup onClose={() => setShowPopup(false)}>
-          <div style={{ minWidth: '150px' }}>
-            <strong>{pill.routeName}</strong><br/>
-            <span style={{ color: '#6c757d' }}>Duration: {pill.duration} minutes</span><br/>
-            <div style={{ 
-              marginTop: '4px', 
-              padding: '2px 6px', 
-              borderRadius: '4px', 
-              backgroundColor: pill.color, 
-              color: pill.textColor,
-              fontSize: '11px',
-              display: 'inline-block'
-            }}>
-              Route {pill.routeName}
-            </div>
+          <div style={{ minWidth: '200px' }}>
+            <strong>{leg?.route?.shortName || leg?.mode || pill.routeName}</strong><br/>
+            {leg?.route?.longName && <><em>{leg.route.longName}</em><br/></>}
+            <span style={{ color: '#6c757d' }}>Duration: {Math.round((leg?.duration || pill.duration * 60) / 60)} minutes</span><br/>
+            <strong>From:</strong> {leg?.from?.name || 'Transit segment'}<br/>
+            <strong>To:</strong> {leg?.to?.name || 'Transit segment'}
           </div>
         </Popup>
       )}
@@ -1037,6 +1029,7 @@ const findBestPillPosition = (coords, occupiedPositions, map) => {
 };
 
 // FIXED: Component to handle responsive route pills that update on zoom
+// FIXED: Component to handle responsive route pills that update on zoom
 function RoutePills({ route, selectedRouteIndex, map, originCoords, destinationCoords }) {
   const [zoom, setZoom] = useState(map?.getZoom() || 11);
   const [pills, setPills] = useState([]);
@@ -1101,7 +1094,8 @@ function RoutePills({ route, selectedRouteIndex, map, originCoords, destinationC
             duration: legDuration,
             color: getRouteColor(leg),
             textColor: textColor,
-            routeLongName: leg.route?.longName
+            routeLongName: leg.route?.longName,
+            leg: leg // Pass the full leg data for popup information
           });
           
           occupiedPositions.push(bestPosition);
@@ -1130,13 +1124,12 @@ function RoutePills({ route, selectedRouteIndex, map, originCoords, destinationC
         <ClickableRoutePill 
           key={pill.id}
           pill={pill}
+          leg={pill.leg}
         />
       ))}
     </>
   );
 }
-
-
 
 // Component to capture map instance
 const MapHandler = ({ setMapInstance }) => {
