@@ -75,7 +75,7 @@ const createTransferIcon = () => {
     iconSize: [20, 20],
     iconAnchor: [10, 20],
     popupAnchor: [0, -20],
-    zIndexOffset: -1000
+    zIndexOffset: 100 // Changed from -1000 to 100, still below origin/destination (1000) but above pills (500)
   });
 };
 
@@ -100,6 +100,8 @@ const createRoutePillIcon = (routeName, duration, color) => {
         text-align: center;
         line-height: 1.1;
         min-width: 80px;
+        position: relative;
+        z-index: 500;
       ">
         ${routeName} • ${duration}min
       </div>
@@ -245,38 +247,25 @@ const fetchOTPRoute = async (fromCoords, toCoords, time, isArriveBy, dayType) =>
     console.log("Time settings:", { time, isArriveBy, dayType });
     
     // Parse the time and create the appropriate date
-    const [hours, minutes] = time.split(':').map(Number);
+    //const [hours, minutes] = time.split(':').map(Number);
     
     // FIXED: Use current realistic dates instead of hardcoded 2025 dates
     const today = new Date();
-    const baseDate = dayType === 'weekday' ? 
-      (() => {
-        // Find next weekday (Monday-Friday)
-        const date = new Date(today);
-        while (date.getDay() === 0 || date.getDay() === 6) {
-          date.setDate(date.getDate() + 1);
-        }
-        return date;
-      })() :
-      (() => {
-        // Find next weekend day (Saturday-Sunday)
-        const date = new Date(today);
-        while (date.getDay() !== 0 && date.getDay() !== 6) {
-          date.setDate(date.getDate() + 1);
-        }
-        return date;
-      })();
+    const baseDate = dayType === 'weekday' ? "2025-09-10" : "2025-09-13";
+      //new Date('2025-09-10') : // September 10, 2025 (Weekday)
+      //new Date('2025-09-13');  // September 13, 2025 (Weekend)
     
-    baseDate.setHours(hours, minutes, 0, 0);
-    const dateTime = baseDate.toISOString();
+    //baseDate.setHours(hours, minutes, 0, 0);
+    //const dateTime = baseDate.toISOString();
     
-    console.log("Calculated dateTime:", dateTime);
+    //console.log("Calculated dateTime:", dateTime);
     
     const query = `{
       plan(
         from: {lat: ${fromCoords[0]}, lon: ${fromCoords[1]}}
         to: {lat: ${toCoords[0]}, lon: ${toCoords[1]}}
-        date: "${dateTime}"
+        date: "${baseDate}"
+        time: "${time}"
         ${isArriveBy ? 'arriveBy: true' : ''}
         numItineraries: 10
         transferPenalty: 60
@@ -566,8 +555,71 @@ function TransitLines({ showLines }) {
   );
 }
 
+const findBestPillPosition = (coords, occupiedPositions, map) => {
+  if (coords.length === 0) return null;
+  
+  const minDistancePixels = 60; // Minimum distance in pixels from other markers
+  
+  // Try multiple positions along the route
+  const candidatePositions = [];
+  const segmentCount = Math.min(coords.length - 1, 10); // Check up to 10 segments
+  
+  for (let i = 0; i < segmentCount; i++) {
+    const ratio = i / (segmentCount - 1);
+    const index = Math.floor(ratio * (coords.length - 1));
+    candidatePositions.push(coords[index]);
+  }
+  
+  // Also include the middle position
+  const midIndex = Math.floor(coords.length / 2);
+  if (!candidatePositions.some(pos => pos[0] === coords[midIndex][0] && pos[1] === coords[midIndex][1])) {
+    candidatePositions.push(coords[midIndex]);
+  }
+  
+  // Find the position with maximum distance from occupied positions
+  let bestPosition = null;
+  let maxMinDistance = 0;
+  
+  candidatePositions.forEach(candidate => {
+    let minDistance = Infinity;
+    
+    occupiedPositions.forEach(occupied => {
+      const candidatePixel = map.latLngToContainerPoint(candidate);
+      const occupiedPixel = map.latLngToContainerPoint(occupied);
+      const distance = candidatePixel.distanceTo(occupiedPixel);
+      minDistance = Math.min(minDistance, distance);
+    });
+    
+    if (minDistance > maxMinDistance && minDistance >= minDistancePixels) {
+      maxMinDistance = minDistance;
+      bestPosition = candidate;
+    }
+  });
+  
+  // If no position meets the minimum distance requirement, return the one with maximum distance
+  if (!bestPosition && candidatePositions.length > 0) {
+    candidatePositions.forEach(candidate => {
+      let minDistance = Infinity;
+      
+      occupiedPositions.forEach(occupied => {
+        const candidatePixel = map.latLngToContainerPoint(candidate);
+        const occupiedPixel = map.latLngToContainerPoint(occupied);
+        const distance = candidatePixel.distanceTo(occupiedPixel);
+        minDistance = Math.min(minDistance, distance);
+      });
+      
+      if (minDistance > maxMinDistance) {
+        maxMinDistance = minDistance;
+        bestPosition = candidate;
+      }
+    });
+  }
+  
+  return bestPosition;
+};
+
 // FIXED: Component to handle responsive route pills that update on zoom
-function RoutePills({ route, selectedRouteIndex, map }) {
+function RoutePills({ route, selectedRouteIndex, map, originCoords, destinationCoords }) {
   const [zoom, setZoom] = useState(map?.getZoom() || 11);
   const [pills, setPills] = useState([]);
 
@@ -584,6 +636,22 @@ function RoutePills({ route, selectedRouteIndex, map }) {
       }
 
       const newPills = [];
+      const occupiedPositions = [];
+      
+      // Add origin/destination positions to occupied list
+      if (originCoords) {
+        occupiedPositions.push(originCoords);
+      }
+      if (destinationCoords) {
+        occupiedPositions.push(destinationCoords);
+      }
+      
+      // Add transfer points to occupied list
+      route.legs.forEach((leg, legIndex) => {
+        if (legIndex > 0) { // Transfer points (not the first leg's start)
+          occupiedPositions.push([leg.from.lat, leg.from.lon]);
+        }
+      });
       
       route.legs.forEach((leg, legIndex) => {
         // Only show pills for non-walk transit legs
@@ -603,19 +671,24 @@ function RoutePills({ route, selectedRouteIndex, map }) {
           const pixelBounds = map.latLngToContainerPoint(bounds.getNorthEast())
             .distanceTo(map.latLngToContainerPoint(bounds.getSouthWest()));
           
-          // Only show pills if the route spans at least 80 pixels on screen
-          if (pixelBounds < 80) return;
+          // Only show pills if the route spans at least 100 pixels on screen
+          if (pixelBounds < 100) return;
           
-          const midpoint = getLineMidpoint(coords);
-          if (!midpoint) return;
+          // IMPROVED: Find best position along route that doesn't overlap with markers
+          const bestPosition = findBestPillPosition(coords, occupiedPositions, map);
+          if (!bestPosition) return;
           
           newPills.push({
             id: `pill-${selectedRouteIndex}-${legIndex}`,
-            position: midpoint,
+            position: bestPosition,
             routeName: leg.route?.shortName || leg.mode,
             duration: legDuration,
             color: getRouteColor(leg)
           });
+          
+          // Add this pill's position to occupied positions for next pills
+          occupiedPositions.push(bestPosition);
+          
         } catch (error) {
           console.error("Error processing route pill:", error);
         }
@@ -632,7 +705,7 @@ function RoutePills({ route, selectedRouteIndex, map }) {
       map.off('zoomend', updatePills);
       map.off('moveend', updatePills);
     };
-  }, [map, route, selectedRouteIndex]);
+  }, [map, route, selectedRouteIndex, originCoords, destinationCoords]);
 
   return (
     <>
@@ -641,11 +714,13 @@ function RoutePills({ route, selectedRouteIndex, map }) {
           key={pill.id}
           position={pill.position} 
           icon={createRoutePillIcon(pill.routeName, pill.duration, pill.color)}
+          zIndexOffset={500} // Between origin/destination (1000) and transfers (-1000)
         />
       ))}
     </>
   );
 }
+
 
 // Component to capture map instance
 const MapHandler = ({ setMapInstance }) => {
@@ -1726,6 +1801,8 @@ function App() {
               route={routeOptions[selectedRouteIndex]} 
               selectedRouteIndex={selectedRouteIndex}
               map={mapInstance} 
+              originCoords={originCoords}
+              destinationCoords={destinationCoords}
             />
           )}
           
