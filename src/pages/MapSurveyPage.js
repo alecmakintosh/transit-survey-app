@@ -75,12 +75,12 @@ const createTransferIcon = () => {
     iconSize: [20, 20],
     iconAnchor: [10, 20],
     popupAnchor: [0, -20],
-    zIndexOffset: 100 // Changed from -1000 to 100, still below origin/destination (1000) but above pills (500)
+    zIndexOffset: -5000 // Changed from -1000 to 100, still below origin/destination (1000) but above pills (500)
   });
 };
 
 // FIXED: Create route pill icon for map display with better sizing
-const createRoutePillIcon = (routeName, duration, color) => {
+const createRoutePillIcon = (routeName, duration, color, textColor = 'white') => {
   const textContent = `${routeName} • ${duration}min`;
   const approxWidth = Math.max(80, textContent.length * 7 + 16);
   
@@ -89,7 +89,7 @@ const createRoutePillIcon = (routeName, duration, color) => {
     html: `
       <div style="
         background-color: ${color};
-        color: white;
+        color: ${textColor || 'white'};
         padding: 5px 10px;
         border-radius: 15px;
         font-size: 11px;
@@ -270,6 +270,8 @@ const fetchOTPRoute = async (fromCoords, toCoords, time, isArriveBy, dayType) =>
         numItineraries: 10
         transferPenalty: 60
         modeWeight: {BUS: 1.2, SUBWAY: 0.9, RAIL: 0.85, TRAM: 0.95}
+        searchWindow: 1800
+        walkReluctance: 2.0
       ) {
         itineraries {
           duration
@@ -503,10 +505,10 @@ function DraggableMarker({ position, onDragEnd, icon, popupText }) {
   );
 }
 
-function FitMap({ originCoords, destinationCoords, routeLegs, shouldFit }) {
+function FitMap({ originCoords, destinationCoords, routeLegs, shouldFit, triggerType}) {
   const map = useMap();
   React.useEffect(() => {
-    if (!shouldFit) return;
+    if (!shouldFit || triggerType === 'drag') return;
     
     if (routeLegs && routeLegs.length > 0) {
       const allPoints = [];
@@ -531,7 +533,7 @@ function FitMap({ originCoords, destinationCoords, routeLegs, shouldFit }) {
     } else if (originCoords && destinationCoords) {
       map.fitBounds([originCoords, destinationCoords], { padding: [50, 50] });
     }
-  }, [originCoords, destinationCoords, routeLegs, map, shouldFit]);
+  }, [originCoords, destinationCoords, routeLegs, map, shouldFit, triggerType]);
   return null;
 }
 
@@ -554,6 +556,135 @@ function TransitLines({ showLines }) {
     </>
   );
 }
+
+// Add this new component after your existing components (around line 500)
+function TransferMarkers({ route, selectedRouteIndex }) {
+  if (!route || !route.legs) return null;
+  
+  return (
+    <>
+      {route.legs.map((leg, legIndex) => {
+        if (legIndex === 0) return null; // Skip first leg (no transfer point)
+        
+        return (
+          <Marker 
+            key={`transfer-${selectedRouteIndex}-${legIndex}`}
+            position={[leg.from.lat, leg.from.lon]} 
+            icon={transferIcon}
+            zIndexOffset={-1000}
+          >
+            <Popup>
+              <div style={{ minWidth: '200px' }}>
+                <strong>{leg.from.name}</strong><br/>
+                <span style={{ color: '#6c757d' }}>Transfer Point</span>
+                {leg.route && (
+                  <>
+                    <br/><strong>Next: {leg.route.shortName}</strong> {leg.route.longName}
+                    <br/>Duration: {Math.round(leg.duration / 60)} minutes
+                  </>
+                )}
+              </div>
+            </Popup>
+          </Marker>
+        );
+      })}
+    </>
+  );
+}
+
+function ClickableTransitLeg({ leg, legIndex, selectedRouteIndex, coords }) {
+  const [showPopup, setShowPopup] = useState(false);
+  
+  const handleClick = () => {
+    setShowPopup(true);
+  };
+
+  const getRouteWidth = (mode) => {
+    switch (mode) {
+      case 'SUBWAY':
+      case 'RAIL':
+      case 'TRAM':
+        return 8; // Thicker for rail modes
+      case 'BUS':
+        return 4; // Thinner for bus
+      default:
+        return 6;
+    }
+  };
+
+  return (
+    <Polyline
+      positions={coords}
+      color={getRouteColor(leg)}
+      weight={getRouteWidth(leg.mode)}
+      opacity={0.8}
+      dashArray={leg.mode === 'WALK' ? '10, 5' : null}
+      eventHandlers={{
+        click: handleClick
+      }}
+    >
+      {showPopup && (
+        <Popup onClose={() => setShowPopup(false)}>
+          <div style={{ minWidth: '200px' }}>
+            <strong>{leg.route?.shortName || leg.mode}</strong><br/>
+            {leg.route?.longName && <><em>{leg.route.longName}</em><br/></>}
+            <span style={{ color: '#6c757d' }}>Duration: {Math.round(leg.duration / 60)} minutes</span><br/>
+            <strong>From:</strong> {leg.from.name}<br/>
+            <strong>To:</strong> {leg.to.name}
+          </div>
+        </Popup>
+      )}
+    </Polyline>
+  );
+}
+
+const RouteOptionLeg = ({ leg, legIndex, displayLegs }) => {
+  const legColor = getRouteColor(leg);
+  const duration = Math.round(leg.duration / 60);
+  let displayText = '';
+  let iconClass = getModeIcon(leg);
+  
+  if (leg.mode === 'WALK') {
+    displayText = `${duration}min`;
+  } else if (leg.route && leg.route.shortName) {
+    displayText = leg.route.shortName;
+  } else {
+    displayText = leg.mode.toLowerCase();
+  }
+
+  // FIXED: Use textColor from route data
+  const textColor = leg.route?.textColor ? `#${leg.route.textColor}` : (leg.mode === 'WALK' ? '#000' : '#fff');
+
+  return (
+    <React.Fragment>
+      <div
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          backgroundColor: legColor,
+          color: textColor,
+          padding: '2px 6px',
+          borderRadius: '8px',
+          fontSize: '10px',
+          fontWeight: '600',
+          margin: '1px',
+          minWidth: '24px',
+          justifyContent: 'center'
+        }}
+      >
+        <i className={iconClass} style={{ marginRight: '2px', fontSize: '8px' }}></i>
+        {displayText}
+      </div>
+      {legIndex < displayLegs.length - 1 && (
+        <span style={{ 
+          margin: '0 2px', 
+          color: '#6c757d',
+          fontSize: '10px'
+        }}>→</span>
+      )}
+    </React.Fragment>
+  );
+};
 
 const findBestPillPosition = (coords, occupiedPositions, map) => {
   if (coords.length === 0) return null;
@@ -678,12 +809,15 @@ function RoutePills({ route, selectedRouteIndex, map, originCoords, destinationC
           const bestPosition = findBestPillPosition(coords, occupiedPositions, map);
           if (!bestPosition) return;
           
+          const textColor = leg.route?.textColor ? `#${leg.route.textColor}` : 'white';
+
           newPills.push({
             id: `pill-${selectedRouteIndex}-${legIndex}`,
             position: bestPosition,
             routeName: leg.route?.shortName || leg.mode,
             duration: legDuration,
-            color: getRouteColor(leg)
+            color: getRouteColor(leg),
+            textColor: textColor
           });
           
           // Add this pill's position to occupied positions for next pills
@@ -713,7 +847,7 @@ function RoutePills({ route, selectedRouteIndex, map, originCoords, destinationC
         <Marker 
           key={pill.id}
           position={pill.position} 
-          icon={createRoutePillIcon(pill.routeName, pill.duration, pill.color)}
+          icon={createRoutePillIcon(pill.routeName, pill.duration, pill.color, pill.textColor)}
           zIndexOffset={500} // Between origin/destination (1000) and transfers (-1000)
         />
       ))}
@@ -802,6 +936,10 @@ function App() {
   // Map reference for pills component
   const [mapInstance, setMapInstance] = useState(null);
 
+  const [gtfsData, setGtfsData] = useState({ routes: null, trips: null, shapes: null });
+  const [parsedTransitLines, setParsedTransitLines] = useState([]);
+  const [fitTriggerType, setFitTriggerType] = useState(null);
+
   useEffect(() => {
     let storedSessionId = localStorage.getItem('session_id');
     if (!storedSessionId) {
@@ -870,17 +1008,22 @@ function App() {
     setOriginCoords(coords);
     const address = await reverseGeocode(coords, mapboxToken);
     setOrigin(address);
+    setFitTriggerType('drag'); // Don't auto-zoom on drag
+    setShouldFitMap(false);
   };
 
   const handleDestinationDrag = async (coords) => {
     setDestinationCoords(coords);
     const address = await reverseGeocode(coords, mapboxToken);
     setDestination(address);
+    setFitTriggerType('drag'); // Don't auto-zoom on drag
+    setShouldFitMap(false);
   };
 
   // Centralized trip planning function
   const planTrip = async (oCoords, dCoords, originAddress, destinationAddress) => {
     setIsCalculating(true);
+    setFitTriggerType('route'); // Enable auto-zoom for route calculation
     setShouldFitMap(true); // Enable map fitting for new route calculation
     
     // Clear previous route data
@@ -1054,7 +1197,8 @@ function App() {
     setSelectedRouteIndex(index);
     setOtpTravelTime(Math.round(routeOptions[index].duration / 60));
     setTravelTime(Math.round(routeOptions[index].duration / 60));
-    setShouldFitMap(true); // Enable map fitting when route selection changes
+    setFitTriggerType('route-select'); // Enable auto-zoom for route selection
+    setShouldFitMap(true);
   };
 
   // Check if current route uses new transit lines
@@ -1528,6 +1672,7 @@ function App() {
                       }}>
                         {displayLegs.map((leg, legIndex) => {
                           const legColor = getRouteColor(leg);
+                          const textColor = leg.route?.textColor ? `#${leg.route.textColor}` : (leg.mode === 'WALK' ? '#000' : '#fff');
                           const duration = Math.round(leg.duration / 60);
                           let displayText = '';
                           let iconClass = getModeIcon(leg);
@@ -1547,7 +1692,7 @@ function App() {
                                   display: 'inline-flex',
                                   alignItems: 'center',
                                   backgroundColor: legColor,
-                                  color: leg.mode === 'WALK' ? '#000' : '#fff',
+                                  color: textColor,
                                   padding: '2px 6px',
                                   borderRadius: '8px',
                                   fontSize: '10px',
@@ -1738,51 +1883,36 @@ function App() {
           {/* Render only the selected route polylines */}
           {routeOptions.length > 0 && routeOptions[selectedRouteIndex] ? (
             <div key={`route-${selectedRouteIndex}`}>
+              {/* Render transfer markers FIRST (so they appear behind other markers) */}
+              <TransferMarkers 
+                route={routeOptions[selectedRouteIndex]} 
+                selectedRouteIndex={selectedRouteIndex}
+              />
+              
+              {/* Render clickable route legs */}
               {routeOptions[selectedRouteIndex].legs.map((leg, legIndex) => {
                 try {
                   if (!leg.legGeometry || !leg.legGeometry.points) {
                     return (
-                      <Polyline
+                      <ClickableTransitLeg
                         key={`route-${selectedRouteIndex}-leg-${legIndex}`}
-                        positions={[[leg.from.lat, leg.from.lon], [leg.to.lat, leg.to.lon]]}
-                        color={getRouteColor(leg)}
-                        weight={6}
-                        opacity={0.8}
-                        dashArray={leg.mode === 'WALK' ? '10, 5' : null}
+                        leg={leg}
+                        legIndex={legIndex}
+                        selectedRouteIndex={selectedRouteIndex}
+                        coords={[[leg.from.lat, leg.from.lon], [leg.to.lat, leg.to.lon]]}
                       />
                     );
                   }
 
                   const coords = polyline.decode(leg.legGeometry.points);
-
                   return (
-                    <React.Fragment key={`route-${selectedRouteIndex}-leg-${legIndex}`}>
-                      <Polyline
-                        positions={coords}
-                        color={getRouteColor(leg)}
-                        weight={6}
-                        opacity={0.8}
-                        dashArray={leg.mode === 'WALK' ? '10, 5' : null}
-                      />
-                      
-                      {/* Only show transfer markers for non-start/end points */}
-                      {legIndex > 0 && (
-                        <Marker position={[leg.from.lat, leg.from.lon]} icon={transferIcon}>
-                          <Popup>
-                            <div style={{ minWidth: '200px' }}>
-                              <strong>{leg.from.name}</strong><br/>
-                              <span style={{ color: '#6c757d' }}>Transfer Point</span>
-                              {leg.route && (
-                                <>
-                                  <br/><strong>Next: {leg.route.shortName}</strong> {leg.route.longName}
-                                  <br/>Duration: {Math.round(leg.duration / 60)} minutes
-                                </>
-                              )}
-                            </div>
-                          </Popup>
-                        </Marker>
-                      )}
-                    </React.Fragment>
+                    <ClickableTransitLeg
+                      key={`route-${selectedRouteIndex}-leg-${legIndex}`}
+                      leg={leg}
+                      legIndex={legIndex}
+                      selectedRouteIndex={selectedRouteIndex}
+                      coords={coords}
+                    />
                   );
                 } catch (error) {
                   console.error("Error rendering leg", legIndex, error);
@@ -1811,6 +1941,7 @@ function App() {
             destinationCoords={destinationCoords} 
             routeLegs={routeOptions[selectedRouteIndex]?.legs || []}
             shouldFit={shouldFitMap}
+            triggerType={fitTriggerType}
           />
         </MapContainer>
       </div>
