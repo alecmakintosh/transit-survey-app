@@ -1,0 +1,3 @@
+route_id,agency_id,route_short_name,route_long_name,route_desc,route_type,route_url,route_color,route_text_color
+75001,X,5,LINE 5 (EGLINTON),,0,,D87E00,FFFFFF
+75003,X,6,LINE 6 (FINCH WEST),,0,,868686,FFFFFF

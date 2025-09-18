@@ -543,16 +543,19 @@ function TransitLines({ showLines, transitLines = TRANSIT_LINES }) {
   
   return (
     <>
-      {transitLines.map((line, index) => (
-        <Polyline
-          key={`transit-line-${index}`}
-          positions={line.coordinates}
-          color={line.color}
-          weight={3}
-          opacity={0.6}
-          dashArray="5, 5"
-        />
-      ))}
+      {transitLines.map((line, index) => {
+        console.log(`Rendering line ${line.name} (${line.shortName}) with color: ${line.color}`);
+        return (
+          <Polyline
+            key={`transit-line-${index}`}
+            positions={line.coordinates}
+            color={line.color}
+            weight={2}
+            opacity={0.6}
+            //dashArray="5, 5"
+          />
+        );
+      })}
     </>
   );
 }
@@ -603,12 +606,12 @@ function ClickableTransitLeg({ leg, legIndex, selectedRouteIndex, coords }) {
     switch (mode) {
       case 'SUBWAY':
       case 'RAIL':
-      case 'TRAM':
+      //case 'TRAM':
         return 8; // Thicker for rail modes
-      case 'BUS':
-        return 4; // Thinner for bus
+      case 'TRAM':
+        return 6; // Thinner for bus
       default:
-        return 6;
+        return 4;
     }
   };
 
@@ -745,47 +748,73 @@ function GTFSFileLoader({ onDataLoaded }) {
   );
 }
 
-const parseGTFSData = (routesData, tripsData, shapesData) => {
+const parseGTFSData = (routesData, tripsData, shapesData, agencyName) => {
   const transitModes = ['0', '1', '2']; // 0=Tram, 1=Subway, 2=Rail
   const transitLines = [];
+
+  console.log(`Debugging ${agencyName}:`);
+  console.log('Routes data first few lines:', routesData.split('\n').slice(0, 3));
   
   try {
-    const routes = routesData.split('\n').slice(1);
-    const routeHeaders = routesData.split('\n')[0].split(',');
+    const routes = routesData.split(/\r?\n/).slice(1);
+    console.log(`Found ${routes.length} route lines`);
+    const routeHeaders = routesData.split(/\r?\n/)[0].split(',');
     
-    const trips = tripsData.split('\n').slice(1);
-    const tripHeaders = tripsData.split('\n')[0].split(',');
+    const trips = tripsData.split(/\r?\n/).slice(1);
+    const tripHeaders = tripsData.split(/\r?\n/)[0].split(',');
     
-    const shapes = shapesData.split('\n').slice(1);
-    const shapeHeaders = shapesData.split('\n')[0].split(',');
+    const shapes = shapesData.split(/\r?\n/).slice(1);
+    const shapeHeaders = shapesData.split(/\r?\n/)[0].split(',');
     
-    // Build route lookup
+    // Get column indices
+    const routeTypeIdx = routeHeaders.indexOf('route_type');
+    const routeIdIdx = routeHeaders.indexOf('route_id');
+    const routeNameIdx = routeHeaders.indexOf('route_long_name');
+    const routeShortNameIdx = routeHeaders.indexOf('route_short_name');
+    const routeColorIdx = routeHeaders.indexOf('route_color');
+    
+    // Build route lookup with proper color handling
     const transitRoutes = new Map();
     routes.forEach(row => {
-      const fields = row.split(',');
-      const routeTypeIdx = routeHeaders.indexOf('route_type');
-      const routeIdIdx = routeHeaders.indexOf('route_id');
-      const routeNameIdx = routeHeaders.indexOf('route_long_name');
-      const routeColorIdx = routeHeaders.indexOf('route_color');
+      if (!row.trim()) return; // Skip empty rows
+      
+      const fields = row.split(',').map(field => field.trim().replace(/^"|"$/g, ''));
       
       if (routeTypeIdx >= 0 && transitModes.includes(fields[routeTypeIdx])) {
+        let routeColor = '#000000'; // Default black
+        
+        // Handle route color properly
+        if (routeColorIdx >= 0 && fields[routeColorIdx]) {
+          let colorValue = fields[routeColorIdx].trim().replace(/"/g, '');
+          // Add # if not present
+          routeColor = colorValue.startsWith('#') ? colorValue : `#${colorValue}`;
+        }
+
+        console.log(`Route ${fields[routeIdIdx]} - Raw color field:`, fields[routeColorIdx]);
+        console.log(`Processed color:`, routeColor);
+        console.log(`All fields:`, fields);
+        
         transitRoutes.set(fields[routeIdIdx], {
-          name: fields[routeNameIdx] || fields[routeHeaders.indexOf('route_short_name')],
+          name: fields[routeNameIdx] || fields[routeShortNameIdx] || 'Unknown Route',
+          shortName: fields[routeShortNameIdx] || '',
           type: fields[routeTypeIdx],
-          color: fields[routeColorIdx] ? `#${fields[routeColorIdx]}` : '#000000'
+          color: routeColor,
+          agency: agencyName
         });
       }
     });
     
     // Build shape lookup from trips
     const routeShapes = new Map();
+    const routeIdIdx_trips = tripHeaders.indexOf('route_id');
+    const shapeIdIdx_trips = tripHeaders.indexOf('shape_id');
+    
     trips.forEach(row => {
-      const fields = row.split(',');
-      const routeIdIdx = tripHeaders.indexOf('route_id');
-      const shapeIdIdx = tripHeaders.indexOf('shape_id');
+      if (!row.trim()) return;
       
-      const routeId = fields[routeIdIdx];
-      const shapeId = fields[shapeIdIdx];
+      const fields = row.split(',');
+      const routeId = fields[routeIdIdx_trips];
+      const shapeId = fields[shapeIdIdx_trips];
       
       if (transitRoutes.has(routeId) && shapeId) {
         if (!routeShapes.has(routeId)) {
@@ -794,50 +823,155 @@ const parseGTFSData = (routesData, tripsData, shapesData) => {
         routeShapes.get(routeId).add(shapeId);
       }
     });
+
+    console.log(`Route shapes for ${agencyName}:`, Array.from(routeShapes.entries()));
     
     // Build coordinates from shapes
     const shapeCoords = new Map();
+    const shapeIdIdx = shapeHeaders.indexOf('shape_id');
+    const latIdx = shapeHeaders.indexOf('shape_pt_lat');
+    const lonIdx = shapeHeaders.indexOf('shape_pt_lon');
+    const seqIdx = shapeHeaders.indexOf('shape_pt_sequence');
+    
     shapes.forEach(row => {
-      const fields = row.split(',');
-      const shapeIdIdx = shapeHeaders.indexOf('shape_id');
-      const latIdx = shapeHeaders.indexOf('shape_pt_lat');
-      const lonIdx = shapeHeaders.indexOf('shape_pt_lon');
-      const seqIdx = shapeHeaders.indexOf('shape_pt_sequence');
+      if (!row.trim()) return;
       
+      const fields = row.split(',');
       const shapeId = fields[shapeIdIdx];
       const lat = parseFloat(fields[latIdx]);
       const lon = parseFloat(fields[lonIdx]);
       const seq = parseInt(fields[seqIdx]);
       
-      if (!shapeCoords.has(shapeId)) {
-        shapeCoords.set(shapeId, []);
+      if (!isNaN(lat) && !isNaN(lon) && !isNaN(seq)) {
+        if (!shapeCoords.has(shapeId)) {
+          shapeCoords.set(shapeId, []);
+        }
+        shapeCoords.get(shapeId).push({ lat, lon, seq });
       }
-      shapeCoords.get(shapeId).push({ lat, lon, seq });
     });
+
+    console.log(`Shape coordinates for ${agencyName}:`, Array.from(shapeCoords.keys()));
     
     // Sort coordinates by sequence and build transit lines
     routeShapes.forEach((shapeIds, routeId) => {
       const route = transitRoutes.get(routeId);
-      shapeIds.forEach(shapeId => {
+      
+      // Convert Set to Array to get index, then only process first shape
+      const shapeArray = Array.from(shapeIds);
+      if (shapeArray.length > 0) {
+        const shapeId = shapeArray[0]; // Only take first shape
         const coords = shapeCoords.get(shapeId);
+        
         if (coords && coords.length > 1) {
           coords.sort((a, b) => a.seq - b.seq);
           transitLines.push({
             mode: route.type === '1' ? 'SUBWAY' : route.type === '2' ? 'RAIL' : 'TRAM',
             name: route.name,
+            shortName: route.shortName,
             color: route.color,
+            agency: route.agency,
             coordinates: coords.map(c => [c.lat, c.lon])
           });
         }
-      });
+      }
     });
     
+    console.log(`Parsed ${transitLines.length} transit lines for ${agencyName}`);
     return transitLines;
+    
   } catch (error) {
-    console.error('Error parsing GTFS data:', error);
+    console.error(`Error parsing GTFS data for ${agencyName}:`, error);
     return [];
   }
 };
+
+const loadGTFSData = async () => {
+  try {
+    // Load agencies configuration
+    const agenciesResponse = await fetch('/gtfs/agencies.json');
+    const agenciesConfig = await agenciesResponse.json();
+    
+    const allTransitLines = [];
+    
+    // Process each agency
+    for (const agency of agenciesConfig.agencies) {
+      console.log(`Loading GTFS data for ${agency.name}...`);
+      
+      try {
+        // Load the three required files for this agency
+        const [routesResponse, tripsResponse, shapesResponse] = await Promise.all([
+          fetch(`/gtfs/${agency.folder}/routes.txt`),
+          fetch(`/gtfs/${agency.folder}/trips.txt`),
+          fetch(`/gtfs/${agency.folder}/shapes.txt`)
+        ]);
+        
+        if (!routesResponse.ok || !tripsResponse.ok || !shapesResponse.ok) {
+          console.warn(`Missing files for agency ${agency.name}, skipping...`);
+          continue;
+        }
+        
+        const [routesData, tripsData, shapesData] = await Promise.all([
+          routesResponse.text(),
+          tripsResponse.text(),
+          shapesResponse.text()
+        ]);
+        
+        // Parse GTFS data for this agency
+        const agencyLines = parseGTFSData(routesData, tripsData, shapesData, agency.name);
+        allTransitLines.push(...agencyLines);
+        
+      } catch (error) {
+        console.error(`Error loading GTFS data for ${agency.name}:`, error);
+      }
+    }
+    
+    console.log(`Loaded ${allTransitLines.length} transit lines from ${agenciesConfig.agencies.length} agencies`);
+    return allTransitLines;
+    
+  } catch (error) {
+    console.error('Error loading GTFS configuration:', error);
+    return [];
+  }
+};
+
+function ClickableRoutePill({ pill, onClose }) {
+  const [showPopup, setShowPopup] = useState(false);
+  
+  const handleClick = () => {
+    setShowPopup(true);
+  };
+
+  return (
+    <Marker 
+      position={pill.position} 
+      icon={createRoutePillIcon(pill.routeName, pill.duration, pill.color, pill.textColor)}
+      zIndexOffset={500}
+      eventHandlers={{
+        click: handleClick
+      }}
+    >
+      {showPopup && (
+        <Popup onClose={() => setShowPopup(false)}>
+          <div style={{ minWidth: '150px' }}>
+            <strong>{pill.routeName}</strong><br/>
+            <span style={{ color: '#6c757d' }}>Duration: {pill.duration} minutes</span><br/>
+            <div style={{ 
+              marginTop: '4px', 
+              padding: '2px 6px', 
+              borderRadius: '4px', 
+              backgroundColor: pill.color, 
+              color: pill.textColor,
+              fontSize: '11px',
+              display: 'inline-block'
+            }}>
+              Route {pill.routeName}
+            </div>
+          </div>
+        </Popup>
+      )}
+    </Marker>
+  );
+}
 
 const findBestPillPosition = (coords, occupiedPositions, map) => {
   if (coords.length === 0) return null;
@@ -932,33 +1066,29 @@ function RoutePills({ route, selectedRouteIndex, map, originCoords, destinationC
       
       // Add transfer points to occupied list
       route.legs.forEach((leg, legIndex) => {
-        if (legIndex > 0) { // Transfer points (not the first leg's start)
+        if (legIndex > 0) {
           occupiedPositions.push([leg.from.lat, leg.from.lon]);
         }
       });
       
       route.legs.forEach((leg, legIndex) => {
-        // Only show pills for non-walk transit legs
         if (leg.mode === 'WALK') return;
         
         const legDuration = Math.round(leg.duration / 60);
-        if (legDuration < 3) return; // Skip very short legs
+        if (legDuration < 3) return;
         
         try {
           if (!leg.legGeometry || !leg.legGeometry.points) return;
           
           const coords = polyline.decode(leg.legGeometry.points);
-          if (coords.length < 5) return; // Skip short routes
+          if (coords.length < 5) return;
           
-          // Check if route is long enough on screen to warrant a pill
           const bounds = L.latLngBounds(coords);
           const pixelBounds = map.latLngToContainerPoint(bounds.getNorthEast())
             .distanceTo(map.latLngToContainerPoint(bounds.getSouthWest()));
           
-          // Only show pills if the route spans at least 100 pixels on screen
           if (pixelBounds < 100) return;
           
-          // IMPROVED: Find best position along route that doesn't overlap with markers
           const bestPosition = findBestPillPosition(coords, occupiedPositions, map);
           if (!bestPosition) return;
           
@@ -970,10 +1100,10 @@ function RoutePills({ route, selectedRouteIndex, map, originCoords, destinationC
             routeName: leg.route?.shortName || leg.mode,
             duration: legDuration,
             color: getRouteColor(leg),
-            textColor: textColor
+            textColor: textColor,
+            routeLongName: leg.route?.longName
           });
           
-          // Add this pill's position to occupied positions for next pills
           occupiedPositions.push(bestPosition);
           
         } catch (error) {
@@ -997,16 +1127,15 @@ function RoutePills({ route, selectedRouteIndex, map, originCoords, destinationC
   return (
     <>
       {pills.map(pill => (
-        <Marker 
+        <ClickableRoutePill 
           key={pill.id}
-          position={pill.position} 
-          icon={createRoutePillIcon(pill.routeName, pill.duration, pill.color, pill.textColor)}
-          zIndexOffset={500} // Between origin/destination (1000) and transfers (-1000)
+          pill={pill}
         />
       ))}
     </>
   );
 }
+
 
 
 // Component to capture map instance
@@ -1089,7 +1218,7 @@ function App() {
   // Map reference for pills component
   const [mapInstance, setMapInstance] = useState(null);
 
-  const [gtfsData, setGtfsData] = useState({ routes: null, trips: null, shapes: null });
+  // Remove the gtfsData state since we don't need it anymore
   const [parsedTransitLines, setParsedTransitLines] = useState([]);
   const [fitTriggerType, setFitTriggerType] = useState(null);
 
@@ -1110,6 +1239,15 @@ function App() {
       setReadyToCalculate(originCoords && destinationCoords);
     }
   }, [origin, destination, originCoords, destinationCoords, inputMode]);
+
+  useEffect(() => {
+    const initializeGTFS = async () => {
+      const transitLines = await loadGTFSData();
+      setParsedTransitLines(transitLines);
+    };
+      
+    initializeGTFS();
+  }, []); // Empty dependency array
 
   const mapboxToken = process.env.REACT_APP_MAPBOX_TOKEN;
 
@@ -1137,6 +1275,7 @@ function App() {
   };
 
   // Add this function after the geocodeAddress function
+  /*
   const handleGTFSDataLoaded = (fileType, data) => {
     setGtfsData(prev => ({ ...prev, [fileType]: data }));
     
@@ -1148,6 +1287,7 @@ function App() {
       console.log('Parsed GTFS transit lines:', lines);
     }
   };
+  */
 
   // Handle setting origin via map click (no auto-calculation)
   const handleOriginSet = async (coords) => {
@@ -1889,9 +2029,6 @@ function App() {
             </div>
           )}
         </div>
-
-        {/* Add this after the Trip Information Container */}
-        <GTFSFileLoader onDataLoaded={handleGTFSDataLoaded} />
 
         {/* FIXED: Fixed bottom buttons container - matching width and consistent styling */}
         {tripHistory.length > 0 && (

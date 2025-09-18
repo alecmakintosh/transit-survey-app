@@ -1,0 +1,24 @@
+{
+  "agencies": [
+    {
+      "id": "ttc",
+      "name": "Toronto Transit Commission",
+      "folder": "ttc"
+    },
+    {
+      "id": "go", 
+      "name": "GO Transit",
+      "folder": "go"
+    },
+    {
+      "id": "up", 
+      "name": "UP Express",
+      "folder": "up"
+    },
+    {
+      "id": "new", 
+      "name": "New Routes",
+      "folder": "new"
+    }
+  ]
+}
