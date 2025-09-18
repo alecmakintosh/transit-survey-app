@@ -617,11 +617,15 @@ function TransferMarkers({ route, selectedRouteIndex }) {
 function ClickableTransitLeg({ leg, legIndex, selectedRouteIndex, coords }) {
   const [showPopup, setShowPopup] = useState(false);
   
-  const handleClick = (e) => {
-    e.originalEvent.preventDefault(); // Prevent default behavior
-    e.originalEvent.stopPropagation(); // Stop event bubbling
+  const handleMouseOver = () => {
     setShowPopup(true);
   };
+  
+  /*
+  const handleMouseOut = () => {
+    setShowPopup(false);
+  };
+  */
 
   const getRouteWidth = (mode) => {
     switch (mode) {
@@ -643,7 +647,8 @@ function ClickableTransitLeg({ leg, legIndex, selectedRouteIndex, coords }) {
       opacity={0.8}
       dashArray={leg.mode === 'WALK' ? '10, 5' : null}
       eventHandlers={{
-        click: handleClick
+        mouseover: handleMouseOver,
+        //mouseout: handleMouseOut
       }}
     >
       {showPopup && (
@@ -932,11 +937,15 @@ const loadPreprocessedData = async () => {
 function ClickableRoutePill({ pill, leg }) {
   const [showPopup, setShowPopup] = useState(false);
   
-  const handleClick = (e) => {
-    e.originalEvent.preventDefault();
-    e.originalEvent.stopPropagation();
+  const handleMouseOver = () => {
     setShowPopup(true);
   };
+  
+  /*
+  const handleMouseOut = () => {
+    setShowPopup(false);
+  };
+  */
 
   return (
     <Marker 
@@ -944,7 +953,8 @@ function ClickableRoutePill({ pill, leg }) {
       icon={createRoutePillIcon(pill.routeName, pill.duration, pill.color, pill.textColor, leg?.mode)}
       zIndexOffset={500}
       eventHandlers={{
-        click: handleClick
+        mouseover: handleMouseOver,
+        //mouseout: handleMouseOut
       }}
     >
       {showPopup && (
@@ -2138,13 +2148,12 @@ function App() {
       <div style={mapStyle}>
         <MapContainer 
           center={[43.7, -79.4]} 
-          zoom={11} 
+          zoom={11.8} 
           style={{ height: "100%", width: "100%" }}
           zoomControl={false} // Disable default zoom control
         >
           <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-            url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+            url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
           />
           
           {/* Map handler to capture map instance */}
