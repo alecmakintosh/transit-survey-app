@@ -538,12 +538,12 @@ function FitMap({ originCoords, destinationCoords, routeLegs, shouldFit, trigger
 }
 
 // Component to render transit lines
-function TransitLines({ showLines }) {
+function TransitLines({ showLines, transitLines = TRANSIT_LINES }) {
   if (!showLines) return null;
   
   return (
     <>
-      {TRANSIT_LINES.map((line, index) => (
+      {transitLines.map((line, index) => (
         <Polyline
           key={`transit-line-${index}`}
           positions={line.coordinates}
@@ -684,6 +684,159 @@ const RouteOptionLeg = ({ leg, legIndex, displayLegs }) => {
       )}
     </React.Fragment>
   );
+};
+
+// GTFS Integration Components
+function GTFSFileLoader({ onDataLoaded }) {
+  const [uploadedFiles, setUploadedFiles] = useState({
+    routes: false,
+    trips: false,
+    shapes: false
+  });
+
+  const handleFileUpload = (event, fileType) => {
+    const file = event.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        onDataLoaded(fileType, e.target.result);
+        setUploadedFiles(prev => ({ ...prev, [fileType]: true }));
+      };
+      reader.readAsText(file);
+    }
+  };
+
+  return (
+    <div style={{ marginBottom: '16px', padding: '12px', border: '2px solid #e1e5e9', borderRadius: '6px', backgroundColor: '#f8f9fa' }}>
+      <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: '600' }}>GTFS Files (Optional)</h4>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <label style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <input 
+            type="file" 
+            accept=".txt" 
+            onChange={(e) => handleFileUpload(e, 'routes')}
+            style={{ fontSize: '11px' }}
+          />
+          <span>routes.txt</span>
+          {uploadedFiles.routes && <span style={{ color: '#28a745', fontSize: '11px' }}>✓</span>}
+        </label>
+        <label style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <input 
+            type="file" 
+            accept=".txt" 
+            onChange={(e) => handleFileUpload(e, 'trips')}
+            style={{ fontSize: '11px' }}
+          />
+          <span>trips.txt</span>
+          {uploadedFiles.trips && <span style={{ color: '#28a745', fontSize: '11px' }}>✓</span>}
+        </label>
+        <label style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <input 
+            type="file" 
+            accept=".txt" 
+            onChange={(e) => handleFileUpload(e, 'shapes')}
+            style={{ fontSize: '11px' }}
+          />
+          <span>shapes.txt</span>
+          {uploadedFiles.shapes && <span style={{ color: '#28a745', fontSize: '11px' }}>✓</span>}
+        </label>
+      </div>
+    </div>
+  );
+}
+
+const parseGTFSData = (routesData, tripsData, shapesData) => {
+  const transitModes = ['0', '1', '2']; // 0=Tram, 1=Subway, 2=Rail
+  const transitLines = [];
+  
+  try {
+    const routes = routesData.split('\n').slice(1);
+    const routeHeaders = routesData.split('\n')[0].split(',');
+    
+    const trips = tripsData.split('\n').slice(1);
+    const tripHeaders = tripsData.split('\n')[0].split(',');
+    
+    const shapes = shapesData.split('\n').slice(1);
+    const shapeHeaders = shapesData.split('\n')[0].split(',');
+    
+    // Build route lookup
+    const transitRoutes = new Map();
+    routes.forEach(row => {
+      const fields = row.split(',');
+      const routeTypeIdx = routeHeaders.indexOf('route_type');
+      const routeIdIdx = routeHeaders.indexOf('route_id');
+      const routeNameIdx = routeHeaders.indexOf('route_long_name');
+      const routeColorIdx = routeHeaders.indexOf('route_color');
+      
+      if (routeTypeIdx >= 0 && transitModes.includes(fields[routeTypeIdx])) {
+        transitRoutes.set(fields[routeIdIdx], {
+          name: fields[routeNameIdx] || fields[routeHeaders.indexOf('route_short_name')],
+          type: fields[routeTypeIdx],
+          color: fields[routeColorIdx] ? `#${fields[routeColorIdx]}` : '#000000'
+        });
+      }
+    });
+    
+    // Build shape lookup from trips
+    const routeShapes = new Map();
+    trips.forEach(row => {
+      const fields = row.split(',');
+      const routeIdIdx = tripHeaders.indexOf('route_id');
+      const shapeIdIdx = tripHeaders.indexOf('shape_id');
+      
+      const routeId = fields[routeIdIdx];
+      const shapeId = fields[shapeIdIdx];
+      
+      if (transitRoutes.has(routeId) && shapeId) {
+        if (!routeShapes.has(routeId)) {
+          routeShapes.set(routeId, new Set());
+        }
+        routeShapes.get(routeId).add(shapeId);
+      }
+    });
+    
+    // Build coordinates from shapes
+    const shapeCoords = new Map();
+    shapes.forEach(row => {
+      const fields = row.split(',');
+      const shapeIdIdx = shapeHeaders.indexOf('shape_id');
+      const latIdx = shapeHeaders.indexOf('shape_pt_lat');
+      const lonIdx = shapeHeaders.indexOf('shape_pt_lon');
+      const seqIdx = shapeHeaders.indexOf('shape_pt_sequence');
+      
+      const shapeId = fields[shapeIdIdx];
+      const lat = parseFloat(fields[latIdx]);
+      const lon = parseFloat(fields[lonIdx]);
+      const seq = parseInt(fields[seqIdx]);
+      
+      if (!shapeCoords.has(shapeId)) {
+        shapeCoords.set(shapeId, []);
+      }
+      shapeCoords.get(shapeId).push({ lat, lon, seq });
+    });
+    
+    // Sort coordinates by sequence and build transit lines
+    routeShapes.forEach((shapeIds, routeId) => {
+      const route = transitRoutes.get(routeId);
+      shapeIds.forEach(shapeId => {
+        const coords = shapeCoords.get(shapeId);
+        if (coords && coords.length > 1) {
+          coords.sort((a, b) => a.seq - b.seq);
+          transitLines.push({
+            mode: route.type === '1' ? 'SUBWAY' : route.type === '2' ? 'RAIL' : 'TRAM',
+            name: route.name,
+            color: route.color,
+            coordinates: coords.map(c => [c.lat, c.lon])
+          });
+        }
+      });
+    });
+    
+    return transitLines;
+  } catch (error) {
+    console.error('Error parsing GTFS data:', error);
+    return [];
+  }
 };
 
 const findBestPillPosition = (coords, occupiedPositions, map) => {
@@ -980,6 +1133,19 @@ function App() {
       console.error("Mapbox geocoding error:", err);
       alert("Geocoding failed. Please try again.");
       return null;
+    }
+  };
+
+  // Add this function after the geocodeAddress function
+  const handleGTFSDataLoaded = (fileType, data) => {
+    setGtfsData(prev => ({ ...prev, [fileType]: data }));
+    
+    // If all three files are loaded, parse the data
+    const updated = { ...gtfsData, [fileType]: data };
+    if (updated.routes && updated.trips && updated.shapes) {
+      const lines = parseGTFSData(updated.routes, updated.trips, updated.shapes);
+      setParsedTransitLines(lines);
+      console.log('Parsed GTFS transit lines:', lines);
     }
   };
 
@@ -1724,6 +1890,9 @@ function App() {
           )}
         </div>
 
+        {/* Add this after the Trip Information Container */}
+        <GTFSFileLoader onDataLoaded={handleGTFSDataLoaded} />
+
         {/* FIXED: Fixed bottom buttons container - matching width and consistent styling */}
         {tripHistory.length > 0 && (
           <div style={{
@@ -1855,7 +2024,7 @@ function App() {
           <CustomZoomControl />
           
           {/* Background transit lines - only show when no routes are calculated */}
-          <TransitLines showLines={routeOptions.length === 0} />
+          <TransitLines showLines={routeOptions.length === 0} transitLines={parsedTransitLines.length > 0 ? parsedTransitLines : TRANSIT_LINES} />
           
           {/* Map click handler for setting origins/destinations */}
           <MapClickHandler 
