@@ -81,7 +81,7 @@ const createTransferIcon = () => {
 
 // FIXED: Create route pill icon for map display with better sizing
 // Updated createRoutePillIcon function with mode icons
-const createRoutePillIcon = (routeName, duration, color, textColor = 'white', mode = null) => {
+const createRoutePillIcon = (routeName, duration, color, textColor = 'white', mode = null, isNewRoute = false) => {
   // Only show icons for TRAM, SUBWAY, RAIL
   const shouldShowIcon = ['TRAM', 'SUBWAY', 'RAIL'].includes(mode);
   
@@ -98,7 +98,21 @@ const createRoutePillIcon = (routeName, duration, color, textColor = 'white', mo
   }
   
   const textContent = `${routeName} • ${duration}min`;
-  const approxWidth = Math.max(80, textContent.length * 7 + 16 + (shouldShowIcon ? 20 : 0));
+  const approxWidth = Math.max(80, textContent.length * 7 + 16 + (shouldShowIcon ? 20 : 0) + (isNewRoute ? 20 : 0));
+  
+  // Sparkle indicator for new routes
+  const sparkleHTML = isNewRoute ? `
+    <img src="/stars.png"
+         style="
+           position: absolute;
+           top: -3px;
+           right: -3px;
+           width: 16px;
+           height: 16px;
+           z-index: 10;
+         " 
+         alt="New route" />
+  ` : '';
   
   return L.divIcon({
     className: 'route-pill',
@@ -123,6 +137,7 @@ const createRoutePillIcon = (routeName, duration, color, textColor = 'white', mo
         justify-content: center;
       ">
         ${iconHTML}${routeName} • ${duration}min
+        ${sparkleHTML}
       </div>
     `,
     iconSize: [approxWidth, 26],
@@ -239,6 +254,23 @@ const NEW_ROUTES_CONFIG = {
   ]
 };
 
+const legHasNewRoute = (leg) => {
+  if (!leg.route) return false;
+  
+  return NEW_ROUTES_CONFIG.routeIdentifiers.some(identifier => {
+    switch (identifier.type) {
+      case 'longName':
+        return leg.route.longName === identifier.value;
+      case 'shortName':
+        return leg.route.shortName === identifier.value;
+      case 'agency':
+        return leg.route.agency === identifier.value;
+      default:
+        return false;
+    }
+  });
+};
+
 // Helper function to check if route uses new transit lines
 const hasNewRoute = (itinerary) => {
   return itinerary.legs.some(leg => {
@@ -262,8 +294,8 @@ const hasNewRoute = (itinerary) => {
 // FIXED: Time handling in OTP query - use realistic current dates
 const fetchOTPRoute = async (fromCoords, toCoords, time, isArriveBy, dayType) => {
   try {
-    console.log("Attempting OTP GraphQL API with coords:", fromCoords, "to", toCoords);
-    console.log("Time settings:", { time, isArriveBy, dayType });
+    //console.log("Attempting OTP GraphQL API with coords:", fromCoords, "to", toCoords);
+    //console.log("Time settings:", { time, isArriveBy, dayType });
     
     // Parse the time and create the appropriate date
     //const [hours, minutes] = time.split(':').map(Number);
@@ -328,7 +360,7 @@ const fetchOTPRoute = async (fromCoords, toCoords, time, isArriveBy, dayType) =>
       }
     }`;
     
-    console.log("Sending GraphQL query:", query);
+    //console.log("Sending GraphQL query:", query);
 
     const presentOTPUrl = process.env.REACT_APP_OTP_PRESENT_URL; //present URL
     const futureOTPUrl = process.env.REACT_APP_OTP_FUTURE_URL; //future URL
@@ -339,7 +371,7 @@ const fetchOTPRoute = async (fromCoords, toCoords, time, isArriveBy, dayType) =>
       body: JSON.stringify({ query })
     });
     
-    console.log("GraphQL response status:", response.status);
+    //console.log("GraphQL response status:", response.status);
     
     if (!response.ok) {
       const errorText = await response.text();
@@ -348,7 +380,7 @@ const fetchOTPRoute = async (fromCoords, toCoords, time, isArriveBy, dayType) =>
     }
     
     const data = await response.json();
-    console.log("GraphQL success! Response:", data);
+    //console.log("GraphQL success! Response:", data);
     
     if (data.errors) {
       console.error("GraphQL query errors:", data.errors);
@@ -567,7 +599,7 @@ function TransitLines({ showLines, transitLines = TRANSIT_LINES }) {
   return (
     <>
       {transitLines.map((line, index) => {
-        console.log(`Rendering line ${line.name} (${line.shortName}) with color: ${line.color}`);
+        //console.log(`Rendering line ${line.name} (${line.shortName}) with color: ${line.color}`);
         return (
           <Polyline
             key={`transit-line-${index}`}
@@ -676,6 +708,7 @@ function ClickableTransitLeg({ leg, legIndex, selectedRouteIndex, coords }) {
 const RouteOptionLeg = ({ leg, legIndex, displayLegs }) => {
   const legColor = getRouteColor(leg);
   const duration = Math.round(leg.duration / 60);
+  const isNewRoute = legHasNewRoute(leg);
   let displayText = '';
   let iconClass = getModeIcon(leg);
   
@@ -687,7 +720,7 @@ const RouteOptionLeg = ({ leg, legIndex, displayLegs }) => {
     displayText = leg.mode.toLowerCase();
   }
 
-  // FIXED: Use textColor from route data
+  // Use textColor from route data
   const textColor = leg.route?.textColor ? `#${leg.route.textColor}` : (leg.mode === 'WALK' ? '#000' : '#fff');
 
   return (
@@ -704,11 +737,26 @@ const RouteOptionLeg = ({ leg, legIndex, displayLegs }) => {
           fontWeight: '600',
           margin: '1px',
           minWidth: '24px',
-          justifyContent: 'center'
+          justifyContent: 'center',
+          position: 'relative' // For sparkle positioning
         }}
       >
         <i className={iconClass} style={{ marginRight: '2px', fontSize: '8px' }}></i>
         {displayText}
+        {isNewRoute && (
+          <img 
+            src="/stars.png" 
+            style={{
+              position: 'absolute',
+              top: '-2px',
+              right: '-2px',
+              width: '12px',
+              height: '12px',
+              zIndex: 10
+            }}
+            alt="New route"
+          />
+        )}
       </div>
       {legIndex < displayLegs.length - 1 && (
         <span style={{ 
@@ -784,12 +832,12 @@ const parseGTFSData = (routesData, tripsData, shapesData, agencyName) => {
   const transitModes = ['0', '1', '2']; // 0=Tram, 1=Subway, 2=Rail
   const transitLines = [];
 
-  console.log(`Debugging ${agencyName}:`);
-  console.log('Routes data first few lines:', routesData.split('\n').slice(0, 3));
+  //console.log(`Debugging ${agencyName}:`);
+  //console.log('Routes data first few lines:', routesData.split('\n').slice(0, 3));
   
   try {
     const routes = routesData.split(/\r?\n/).slice(1);
-    console.log(`Found ${routes.length} route lines`);
+    //console.log(`Found ${routes.length} route lines`);
     const routeHeaders = routesData.split(/\r?\n/)[0].split(',');
     
     const trips = tripsData.split(/\r?\n/).slice(1);
@@ -822,9 +870,9 @@ const parseGTFSData = (routesData, tripsData, shapesData, agencyName) => {
           routeColor = colorValue.startsWith('#') ? colorValue : `#${colorValue}`;
         }
 
-        console.log(`Route ${fields[routeIdIdx]} - Raw color field:`, fields[routeColorIdx]);
-        console.log(`Processed color:`, routeColor);
-        console.log(`All fields:`, fields);
+        //console.log(`Route ${fields[routeIdIdx]} - Raw color field:`, fields[routeColorIdx]);
+        //console.log(`Processed color:`, routeColor);
+        //console.log(`All fields:`, fields);
         
         transitRoutes.set(fields[routeIdIdx], {
           name: fields[routeNameIdx] || fields[routeShortNameIdx] || 'Unknown Route',
@@ -856,7 +904,7 @@ const parseGTFSData = (routesData, tripsData, shapesData, agencyName) => {
       }
     });
 
-    console.log(`Route shapes for ${agencyName}:`, Array.from(routeShapes.entries()));
+    //console.log(`Route shapes for ${agencyName}:`, Array.from(routeShapes.entries()));
     
     // Build coordinates from shapes
     const shapeCoords = new Map();
@@ -882,7 +930,7 @@ const parseGTFSData = (routesData, tripsData, shapesData, agencyName) => {
       }
     });
 
-    console.log(`Shape coordinates for ${agencyName}:`, Array.from(shapeCoords.keys()));
+    //console.log(`Shape coordinates for ${agencyName}:`, Array.from(shapeCoords.keys()));
     
     // Sort coordinates by sequence and build transit lines
     routeShapes.forEach((shapeIds, routeId) => {
@@ -908,57 +956,51 @@ const parseGTFSData = (routesData, tripsData, shapesData, agencyName) => {
       }
     });
     
-    console.log(`Parsed ${transitLines.length} transit lines for ${agencyName}`);
+    //console.log(`Parsed ${transitLines.length} transit lines for ${agencyName}`);
     return transitLines;
     
   } catch (error) {
-    console.error(`Error parsing GTFS data for ${agencyName}:`, error);
+    //console.error(`Error parsing GTFS data for ${agencyName}:`, error);
     return [];
   }
 };
 
 const loadPreprocessedData = async () => {
   try {
-    console.log('Loading preprocessed transit data...');
+    //console.log('Loading preprocessed transit data...');
     const response = await fetch('/gtfs/processed-transit-lines.json');
     
     if (!response.ok) {
-      console.warn('Preprocessed data not found, falling back to hardcoded data');
+      //console.warn('Preprocessed data not found, falling back to hardcoded data');
       return TRANSIT_LINES;
     }
     
     const data = await response.json();
-    console.log(`Loaded ${data.transitLines.length} transit lines (processed on ${new Date(data.lastUpdated).toLocaleDateString()})`);
+    //console.log(`Loaded ${data.transitLines.length} transit lines (processed on ${new Date(data.lastUpdated).toLocaleDateString()})`);
     
     return data.transitLines;
   } catch (error) {
-    console.error('Error loading preprocessed data:', error);
-    console.warn('Falling back to hardcoded transit lines');
+    //console.error('Error loading preprocessed data:', error);
+    //console.warn('Falling back to hardcoded transit lines');
     return TRANSIT_LINES;
   }
 };
 
 function ClickableRoutePill({ pill, leg }) {
   const [showPopup, setShowPopup] = useState(false);
+  const isNewRoute = legHasNewRoute(leg);
   
   const handleMouseOver = () => {
     setShowPopup(true);
   };
-  
-  /*
-  const handleMouseOut = () => {
-    setShowPopup(false);
-  };
-  */
 
   return (
     <Marker 
       position={pill.position} 
-      icon={createRoutePillIcon(pill.routeName, pill.duration, pill.color, pill.textColor, leg?.mode)}
+      icon={createRoutePillIcon(pill.routeName, pill.duration, pill.color, pill.textColor, leg?.mode, isNewRoute)}
       zIndexOffset={500}
       eventHandlers={{
         mouseover: handleMouseOver,
-        //mouseout: handleMouseOut
       }}
     >
       {showPopup && (
@@ -967,7 +1009,8 @@ function ClickableRoutePill({ pill, leg }) {
           autoPan={false}
         >
           <div style={{ minWidth: '200px' }}>
-            <strong>{leg?.route?.shortName || leg?.mode || pill.routeName}</strong><br/>
+            <strong>{leg?.route?.shortName || leg?.mode || pill.routeName}</strong>
+            <br/>
             {leg?.route?.longName && <><em>{leg.route.longName}</em><br/></>}
             <span style={{ color: '#6c757d' }}>Duration: {Math.round((leg?.duration || pill.duration * 60) / 60)} minutes</span><br/>
             <strong>From:</strong> {leg?.from?.name || 'Transit segment'}<br/>
