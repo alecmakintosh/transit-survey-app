@@ -329,8 +329,11 @@ const fetchOTPRoute = async (fromCoords, toCoords, time, isArriveBy, dayType) =>
     }`;
     
     console.log("Sending GraphQL query:", query);
+
+    const presentOTPUrl = process.env.REACT_APP_OTP_PRESENT_URL; //present URL
+    const futureOTPUrl = process.env.REACT_APP_OTP_FUTURE_URL; //future URL
     
-    const response = await fetch("http://localhost:8080/otp/gtfs/v1", {
+    const response = await fetch(futureOTPUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ query })
@@ -655,7 +658,7 @@ function ClickableTransitLeg({ leg, legIndex, selectedRouteIndex, coords }) {
       {showPopup && (
         <Popup 
           onClose={() => setShowPopup(false)}
-          autoPan={true}
+          autoPan={false}
         >
           <div style={{ minWidth: '200px' }}>
             <strong>{leg.route?.shortName || leg.mode}</strong><br/>
@@ -961,7 +964,7 @@ function ClickableRoutePill({ pill, leg }) {
       {showPopup && (
         <Popup 
           onClose={() => setShowPopup(false)}
-          autoPan={true}
+          autoPan={false}
         >
           <div style={{ minWidth: '200px' }}>
             <strong>{leg?.route?.shortName || leg?.mode || pill.routeName}</strong><br/>
