@@ -146,8 +146,8 @@ const createRoutePillIcon = (routeName, duration, color, textColor = 'white', mo
   });
 };
 
-const originIcon = createCustomIcon('#28a745', false);
-const destinationIcon = createCustomIcon('#dc3545', true);
+const originIcon = createCustomIcon('#2D5A27', false);
+const destinationIcon = createCustomIcon('#C53030', true);
 const transferIcon = createTransferIcon();
 
 const haversineDistance = (coords1, coords2) => {
@@ -215,18 +215,9 @@ const deduplicateItineraries = (itineraries) => {
   
   itineraries.forEach(itinerary => {
     // Create a signature based on the transit routes used
-    /*
     const routeSignature = itinerary.legs
       .filter(leg => leg.mode !== 'WALK')
       .map(leg => `${leg.mode}-${leg.route?.shortName || leg.mode}`)
-      .join('|');
-    */
-    const routeSignature = itinerary.legs
-      .filter(leg => leg.mode !== 'WALK')
-      .map((leg, index) => {
-        const transferPoint = index > 0 ? leg.from.name : '';
-        return `${leg.mode}-${leg.route?.shortName || leg.mode}-${transferPoint}`;
-      })
       .join('|');
     
     // For walking-only routes, use origin/destination as signature
@@ -313,7 +304,7 @@ const fetchOTPRoute = async (fromCoords, toCoords, time, isArriveBy, dayType) =>
         date: "${baseDate}"
         time: "${time}"
         ${isArriveBy ? 'arriveBy: true' : ''}
-        numItineraries: 15
+        numItineraries: 10
         transferPenalty: 60
         modeWeight: {BUS: 1.2, SUBWAY: 0.9, RAIL: 0.85, TRAM: 0.95}
         searchWindow: 1800
@@ -415,10 +406,9 @@ const fetchOTPRoute = async (fromCoords, toCoords, time, isArriveBy, dayType) =>
         time: "${time}"
         ${isArriveBy ? 'arriveBy: true' : ''}
         numItineraries: 15
-        transferPenalty: 60
-        modeWeight: {BUS: 1.2, SUBWAY: 0.9, RAIL: 0.85, TRAM: 0.95}
+        transferPenalty: 120
         searchWindow: 7200
-        walkReluctance: 2.0
+        walkReluctance: 3.0
         maxTransfers: 8
         maxWalkDistance: 2000
       ) {
@@ -872,15 +862,15 @@ function UserProfileModal({ isOpen, onClose, onSubmit }) {
         maxWidth: '90vw',
         boxShadow: '0 10px 25px rgba(0,0,0,0.3)'
       }}>
-        <h2 style={{ margin: '0 0 16px 0', fontSize: '24px', fontWeight: '600', color: '#2c3e50' }}>
+        <h2 style={{ margin: '0 0 16px 0', fontSize: '24px', fontWeight: '600', color: '#2C3E50' }}>
           Welcome to the Transit Mapper
         </h2>
-        <p style={{ marginBottom: '24px', color: '#6c757d', lineHeight: '1.5' }}>
+        <p style={{ marginBottom: '24px', color: '#5A6C7D', lineHeight: '1.5' }}>
           These questions help us design your user experience and understand how different types of travelers use transit services.
         </p>
         
         <div style={{ marginBottom: '24px' }}>
-          <h3 style={{ margin: '0 0 12px 0', fontSize: '16px', fontWeight: '600' }}>
+          <h3 style={{ margin: '0 0 12px 0', fontSize: '16px', fontWeight: '600', color: '#2C3E50' }}>
             Do you own or have regular access to a motor vehicle (car, motorcycle)?
           </h3>
           <div style={{ display: 'flex', gap: '12px' }}>
@@ -889,10 +879,10 @@ function UserProfileModal({ isOpen, onClose, onSubmit }) {
               style={{
                 flex: 1,
                 padding: '12px',
-                backgroundColor: hasVehicle === true ? '#007bff' : '#f8f9fa',
-                color: hasVehicle === true ? 'white' : '#495057',
-                border: '2px solid ' + (hasVehicle === true ? '#007bff' : '#e1e5e9'),
-                borderRadius: '6px',
+                backgroundColor: hasVehicle === true ? '#2B5797' : '#FAFBFC',
+                color: hasVehicle === true ? 'white' : '#2C3E50',
+                border: '1px solid ' + (hasVehicle === true ? '#2B5797' : '#E2E8F0'),
+                borderRadius: '4px',
                 fontSize: '14px',
                 cursor: 'pointer',
                 fontWeight: '500'
@@ -905,10 +895,10 @@ function UserProfileModal({ isOpen, onClose, onSubmit }) {
               style={{
                 flex: 1,
                 padding: '12px',
-                backgroundColor: hasVehicle === false ? '#007bff' : '#f8f9fa',
-                color: hasVehicle === false ? 'white' : '#495057',
-                border: '2px solid ' + (hasVehicle === false ? '#007bff' : '#e1e5e9'),
-                borderRadius: '6px',
+                backgroundColor: hasVehicle === false ? '#2B5797' : '#FAFBFC',
+                color: hasVehicle === false ? 'white' : '#2C3E50',
+                border: '1px solid ' + (hasVehicle === false ? '#2B5797' : '#E2E8F0'),
+                borderRadius: '4px',
                 fontSize: '14px',
                 cursor: 'pointer',
                 fontWeight: '500'
@@ -920,10 +910,10 @@ function UserProfileModal({ isOpen, onClose, onSubmit }) {
         </div>
 
         <div style={{ marginBottom: '32px' }}>
-          <h3 style={{ margin: '0 0 12px 0', fontSize: '16px', fontWeight: '600' }}>
+          <h3 style={{ margin: '0 0 12px 0', fontSize: '16px', fontWeight: '600', color: '#2C3E50' }}>
             Would you classify yourself as a regular transit user?
           </h3>
-          <p style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#6c757d' }}>
+          <p style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#5A6C7D' }}>
             (more than 2 trips on transit per week)
           </p>
           <div style={{ display: 'flex', gap: '12px' }}>
@@ -932,10 +922,10 @@ function UserProfileModal({ isOpen, onClose, onSubmit }) {
               style={{
                 flex: 1,
                 padding: '12px',
-                backgroundColor: isRegularTransitUser === true ? '#007bff' : '#f8f9fa',
-                color: isRegularTransitUser === true ? 'white' : '#495057',
-                border: '2px solid ' + (isRegularTransitUser === true ? '#007bff' : '#e1e5e9'),
-                borderRadius: '6px',
+                backgroundColor: isRegularTransitUser === true ? '#2B5797' : '#FAFBFC',
+                color: isRegularTransitUser === true ? 'white' : '#2C3E50',
+                border: '1px solid ' + (isRegularTransitUser === true ? '#2B5797' : '#E2E8F0'),
+                borderRadius: '4px',
                 fontSize: '14px',
                 cursor: 'pointer',
                 fontWeight: '500'
@@ -948,10 +938,10 @@ function UserProfileModal({ isOpen, onClose, onSubmit }) {
               style={{
                 flex: 1,
                 padding: '12px',
-                backgroundColor: isRegularTransitUser === false ? '#007bff' : '#f8f9fa',
-                color: isRegularTransitUser === false ? 'white' : '#495057',
-                border: '2px solid ' + (isRegularTransitUser === false ? '#007bff' : '#e1e5e9'),
-                borderRadius: '6px',
+                backgroundColor: isRegularTransitUser === false ? '#2B5797' : '#FAFBFC',
+                color: isRegularTransitUser === false ? 'white' : '#2C3E50',
+                border: '1px solid ' + (isRegularTransitUser === false ? '#2B5797' : '#E2E8F0'),
+                borderRadius: '4px',
                 fontSize: '14px',
                 cursor: 'pointer',
                 fontWeight: '500'
@@ -968,12 +958,12 @@ function UserProfileModal({ isOpen, onClose, onSubmit }) {
           style={{
             width: '100%',
             padding: '14px',
-            backgroundColor: (hasVehicle !== null && isRegularTransitUser !== null) ? '#28a745' : '#6c757d',
+            backgroundColor: (hasVehicle !== null && isRegularTransitUser !== null) ? '#2D5A27' : '#5A6C7D',
             color: 'white',
             border: 'none',
-            borderRadius: '6px',
+            borderRadius: '4px',
             fontSize: '16px',
-            fontWeight: '600',
+            fontWeight: '500',
             cursor: (hasVehicle !== null && isRegularTransitUser !== null) ? 'pointer' : 'not-allowed'
           }}
         >
@@ -1794,18 +1784,18 @@ function App() {
   // Check if current route uses new transit lines
   const currentRouteHasNewTransit = routeOptions.length > 0 && hasNewRoute(routeOptions[selectedRouteIndex]);
 
-  // Styles
+  // Professional Academic Styles
   const sidebarStyle = {
     position: 'fixed',
     left: 0,
     top: 0,
     width: '400px',
     height: '100vh',
-    backgroundColor: '#ffffff',
-    borderRight: '1px solid #e0e0e0',
+    backgroundColor: '#FAFBFC',
+    borderRight: '1px solid #E2E8F0',
     overflowY: 'auto',
     zIndex: 1000,
-    boxShadow: '2px 0 10px rgba(0,0,0,0.1)',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
     display: 'flex',
     flexDirection: 'column'
   };
@@ -1821,21 +1811,22 @@ function App() {
 
   const buttonStyle = {
     width: '100%',
-    padding: '12px',
-    backgroundColor: '#007bff',
+    padding: '14px 16px',
+    backgroundColor: '#2B5797',
     color: 'white',
     border: 'none',
-    borderRadius: '6px',
+    borderRadius: '4px',
     fontSize: '14px',
-    fontWeight: '600',
+    fontWeight: '500',
     cursor: 'pointer',
     transition: 'background-color 0.2s',
-    marginBottom: '16px'
+    marginBottom: '16px',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
   };
 
   const smallButtonStyle = {
-    padding: '6px 10px',
-    backgroundColor: '#6c757d',
+    padding: '8px 12px',
+    backgroundColor: '#5A6C7D',
     color: 'white',
     border: 'none',
     borderRadius: '4px',
@@ -1843,7 +1834,8 @@ function App() {
     cursor: 'pointer',
     marginRight: '6px',
     marginBottom: '6px',
-    transition: 'background-color 0.2s'
+    transition: 'background-color 0.2s',
+    fontWeight: '500'
   };
 
   return (
@@ -1866,12 +1858,32 @@ function App() {
       
       {/* Sidebar */}
       <div style={sidebarStyle}>
-        <div style={{ padding: '16px', paddingBottom: '8px' }}>
-          <h1 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '4px', color: '#2c3e50' }}>
+        {/* TODO: INSTITUTIONAL BRANDING AREA - Add university/research lab branding here
+        <div style={{ 
+          padding: '16px', 
+          borderBottom: '1px solid #E2E8F0',
+          backgroundColor: '#FFFFFF'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <img src="/university-logo.png" alt="University Logo" style={{ height: '40px' }} />
+            <div>
+              <div style={{ fontSize: '14px', fontWeight: '600', color: '#2C3E50' }}>
+                Transit Research Lab
+              </div>
+              <div style={{ fontSize: '12px', color: '#5A6C7D' }}>
+                University of Toronto
+              </div>
+            </div>
+          </div>
+        </div>
+        */}
+        
+        <div style={{ padding: '20px 16px 16px 16px' }}>
+          <h1 style={{ fontSize: '22px', fontWeight: '600', marginBottom: '6px', color: '#2C3E50', lineHeight: '1.2' }}>
             Future Toronto Transit Mapper
           </h1>
-          <p style={{ color: '#6c757d', marginBottom: '16px', fontSize: '12px' }}> 
-            Plan your trip and see how new transit lines can help!
+          <p style={{ color: '#5A6C7D', marginBottom: '20px', fontSize: '13px', lineHeight: '1.4' }}> 
+            Plan your trip and see how new transit lines can help
           </p>
         </div>
 
@@ -1891,18 +1903,18 @@ function App() {
           }}>
             {/* Trip Information Header with Input Mode Toggle */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-              <h3 style={{ margin: '0', fontSize: '14px', fontWeight: '600', color: '#495057' }}>
+              <h3 style={{ margin: '0', fontSize: '15px', fontWeight: '600', color: '#2C3E50' }}>
                 Trip Information
               </h3>
               <div style={{ display: 'flex', gap: '4px' }}>
                 <button
                   style={{
                     ...smallButtonStyle,
-                    backgroundColor: inputMode === 'text' ? '#007bff' : '#6c757d',
+                    backgroundColor: inputMode === 'text' ? '#2B5797' : '#5A6C7D',
                     marginRight: '4px',
                     marginBottom: '0',
                     fontSize: '11px',
-                    padding: '4px 8px'
+                    padding: '6px 10px'
                   }}
                   onClick={() => {
                     setInputMode('text');
@@ -1914,10 +1926,10 @@ function App() {
                 <button
                   style={{
                     ...smallButtonStyle,
-                    backgroundColor: inputMode === 'map' ? '#007bff' : '#6c757d',
+                    backgroundColor: inputMode === 'map' ? '#2B5797' : '#5A6C7D',
                     marginBottom: '0',
                     fontSize: '11px',
-                    padding: '4px 8px'
+                    padding: '6px 10px'
                   }}
                   onClick={() => setInputMode('map')}
                 >
@@ -1928,32 +1940,32 @@ function App() {
             
             {/* Address Input Container */}
             <div style={{ 
-              border: '2px solid #e1e5e9', 
-              borderRadius: '6px', 
-              backgroundColor: '#fff',
+              border: '1px solid #E2E8F0', 
+              borderRadius: '4px', 
+              backgroundColor: '#FFFFFF',
               overflow: 'hidden',
-              marginBottom: '12px',
+              marginBottom: '16px',
               position: 'relative'
             }}>
               {/* Origin input */}
               <div style={{ 
                 display: 'flex', 
                 alignItems: 'center', 
-                padding: '8px 12px',
-                borderBottom: '1px solid #e1e5e9'
+                padding: '12px 16px',
+                borderBottom: '1px solid #E2E8F0'
               }}>
                 <div style={{
-                  width: '20px',
-                  height: '20px',
+                  width: '24px',
+                  height: '24px',
                   borderRadius: '50%',
-                  backgroundColor: '#28a745',
+                  backgroundColor: '#2D5A27',
                   color: 'white',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   fontSize: '12px',
-                  fontWeight: 'bold',
-                  marginRight: '10px',
+                  fontWeight: '600',
+                  marginRight: '12px',
                   flexShrink: 0
                 }}>A</div>
                 <input 
@@ -1966,7 +1978,8 @@ function App() {
                     outline: 'none',
                     fontSize: '14px',
                     width: '100%',
-                    backgroundColor: 'transparent'
+                    backgroundColor: 'transparent',
+                    color: '#2C3E50'
                   }}
                   readOnly={inputMode === 'map'}
                 />
@@ -1976,20 +1989,21 @@ function App() {
               <button
                 style={{
                   position: 'absolute',
-                  right: '8px',
+                  right: '12px',
                   top: '50%',
                   transform: 'translateY(-50%) rotate(90deg)',
-                  backgroundColor: '#f8f9fa',
-                  border: '1px solid #dee2e6',
+                  backgroundColor: '#FAFBFC',
+                  border: '1px solid #E2E8F0',
                   borderRadius: '4px',
-                  width: '24px',
-                  height: '24px',
+                  width: '28px',
+                  height: '28px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   cursor: 'pointer',
-                  fontSize: '12px',
-                  color: '#6c757d'
+                  fontSize: '14px',
+                  color: '#5A6C7D',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
                 }}
                 onClick={() => {
                   // Swap origin and destination
@@ -2009,20 +2023,20 @@ function App() {
               <div style={{ 
                 display: 'flex', 
                 alignItems: 'center', 
-                padding: '8px 12px'
+                padding: '12px 16px'
               }}>
                 <div style={{
-                  width: '20px',
-                  height: '20px',
+                  width: '24px',
+                  height: '24px',
                   borderRadius: '50%',
-                  backgroundColor: '#dc3545',
+                  backgroundColor: '#C53030',
                   color: 'white',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   fontSize: '12px',
-                  fontWeight: 'bold',
-                  marginRight: '10px',
+                  fontWeight: '600',
+                  marginRight: '12px',
                   flexShrink: 0
                 }}>B</div>
                 <input 
@@ -2035,7 +2049,8 @@ function App() {
                     outline: 'none',
                     fontSize: '14px',
                     width: '100%',
-                    backgroundColor: 'transparent'
+                    backgroundColor: 'transparent',
+                    color: '#2C3E50'
                   }}
                   readOnly={inputMode === 'map'}
                 />
@@ -2086,61 +2101,59 @@ function App() {
 
             {/* Travel Time Controls */}
             <div style={{ 
-              border: '2px solid #e1e5e9', 
-              borderRadius: '6px', 
-              backgroundColor: '#fff',
-              padding: '8px 12px',
-              marginBottom: '12px'
+              border: '1px solid #E2E8F0', 
+              borderRadius: '4px', 
+              backgroundColor: '#FFFFFF',
+              padding: '12px 16px',
+              marginBottom: '16px'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', whiteSpace: 'nowrap' }}>
-                    <input 
-                      type="radio" 
-                      checked={!arriveBy} 
-                      onChange={() => setArriveBy(false)}
-                      style={{ marginRight: '4px' }}
-                    />
-                    <span style={{ fontSize: '12px', color: '#495057' }}>Leave</span>
-                  </label>
-                  <label style={{ display: 'flex', alignItems: 'center', whiteSpace: 'nowrap' }}>
-                    <input 
-                      type="radio" 
-                      checked={arriveBy} 
-                      onChange={() => setArriveBy(true)}
-                      style={{ marginRight: '4px' }}
-                    />
-                    <span style={{ fontSize: '12px', color: '#495057' }}>Arrive</span>
-                  </label>
-                </div>
-                
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <input 
-                    type="time" 
-                    value={departureTime}
-                    onChange={e => setDepartureTime(e.target.value)}
-                    style={{
-                      border: '1px solid #ddd',
-                      borderRadius: '4px',
-                      padding: '4px 6px',
-                      fontSize: '12px'
-                    }}
-                  />
-                  
-                  <select 
-                    value={dayType}
-                    onChange={e => setDayType(e.target.value)}
-                    style={{
-                      border: '1px solid #ddd',
-                      borderRadius: '4px',
-                      padding: '4px 6px',
-                      fontSize: '12px'
-                    }}
-                  >
-                    <option value="weekday">Weekday</option>
-                    <option value="weekend">Weekend</option>
-                  </select>
-                </div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+                <select
+                  value={arriveBy ? 'arrive' : 'depart'}
+                  onChange={(e) => setArriveBy(e.target.value === 'arrive')}
+                  style={{
+                    border: '1px solid #E2E8F0',
+                    borderRadius: '4px',
+                    padding: '6px 12px',
+                    fontSize: '13px',
+                    color: '#2C3E50',
+                    fontWeight: '500',
+                    backgroundColor: '#fff',
+                    cursor: 'pointer',
+                    outline: 'none'
+                  }}
+                >
+                  <option value="depart">Depart at</option>
+                  <option value="arrive">Arrive by</option>
+                </select>
+
+                <input
+                  type="time"
+                  value={departureTime}
+                  onChange={e => setDepartureTime(e.target.value)}
+                  style={{
+                    border: '1px solid #E2E8F0',
+                    borderRadius: '4px',
+                    padding: '6px 8px',
+                    fontSize: '13px',
+                    color: '#2C3E50'
+                  }}
+                />
+
+                <select
+                  value={dayType}
+                  onChange={e => setDayType(e.target.value)}
+                  style={{
+                    border: '1px solid #E2E8F0',
+                    borderRadius: '4px',
+                    padding: '6px 8px',
+                    fontSize: '13px',
+                    color: '#2C3E50'
+                  }}
+                >
+                  <option value="weekday">Weekday</option>
+                  <option value="weekend">Weekend</option>
+                </select>
               </div>
             </div>
 
@@ -2150,18 +2163,18 @@ function App() {
               disabled={!readyToCalculate || isCalculating}
               style={{
                 ...buttonStyle,
-                backgroundColor: !readyToCalculate || isCalculating ? '#6c757d' : '#007bff',
+                backgroundColor: !readyToCalculate || isCalculating ? '#5A6C7D' : '#2B5797',
                 cursor: !readyToCalculate || isCalculating ? 'not-allowed' : 'pointer',
                 marginBottom: '0'
               }}
               onMouseOver={e => {
                 if (readyToCalculate && !isCalculating) {
-                  e.target.style.backgroundColor = '#0056b3';
+                  e.target.style.backgroundColor = '#1E3F66';
                 }
               }}
               onMouseOut={e => {
                 if (readyToCalculate && !isCalculating) {
-                  e.target.style.backgroundColor = '#007bff';
+                  e.target.style.backgroundColor = '#2B5797';
                 }
               }}
             >
@@ -2172,10 +2185,10 @@ function App() {
           {/* MODIFIED: Route Options Container with updated card design */}
           {routeOptions.length > 0 && (
             <div style={{ flex: '1 1 auto', minHeight: '200px' }}>
-              <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', fontWeight: '600', color: '#495057' }}>
+              <h3 style={{ margin: '0 0 12px 0', fontSize: '15px', fontWeight: '600', color: '#2C3E50' }}>
                 Route Options
               </h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', paddingBottom: currentRouteHasNewTransit ? '120px' : '80px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', paddingBottom: currentRouteHasNewTransit ? '120px' : '80px' }}>
                 {routeOptions.map((route, index) => {
                   // Calculate total walking time
                   const walkingTime = route.legs
@@ -2198,16 +2211,16 @@ function App() {
                     <button
                       key={route.id}
                       style={{
-                        padding: '16px',
-                        backgroundColor: selectedRouteIndex === index ? '#f0f8ff' : '#fff',
-                        color: '#000',
-                        border: `2px solid ${selectedRouteIndex === index ? '#007bff' : '#e1e5e9'}`,
-                        borderRadius: '6px',
+                        padding: '16px 20px',
+                        backgroundColor: selectedRouteIndex === index ? '#F7FAFC' : '#FFFFFF',
+                        color: '#2C3E50',
+                        border: `1px solid ${selectedRouteIndex === index ? '#2B5797' : '#E2E8F0'}`,
+                        borderRadius: '4px',
                         cursor: 'pointer',
                         fontSize: '12px',
                         textAlign: 'left',
                         transition: 'all 0.2s',
-                        boxShadow: selectedRouteIndex === index ? '0 2px 6px rgba(0,123,255,0.15)' : '0 1px 2px rgba(0,0,0,0.05)'
+                        boxShadow: selectedRouteIndex === index ? '0 1px 3px rgba(43,87,151,0.1)' : '0 1px 2px rgba(0,0,0,0.05)'
                       }}
                       onClick={() => handleRouteSelection(index)}
                     >
@@ -2216,23 +2229,23 @@ function App() {
                         display: 'flex', 
                         justifyContent: 'space-between', 
                         alignItems: 'center',
-                        marginBottom: '10px'
+                        marginBottom: '12px'
                       }}>
                         <div style={{ 
                           fontSize: '20px', 
-                          fontWeight: '700',
-                          color: selectedRouteIndex === index ? '#007bff' : '#28a745'
+                          fontWeight: '600',
+                          color: selectedRouteIndex === index ? '#2B5797' : '#2D5A27'
                         }}>
                           {Math.round(route.duration / 60)} min
                         </div>
                         <div style={{ 
                           fontSize: '16px', 
-                          fontWeight: '600',
-                          color: '#495057',
+                          fontWeight: '500',
+                          color: '#2C3E50',
                           textAlign: 'right'
                         }}>
                           <div>{formatTime(route.startTime)}</div>
-                          <div style={{ fontSize: '12px', color: '#6c757d' }}>to {formatTime(route.endTime)}</div>
+                          <div style={{ fontSize: '12px', color: '#5A6C7D' }}>to {formatTime(route.endTime)}</div>
                         </div>
                       </div>
 
@@ -2241,20 +2254,20 @@ function App() {
                         display: 'flex', 
                         justifyContent: 'space-between', 
                         alignItems: 'center',
-                        marginBottom: '10px',
-                        fontSize: '12px',
-                        color: '#6c757d'
+                        marginBottom: '12px',
+                        fontSize: '13px',
+                        color: '#5A6C7D'
                       }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                           {walkingTime > 0 && (
-                            <span style={{ display: 'flex', alignItems: 'center', gap: '2px', fontWeight: '500' }}>
-                              <i className="fas fa-walking" style={{ fontSize: '10px' }}></i>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontWeight: '500' }}>
+                              <i className="fas fa-walking" style={{ fontSize: '11px' }}></i>
                               {walkingTime}min walk
                             </span>
                           )}
                           {transfers > 0 && (
-                            <span style={{ display: 'flex', alignItems: 'center', gap: '2px', fontWeight: '500' }}>
-                              <i className="fas fa-exchange-alt" style={{ fontSize: '10px' }}></i>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontWeight: '500' }}>
+                              <i className="fas fa-exchange-alt" style={{ fontSize: '11px' }}></i>
                               {transfers} transfer{transfers > 1 ? 's' : ''}
                             </span>
                           )}
@@ -2308,26 +2321,26 @@ function App() {
                 style={{
                   ...buttonStyle,
                   margin: '0',
-                  boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
                 }}
-                onMouseOver={e => e.target.style.backgroundColor = '#0056b3'}
-                onMouseOut={e => e.target.style.backgroundColor = '#007bff'}
+                onMouseOver={e => e.target.style.backgroundColor = '#1E3F66'}
+                onMouseOut={e => e.target.style.backgroundColor = '#2B5797'}
               >
                 Compare
               </button>
             )}
-            
+
             {/* Finish Survey button */}
             <button
               onClick={() => navigate('/exit')}
               style={{
                 ...buttonStyle,
-                backgroundColor: '#28a745',
+                backgroundColor: '#2D5A27',
                 margin: '0',
-                boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
+                boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
               }}
-              onMouseOver={e => e.target.style.backgroundColor = '#218838'}
-              onMouseOut={e => e.target.style.backgroundColor = '#28a745'}
+              onMouseOver={e => e.target.style.backgroundColor = '#1F3F1B'}
+              onMouseOut={e => e.target.style.backgroundColor = '#2D5A27'}
             >
               Finish Survey
             </button>
@@ -2335,19 +2348,11 @@ function App() {
         )}
       </div>
 
-      {/* REMOVED: Modal section - commented out
-      {showModal && (
-        <div style={{...modal styles...}}>
-          ...modal content...
-        </div>
-      )}
-      */}
-
       {/* Full-screen Map */}
       <div style={mapStyle}>
-        <MapContainer 
-          center={[43.7, -79.4]} 
-          zoom={11.8} 
+        <MapContainer
+          center={[43.7, -79.4]}
+          zoom={11.8}
           style={{ height: "100%", width: "100%" }}
           zoomControl={false}
         >
