@@ -9,8 +9,8 @@ function App() {
     <Router>
       <Routes>
         <Route path="/" element={<LandingPage />} />
-        <Route path="/survey" element={<MapSurveyPage />} />
-        <Route path="/exit" element={<ExitSurveyForm />} />
+        <Route path="/map" element={<MapSurveyPage />} />
+        <Route path="/survey" element={<ExitSurveyForm />} />
       </Routes>
     </Router>
   );

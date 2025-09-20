@@ -215,9 +215,18 @@ const deduplicateItineraries = (itineraries) => {
   
   itineraries.forEach(itinerary => {
     // Create a signature based on the transit routes used
+    /*
     const routeSignature = itinerary.legs
       .filter(leg => leg.mode !== 'WALK')
       .map(leg => `${leg.mode}-${leg.route?.shortName || leg.mode}`)
+      .join('|');
+    */
+    const routeSignature = itinerary.legs
+      .filter(leg => leg.mode !== 'WALK')
+      .map((leg, index) => {
+        const transferPoint = index > 0 ? leg.from.name : '';
+        return `${leg.mode}-${leg.route?.shortName || leg.mode}-${transferPoint}`;
+      })
       .join('|');
     
     // For walking-only routes, use origin/destination as signature
@@ -291,34 +300,20 @@ const hasNewRoute = (itinerary) => {
   });
 };
 
-// FIXED: Time handling in OTP query - use realistic current dates
+// MODIFIED: Enhanced OTP query with fallback for loose restrictions
 const fetchOTPRoute = async (fromCoords, toCoords, time, isArriveBy, dayType) => {
   try {
-    //console.log("Attempting OTP GraphQL API with coords:", fromCoords, "to", toCoords);
-    //console.log("Time settings:", { time, isArriveBy, dayType });
-    
-    // Parse the time and create the appropriate date
-    //const [hours, minutes] = time.split(':').map(Number);
-    
-    // FIXED: Use current realistic dates instead of hardcoded 2025 dates
-    const today = new Date();
     const baseDate = dayType === 'weekday' ? "2025-09-10" : "2025-09-13";
-      //new Date('2025-09-10') : // September 10, 2025 (Weekday)
-      //new Date('2025-09-13');  // September 13, 2025 (Weekend)
     
-    //baseDate.setHours(hours, minutes, 0, 0);
-    //const dateTime = baseDate.toISOString();
-    
-    //console.log("Calculated dateTime:", dateTime);
-    
-    const query = `{
+    // Primary query with current restrictions
+    const primaryQuery = `{
       plan(
         from: {lat: ${fromCoords[0]}, lon: ${fromCoords[1]}}
         to: {lat: ${toCoords[0]}, lon: ${toCoords[1]}}
         date: "${baseDate}"
         time: "${time}"
         ${isArriveBy ? 'arriveBy: true' : ''}
-        numItineraries: 10
+        numItineraries: 15
         transferPenalty: 60
         modeWeight: {BUS: 1.2, SUBWAY: 0.9, RAIL: 0.85, TRAM: 0.95}
         searchWindow: 1800
@@ -359,36 +354,21 @@ const fetchOTPRoute = async (fromCoords, toCoords, time, isArriveBy, dayType) =>
         }
       }
     }`;
-    
-    //console.log("Sending GraphQL query:", query);
 
-    const presentOTPUrl = process.env.REACT_APP_OTP_PRESENT_URL; //present URL
-    const futureOTPUrl = process.env.REACT_APP_OTP_FUTURE_URL; //future URL
+    const futureOTPUrl = process.env.REACT_APP_OTP_FUTURE_URL;
     
-    const response = await fetch(futureOTPUrl, {
+    // Try primary query first
+    let response = await fetch(futureOTPUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query })
+      body: JSON.stringify({ query: primaryQuery })
     });
     
-    //console.log("GraphQL response status:", response.status);
+    let data = await response.json();
     
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("GraphQL failed:", response.status, errorText);
-      return null;
-    }
-    
-    const data = await response.json();
-    //console.log("GraphQL success! Response:", data);
-    
-    if (data.errors) {
-      console.error("GraphQL query errors:", data.errors);
-      return null;
-    }
-    
+    // Check if we got valid results
     if (data.data && data.data.plan && data.data.plan.itineraries && data.data.plan.itineraries.length > 0) {
-      console.log("Found", data.data.plan.itineraries.length, "route options");
+      console.log("Primary query found", data.data.plan.itineraries.length, "route options");
       
       const processedItineraries = data.data.plan.itineraries.map((itinerary, index) => ({
         id: index,
@@ -420,16 +400,113 @@ const fetchOTPRoute = async (fromCoords, toCoords, time, isArriveBy, dayType) =>
         }))
       }));
       
-      // Deduplicate and sort itineraries
       const deduplicatedItineraries = deduplicateItineraries(processedItineraries);
       return sortItineraries(deduplicatedItineraries);
     }
     
-    console.log("No itineraries found in GraphQL response");
+    // If primary query failed, try fallback with looser restrictions
+    console.log("Primary query returned no results, trying fallback with looser restrictions...");
+    
+    const fallbackQuery = `{
+      plan(
+        from: {lat: ${fromCoords[0]}, lon: ${fromCoords[1]}}
+        to: {lat: ${toCoords[0]}, lon: ${toCoords[1]}}
+        date: "${baseDate}"
+        time: "${time}"
+        ${isArriveBy ? 'arriveBy: true' : ''}
+        numItineraries: 15
+        transferPenalty: 60
+        modeWeight: {BUS: 1.2, SUBWAY: 0.9, RAIL: 0.85, TRAM: 0.95}
+        searchWindow: 7200
+        walkReluctance: 2.0
+        maxTransfers: 8
+        maxWalkDistance: 2000
+      ) {
+        itineraries {
+          duration
+          startTime
+          endTime
+          legs {
+            mode
+            duration
+            distance
+            from { 
+              name
+              lat 
+              lon 
+            }
+            to { 
+              name
+              lat 
+              lon 
+            }
+            legGeometry {
+              points
+            }
+            route {
+              shortName
+              longName
+              color
+              textColor
+              agency {
+                name
+              }
+            }
+          }
+        }
+      }
+    }`;
+    
+    response = await fetch(futureOTPUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query: fallbackQuery })
+    });
+    
+    data = await response.json();
+    
+    if (data.data && data.data.plan && data.data.plan.itineraries && data.data.plan.itineraries.length > 0) {
+      console.log("Fallback query found", data.data.plan.itineraries.length, "route options");
+      
+      const processedItineraries = data.data.plan.itineraries.map((itinerary, index) => ({
+        id: index,
+        duration: itinerary.duration,
+        startTime: itinerary.startTime,
+        endTime: itinerary.endTime,
+        legs: itinerary.legs.map(leg => ({
+          mode: leg.mode,
+          duration: leg.duration,
+          distance: leg.distance,
+          from: { 
+            name: leg.from.name || 'Unknown',
+            lat: leg.from.lat, 
+            lon: leg.from.lon 
+          },
+          to: { 
+            name: leg.to.name || 'Unknown',
+            lat: leg.to.lat, 
+            lon: leg.to.lon 
+          },
+          legGeometry: { points: leg.legGeometry?.points || '' },
+          route: leg.route ? {
+            shortName: leg.route.shortName,
+            longName: leg.route.longName,
+            color: leg.route.color,
+            textColor: leg.route.textColor,
+            agency: leg.route.agency?.name
+          } : null
+        }))
+      }));
+      
+      const deduplicatedItineraries = deduplicateItineraries(processedItineraries);
+      return sortItineraries(deduplicatedItineraries);
+    }
+    
+    console.log("Both primary and fallback queries returned no results");
     return null;
     
   } catch (error) {
-    console.error("GraphQL error:", error);
+    console.error("OTP GraphQL error:", error);
     return null;
   }
 };
@@ -599,7 +676,6 @@ function TransitLines({ showLines, transitLines = TRANSIT_LINES }) {
   return (
     <>
       {transitLines.map((line, index) => {
-        //console.log(`Rendering line ${line.name} (${line.shortName}) with color: ${line.color}`);
         return (
           <Polyline
             key={`transit-line-${index}`}
@@ -607,7 +683,6 @@ function TransitLines({ showLines, transitLines = TRANSIT_LINES }) {
             color={line.color}
             weight={2}
             opacity={1}
-            //dashArray="5, 5"
           />
         );
       })}
@@ -656,12 +731,6 @@ function ClickableTransitLeg({ leg, legIndex, selectedRouteIndex, coords }) {
   const handleMouseOver = () => {
     setShowPopup(true);
   };
-  
-  /*
-  const handleMouseOut = () => {
-    setShowPopup(false);
-  };
-  */
 
   const getRouteWidth = (mode) => {
     switch (mode) {
@@ -684,7 +753,6 @@ function ClickableTransitLeg({ leg, legIndex, selectedRouteIndex, coords }) {
       dashArray={leg.mode === 'WALK' ? '10, 5' : null}
       eventHandlers={{
         mouseover: handleMouseOver,
-        //mouseout: handleMouseOut
       }}
     >
       {showPopup && (
@@ -769,6 +837,213 @@ const RouteOptionLeg = ({ leg, legIndex, displayLegs }) => {
   );
 };
 
+// NEW: User Profile Modal Component
+function UserProfileModal({ isOpen, onClose, onSubmit }) {
+  const [hasVehicle, setHasVehicle] = useState(null);
+  const [isRegularTransitUser, setIsRegularTransitUser] = useState(null);
+
+  const handleSubmit = () => {
+    if (hasVehicle !== null && isRegularTransitUser !== null) {
+      onSubmit({ hasVehicle, isRegularTransitUser });
+      onClose();
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0,0,0,0.6)',
+      zIndex: 3000,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
+    }}>
+      <div style={{
+        backgroundColor: '#fff',
+        padding: '32px',
+        borderRadius: '12px',
+        width: '500px',
+        maxWidth: '90vw',
+        boxShadow: '0 10px 25px rgba(0,0,0,0.3)'
+      }}>
+        <h2 style={{ margin: '0 0 16px 0', fontSize: '24px', fontWeight: '600', color: '#2c3e50' }}>
+          Welcome to the Transit Mapper
+        </h2>
+        <p style={{ marginBottom: '24px', color: '#6c757d', lineHeight: '1.5' }}>
+          These questions help us design your user experience and understand how different types of travelers use transit services.
+        </p>
+        
+        <div style={{ marginBottom: '24px' }}>
+          <h3 style={{ margin: '0 0 12px 0', fontSize: '16px', fontWeight: '600' }}>
+            Do you own or have regular access to a motor vehicle (car, motorcycle)?
+          </h3>
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <button 
+              onClick={() => setHasVehicle(true)}
+              style={{
+                flex: 1,
+                padding: '12px',
+                backgroundColor: hasVehicle === true ? '#007bff' : '#f8f9fa',
+                color: hasVehicle === true ? 'white' : '#495057',
+                border: '2px solid ' + (hasVehicle === true ? '#007bff' : '#e1e5e9'),
+                borderRadius: '6px',
+                fontSize: '14px',
+                cursor: 'pointer',
+                fontWeight: '500'
+              }}
+            >
+              Yes
+            </button>
+            <button 
+              onClick={() => setHasVehicle(false)}
+              style={{
+                flex: 1,
+                padding: '12px',
+                backgroundColor: hasVehicle === false ? '#007bff' : '#f8f9fa',
+                color: hasVehicle === false ? 'white' : '#495057',
+                border: '2px solid ' + (hasVehicle === false ? '#007bff' : '#e1e5e9'),
+                borderRadius: '6px',
+                fontSize: '14px',
+                cursor: 'pointer',
+                fontWeight: '500'
+              }}
+            >
+              No
+            </button>
+          </div>
+        </div>
+
+        <div style={{ marginBottom: '32px' }}>
+          <h3 style={{ margin: '0 0 12px 0', fontSize: '16px', fontWeight: '600' }}>
+            Would you classify yourself as a regular transit user?
+          </h3>
+          <p style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#6c757d' }}>
+            (more than 2 trips on transit per week)
+          </p>
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <button 
+              onClick={() => setIsRegularTransitUser(true)}
+              style={{
+                flex: 1,
+                padding: '12px',
+                backgroundColor: isRegularTransitUser === true ? '#007bff' : '#f8f9fa',
+                color: isRegularTransitUser === true ? 'white' : '#495057',
+                border: '2px solid ' + (isRegularTransitUser === true ? '#007bff' : '#e1e5e9'),
+                borderRadius: '6px',
+                fontSize: '14px',
+                cursor: 'pointer',
+                fontWeight: '500'
+              }}
+            >
+              Yes
+            </button>
+            <button 
+              onClick={() => setIsRegularTransitUser(false)}
+              style={{
+                flex: 1,
+                padding: '12px',
+                backgroundColor: isRegularTransitUser === false ? '#007bff' : '#f8f9fa',
+                color: isRegularTransitUser === false ? 'white' : '#495057',
+                border: '2px solid ' + (isRegularTransitUser === false ? '#007bff' : '#e1e5e9'),
+                borderRadius: '6px',
+                fontSize: '14px',
+                cursor: 'pointer',
+                fontWeight: '500'
+              }}
+            >
+              No
+            </button>
+          </div>
+        </div>
+
+        <button
+          onClick={handleSubmit}
+          disabled={hasVehicle === null || isRegularTransitUser === null}
+          style={{
+            width: '100%',
+            padding: '14px',
+            backgroundColor: (hasVehicle !== null && isRegularTransitUser !== null) ? '#28a745' : '#6c757d',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            fontSize: '16px',
+            fontWeight: '600',
+            cursor: (hasVehicle !== null && isRegularTransitUser !== null) ? 'pointer' : 'not-allowed'
+          }}
+        >
+          Continue to Transit Mapper
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// NEW: No Routes Found Modal Component
+function NoRoutesFoundModal({ isOpen, onClose }) {
+  if (!isOpen) return null;
+
+  return (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      zIndex: 2000,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
+    }}>
+      <div style={{
+        backgroundColor: '#fff',
+        padding: '32px',
+        borderRadius: '12px',
+        width: '400px',
+        maxWidth: '90vw',
+        boxShadow: '0 10px 25px rgba(0,0,0,0.3)'
+      }}>
+        <h2 style={{ margin: '0 0 16px 0', fontSize: '20px', fontWeight: '600', color: '#dc3545' }}>
+          No Routes Found
+        </h2>
+        <p style={{ marginBottom: '20px', color: '#6c757d', lineHeight: '1.5' }}>
+          We couldn't find any transit routes for this trip. This might be because:
+        </p>
+        <ul style={{ marginBottom: '24px', color: '#6c757d', paddingLeft: '20px' }}>
+          <li>The locations are too far apart for transit service</li>
+          <li>No transit service is available at the selected time</li>
+          <li>The locations are not well-connected by public transit</li>
+        </ul>
+        <p style={{ marginBottom: '24px', color: '#495057', fontWeight: '500' }}>
+          Try adjusting your departure time, day type, or choose different locations.
+        </p>
+        <button 
+          onClick={onClose}
+          style={{
+            width: '100%',
+            padding: '12px',
+            backgroundColor: '#007bff',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            fontSize: '16px',
+            cursor: 'pointer',
+            fontWeight: '500'
+          }}
+        >
+          Okay
+        </button>
+      </div>
+    </div>
+  );
+};
+
 // GTFS Integration Components
 function GTFSFileLoader({ onDataLoaded }) {
   const [uploadedFiles, setUploadedFiles] = useState({
@@ -832,12 +1107,8 @@ const parseGTFSData = (routesData, tripsData, shapesData, agencyName) => {
   const transitModes = ['0', '1', '2']; // 0=Tram, 1=Subway, 2=Rail
   const transitLines = [];
 
-  //console.log(`Debugging ${agencyName}:`);
-  //console.log('Routes data first few lines:', routesData.split('\n').slice(0, 3));
-  
   try {
     const routes = routesData.split(/\r?\n/).slice(1);
-    //console.log(`Found ${routes.length} route lines`);
     const routeHeaders = routesData.split(/\r?\n/)[0].split(',');
     
     const trips = tripsData.split(/\r?\n/).slice(1);
@@ -869,10 +1140,6 @@ const parseGTFSData = (routesData, tripsData, shapesData, agencyName) => {
           // Add # if not present
           routeColor = colorValue.startsWith('#') ? colorValue : `#${colorValue}`;
         }
-
-        //console.log(`Route ${fields[routeIdIdx]} - Raw color field:`, fields[routeColorIdx]);
-        //console.log(`Processed color:`, routeColor);
-        //console.log(`All fields:`, fields);
         
         transitRoutes.set(fields[routeIdIdx], {
           name: fields[routeNameIdx] || fields[routeShortNameIdx] || 'Unknown Route',
@@ -903,8 +1170,6 @@ const parseGTFSData = (routesData, tripsData, shapesData, agencyName) => {
         routeShapes.get(routeId).add(shapeId);
       }
     });
-
-    //console.log(`Route shapes for ${agencyName}:`, Array.from(routeShapes.entries()));
     
     // Build coordinates from shapes
     const shapeCoords = new Map();
@@ -929,8 +1194,6 @@ const parseGTFSData = (routesData, tripsData, shapesData, agencyName) => {
         shapeCoords.get(shapeId).push({ lat, lon, seq });
       }
     });
-
-    //console.log(`Shape coordinates for ${agencyName}:`, Array.from(shapeCoords.keys()));
     
     // Sort coordinates by sequence and build transit lines
     routeShapes.forEach((shapeIds, routeId) => {
@@ -956,32 +1219,27 @@ const parseGTFSData = (routesData, tripsData, shapesData, agencyName) => {
       }
     });
     
-    //console.log(`Parsed ${transitLines.length} transit lines for ${agencyName}`);
     return transitLines;
     
   } catch (error) {
-    //console.error(`Error parsing GTFS data for ${agencyName}:`, error);
+    console.error(`Error parsing GTFS data for ${agencyName}:`, error);
     return [];
   }
 };
 
 const loadPreprocessedData = async () => {
   try {
-    //console.log('Loading preprocessed transit data...');
     const response = await fetch('/gtfs/processed-transit-lines.json');
     
     if (!response.ok) {
-      //console.warn('Preprocessed data not found, falling back to hardcoded data');
       return TRANSIT_LINES;
     }
     
     const data = await response.json();
-    //console.log(`Loaded ${data.transitLines.length} transit lines (processed on ${new Date(data.lastUpdated).toLocaleDateString()})`);
     
     return data.transitLines;
   } catch (error) {
-    //console.error('Error loading preprocessed data:', error);
-    //console.warn('Falling back to hardcoded transit lines');
+    console.error('Error loading preprocessed data:', error);
     return TRANSIT_LINES;
   }
 };
@@ -1085,7 +1343,6 @@ const findBestPillPosition = (coords, occupiedPositions, map) => {
   return bestPosition;
 };
 
-// FIXED: Component to handle responsive route pills that update on zoom
 // FIXED: Component to handle responsive route pills that update on zoom
 function RoutePills({ route, selectedRouteIndex, map, originCoords, destinationCoords }) {
   const [zoom, setZoom] = useState(map?.getZoom() || 11);
@@ -1233,8 +1490,9 @@ function App() {
   const [originCoords, setOriginCoords] = useState(null);
   const [destinationCoords, setDestinationCoords] = useState(null);
   const [travelTime, setTravelTime] = useState(null);
-  const [showModal, setShowModal] = useState(false);
-  const [modalStartTime, setModalStartTime] = useState(null);
+  // REMOVED: showModal and modalStartTime state - commenting out the modal functionality
+  // const [showModal, setShowModal] = useState(false);
+  // const [modalStartTime, setModalStartTime] = useState(null);
   const [seenODPairs, setSeenODPairs] = useState(new Set());
   const [sessionId, setSessionId] = useState(null);
   const navigate = useNavigate();
@@ -1244,6 +1502,13 @@ function App() {
   const [routeOptions, setRouteOptions] = useState([]);
   const [selectedRouteIndex, setSelectedRouteIndex] = useState(0);
   const [otpTravelTime, setOtpTravelTime] = useState(null);
+  
+  // NEW: User profile state
+  const [showUserProfileModal, setShowUserProfileModal] = useState(true);
+  const [userProfile, setUserProfile] = useState(null);
+  
+  // NEW: No routes found modal state
+  const [showNoRoutesModal, setShowNoRoutesModal] = useState(false);
   
   // New time/date controls
   const [departureTime, setDepartureTime] = useState('08:00');
@@ -1292,7 +1557,7 @@ function App() {
 
   useEffect(() => {
     const initializeTransitData = async () => {
-      const transitLines = await loadPreprocessedData(); // Changed from loadGTFSData
+      const transitLines = await loadPreprocessedData();
       setParsedTransitLines(transitLines);
     };
       
@@ -1324,20 +1589,12 @@ function App() {
     }
   };
 
-  // Add this function after the geocodeAddress function
-  /*
-  const handleGTFSDataLoaded = (fileType, data) => {
-    setGtfsData(prev => ({ ...prev, [fileType]: data }));
-    
-    // If all three files are loaded, parse the data
-    const updated = { ...gtfsData, [fileType]: data };
-    if (updated.routes && updated.trips && updated.shapes) {
-      const lines = parseGTFSData(updated.routes, updated.trips, updated.shapes);
-      setParsedTransitLines(lines);
-      console.log('Parsed GTFS transit lines:', lines);
-    }
+  // NEW: Handle user profile submission
+  const handleUserProfileSubmit = async (profileData) => {
+    setUserProfile(profileData);
+    // TODO: Log to Supabase database when ready
+    console.log('User profile data:', profileData);
   };
-  */
 
   // Handle setting origin via map click (no auto-calculation)
   const handleOriginSet = async (coords) => {
@@ -1376,7 +1633,7 @@ function App() {
     setShouldFitMap(false);
   };
 
-  // Centralized trip planning function
+  // MODIFIED: Centralized trip planning function with modal for no routes
   const planTrip = async (oCoords, dCoords, originAddress, destinationAddress) => {
     setIsCalculating(true);
     setFitTriggerType('route'); // Enable auto-zoom for route calculation
@@ -1389,7 +1646,7 @@ function App() {
 
     let finalTravelTime;
 
-    // Use OTP routing with proper time parameters
+    // Use OTP routing with enhanced fallback
     const otpRoutes = await fetchOTPRoute(oCoords, dCoords, departureTime, arriveBy, dayType);
     if (otpRoutes && otpRoutes.length > 0) {
       setRouteOptions(otpRoutes);
@@ -1397,10 +1654,10 @@ function App() {
       setOtpTravelTime(Math.round(otpRoutes[0].duration / 60));
       finalTravelTime = Math.round(otpRoutes[0].duration / 60);
     } else {
-      // Fallback to haversine calculation
-      const distance = haversineDistance(oCoords, dCoords);
-      const estimatedTime = estimateTravelTime(distance);
-      finalTravelTime = estimatedTime;
+      // Show modal instead of alert
+      setShowNoRoutesModal(true);
+      setIsCalculating(false);
+      return;
     }
 
     setTravelTime(finalTravelTime);
@@ -1414,7 +1671,7 @@ function App() {
       return;
     }
 
-    // Insert log with selected route data
+    // Insert log with selected route data (removed modal-related fields)
     const selectedRoute = routeOptions[selectedRouteIndex];
     const routeDetails = selectedRoute ? {
       route_option_count: routeOptions.length,
@@ -1434,18 +1691,17 @@ function App() {
       destination: destinationAddress,
       travel_time_old_min: finalTravelTime,
       travel_time_new_min: otpTravelTime,
-      would_consider: null,
+      would_consider: null, // Will be filled in later if needed
       exit_survey_data: null,
       session_id: sessionId,
-      modal_shown: isNewPair,
+      modal_shown: false, // No longer showing modal
     });
 
     if (error) console.error("Log insert error:", error);
 
+    // Add to seen pairs without showing modal
     if (!seenODPairs.has(odKey)) {
       setSeenODPairs(prev => new Set(prev).add(odKey));
-      setModalStartTime(Date.now());
-      setShowModal(true);
     }
 
     setTripHistory(prev => [
@@ -1501,29 +1757,7 @@ function App() {
     }
   };
 
-  const handleResponse = async (response) => {
-    const responseTimeMs = modalStartTime ? Date.now() - modalStartTime : null;
-
-    const { error } = await supabase
-      .from("survey_responses")
-      .update({ 
-        would_consider: response,
-        response_time_ms: responseTimeMs,
-      })
-      .match({ 
-        origin, 
-        destination, 
-        travel_time_old_min: travelTime, 
-        session_id: sessionId 
-      });
-
-    if (error) {
-      console.error("Survey response update error:", error);
-    }
-
-    setShowModal(false);
-    setModalStartTime(null);
-  };
+  // REMOVED: handleResponse function for modal
 
   const formatTime = (timeString) => {
     const date = new Date(timeString);
@@ -1617,14 +1851,27 @@ function App() {
       {/* Include Font Awesome CSS */}
       <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
       
+      {/* NEW: User Profile Modal */}
+      <UserProfileModal 
+        isOpen={showUserProfileModal}
+        onClose={() => setShowUserProfileModal(false)}
+        onSubmit={handleUserProfileSubmit}
+      />
+      
+      {/* NEW: No Routes Found Modal */}
+      <NoRoutesFoundModal 
+        isOpen={showNoRoutesModal}
+        onClose={() => setShowNoRoutesModal(false)}
+      />
+      
       {/* Sidebar */}
       <div style={sidebarStyle}>
         <div style={{ padding: '16px', paddingBottom: '8px' }}>
           <h1 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '4px', color: '#2c3e50' }}>
-            Transit Survey
+            Future Toronto Transit Mapper
           </h1>
-          <p style={{ color: '#6c757d', marginBottom: '16px', fontSize: '12px' }}>
-            Plan your trip and help us improve transit services
+          <p style={{ color: '#6c757d', marginBottom: '16px', fontSize: '12px' }}> 
+            Plan your trip and see how new transit lines can help!
           </p>
         </div>
 
@@ -1637,7 +1884,7 @@ function App() {
           overflowY: 'auto',
           padding: '0 16px'
         }}>
-          {/* Trip Information Container - now without visible border */}
+          {/* Trip Information Container */}
           <div style={{ 
             marginBottom: '16px',
             flex: '0 0 auto'
@@ -1731,7 +1978,7 @@ function App() {
                   position: 'absolute',
                   right: '8px',
                   top: '50%',
-                  transform: 'translateY(-50%)',
+                  transform: 'translateY(-50%) rotate(90deg)',
                   backgroundColor: '#f8f9fa',
                   border: '1px solid #dee2e6',
                   borderRadius: '4px',
@@ -1922,7 +2169,7 @@ function App() {
             </button>
           </div>
 
-          {/* Scrollable Route Options Container */}
+          {/* MODIFIED: Route Options Container with updated card design */}
           {routeOptions.length > 0 && (
             <div style={{ flex: '1 1 auto', minHeight: '200px' }}>
               <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', fontWeight: '600', color: '#495057' }}>
@@ -1964,58 +2211,57 @@ function App() {
                       }}
                       onClick={() => handleRouteSelection(index)}
                     >
-                      {/* Top row: Trip duration prominently displayed */}
+                      {/* MODIFIED: Enhanced first row emphasizing both duration and times */}
                       <div style={{ 
                         display: 'flex', 
                         justifyContent: 'space-between', 
                         alignItems: 'center',
-                        marginBottom: '12px'
+                        marginBottom: '10px'
                       }}>
                         <div style={{ 
-                          fontSize: '24px', 
+                          fontSize: '20px', 
                           fontWeight: '700',
                           color: selectedRouteIndex === index ? '#007bff' : '#28a745'
                         }}>
                           {Math.round(route.duration / 60)} min
                         </div>
-                        <div style={{ fontSize: '11px', color: '#6c757d', textAlign: 'right' }}>
-                          Option {index + 1}
+                        <div style={{ 
+                          fontSize: '16px', 
+                          fontWeight: '600',
+                          color: '#495057',
+                          textAlign: 'right'
+                        }}>
+                          <div>{formatTime(route.startTime)}</div>
+                          <div style={{ fontSize: '12px', color: '#6c757d' }}>to {formatTime(route.endTime)}</div>
                         </div>
                       </div>
 
-                      {/* Second row: Times and key stats in one line */}
+                      {/* MODIFIED: Second row with key stats in a more prominent way */}
                       <div style={{ 
                         display: 'flex', 
                         justifyContent: 'space-between', 
                         alignItems: 'center',
                         marginBottom: '10px',
-                        fontSize: '13px',
-                        fontWeight: '500'
+                        fontSize: '12px',
+                        color: '#6c757d'
                       }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <span>{formatTime(route.startTime)}</span>
-                          <span style={{ color: '#6c757d' }}>→</span>
-                          <span>{formatTime(route.endTime)}</span>
-                        </div>
-                        <div style={{ 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          gap: '12px',
-                          fontSize: '11px',
-                          color: '#6c757d'
-                        }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                           {walkingTime > 0 && (
-                            <span style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '2px', fontWeight: '500' }}>
                               <i className="fas fa-walking" style={{ fontSize: '10px' }}></i>
-                              {walkingTime}min
+                              {walkingTime}min walk
                             </span>
                           )}
                           {transfers > 0 && (
-                            <span style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '2px', fontWeight: '500' }}>
                               <i className="fas fa-exchange-alt" style={{ fontSize: '10px' }}></i>
-                              {transfers}
+                              {transfers} transfer{transfers > 1 ? 's' : ''}
                             </span>
                           )}
+                        </div>
+                        {/* Future space for route tags like "Fastest", "Fewest transfers", etc. */}
+                        <div style={{ fontSize: '11px', fontStyle: 'italic' }}>
+                          {/* TODO: Add route optimization tags here */}
                         </div>
                       </div>
                       
@@ -2026,51 +2272,14 @@ function App() {
                         alignItems: 'center',
                         minHeight: '20px'
                       }}>
-                        {displayLegs.map((leg, legIndex) => {
-                          const legColor = getRouteColor(leg);
-                          const textColor = leg.route?.textColor ? `#${leg.route.textColor}` : (leg.mode === 'WALK' ? '#000' : '#fff');
-                          const duration = Math.round(leg.duration / 60);
-                          let displayText = '';
-                          let iconClass = getModeIcon(leg);
-                          
-                          if (leg.mode === 'WALK') {
-                            displayText = `${duration}min`;
-                          } else if (leg.route && leg.route.shortName) {
-                            displayText = leg.route.shortName;
-                          } else {
-                            displayText = leg.mode.toLowerCase();
-                          }
-
-                          return (
-                            <React.Fragment key={legIndex}>
-                              <div
-                                style={{
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  backgroundColor: legColor,
-                                  color: textColor,
-                                  padding: '2px 6px',
-                                  borderRadius: '8px',
-                                  fontSize: '10px',
-                                  fontWeight: '600',
-                                  margin: '1px',
-                                  minWidth: '24px',
-                                  justifyContent: 'center'
-                                }}
-                              >
-                                <i className={iconClass} style={{ marginRight: '2px', fontSize: '8px' }}></i>
-                                {displayText}
-                              </div>
-                              {legIndex < displayLegs.length - 1 && (
-                                <span style={{ 
-                                  margin: '0 2px', 
-                                  color: '#6c757d',
-                                  fontSize: '10px'
-                                }}>→</span>
-                              )}
-                            </React.Fragment>
-                          );
-                        })}
+                        {displayLegs.map((leg, legIndex) => (
+                          <RouteOptionLeg 
+                            key={legIndex}
+                            leg={leg} 
+                            legIndex={legIndex} 
+                            displayLegs={displayLegs} 
+                          />
+                        ))}
                       </div>
                     </button>
                   );
@@ -2080,13 +2289,13 @@ function App() {
           )}
         </div>
 
-        {/* FIXED: Fixed bottom buttons container - matching width and consistent styling */}
+        {/* Fixed bottom buttons container */}
         {tripHistory.length > 0 && (
           <div style={{
             position: 'fixed',
             bottom: '16px',
             left: '16px',
-            width: '368px', // Match the sidebar content width (400px - 32px padding)
+            width: '368px',
             zIndex: 1001,
             display: 'flex',
             flexDirection: 'column',
@@ -2097,8 +2306,8 @@ function App() {
               <button
                 onClick={() => {/* Add compare functionality here */}}
                 style={{
-                  ...buttonStyle, // Use same style as Find Route button
-                  margin: '0', // Remove default margin
+                  ...buttonStyle,
+                  margin: '0',
                   boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
                 }}
                 onMouseOver={e => e.target.style.backgroundColor = '#0056b3'}
@@ -2112,9 +2321,9 @@ function App() {
             <button
               onClick={() => navigate('/exit')}
               style={{
-                ...buttonStyle, // Use same style as Find Route button
+                ...buttonStyle,
                 backgroundColor: '#28a745',
-                margin: '0', // Remove default margin
+                margin: '0',
                 boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
               }}
               onMouseOver={e => e.target.style.backgroundColor = '#218838'}
@@ -2126,70 +2335,13 @@ function App() {
         )}
       </div>
 
-      {/* Modal */}
+      {/* REMOVED: Modal section - commented out
       {showModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0,0,0,0.5)',
-          zIndex: 2000,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}>
-          <div style={{
-            backgroundColor: '#fff',
-            padding: '32px',
-            borderRadius: '12px',
-            width: '400px',
-            maxWidth: '90vw',
-            boxShadow: '0 10px 25px rgba(0,0,0,0.3)'
-          }}>
-            <h2 style={{ margin: '0 0 16px 0', fontSize: '20px', fontWeight: '600' }}>Quick Survey</h2>
-            <p style={{ marginBottom: '20px', color: '#6c757d' }}>
-              This trip takes approximately {travelTime} minutes.
-            </p>
-            <p style={{ marginBottom: '24px', fontWeight: '500' }}>
-              Would you consider using this service?
-            </p>
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <button 
-                onClick={() => handleResponse(true)}
-                style={{
-                  flex: 1,
-                  padding: '12px',
-                  backgroundColor: '#28a745',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
-                  fontSize: '16px',
-                  cursor: 'pointer'
-                }}
-              >
-                Yes
-              </button>
-              <button 
-                onClick={() => handleResponse(false)}
-                style={{
-                  flex: 1,
-                  padding: '12px',
-                  backgroundColor: '#dc3545',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
-                  fontSize: '16px',
-                  cursor: 'pointer'
-                }}
-              >
-                No
-              </button>
-            </div>
-          </div>
+        <div style={{...modal styles...}}>
+          ...modal content...
         </div>
       )}
+      */}
 
       {/* Full-screen Map */}
       <div style={mapStyle}>
@@ -2197,7 +2349,7 @@ function App() {
           center={[43.7, -79.4]} 
           zoom={11.8} 
           style={{ height: "100%", width: "100%" }}
-          zoomControl={false} // Disable default zoom control
+          zoomControl={false}
         >
           <TileLayer
             url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
@@ -2280,7 +2432,7 @@ function App() {
             <Polyline positions={[originCoords, destinationCoords]} color="#007bff" weight={4} opacity={0.7} />
           )}
           
-          {/* FIXED: Separate responsive route pills component */}
+          {/* Responsive route pills component */}
           {routeOptions.length > 0 && mapInstance && (
             <RoutePills 
               route={routeOptions[selectedRouteIndex]} 
