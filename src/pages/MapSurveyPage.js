@@ -304,6 +304,38 @@ const getLineMidpoint = (coordinates) => {
   return coordinates[midIndex];
 };
 
+const fetchTomTomRoute = async (fromCoords, toCoords, departureTime, travelDate) => {
+  try {
+    const apiKey = process.env.REACT_APP_TOMTOM_KEY;
+    const departAt = `${travelDate}T${departureTime}:00-04:00`;
+
+    const url = `https://api.tomtom.com/routing/1/calculateRoute/${fromCoords[0]},${fromCoords[1]}:${toCoords[0]},${toCoords[1]}/json?key=${apiKey}&traffic=true&departAt=${departAt}&computeTravelTimeFor=all&routeType=fastest&maxAlternatives=2`;
+
+    const response = await fetch(url);
+    const data = await response.json();
+
+    if (data.routes && data.routes.length > 0) {
+      return data.routes.map((r, idx) => {
+        const summary = r.summary;
+        return {
+          id: `car-${idx}`,
+          mode: "CAR",
+          duration: summary.travelTimeInSeconds,
+          delay: summary.trafficDelayInSeconds,
+          distance: summary.lengthInMeters,
+          points: r.legs.flatMap(leg => leg.points), // polyline coords
+          departureTime: summary.departureTime,
+          arrivalTime: summary.arrivalTime
+        };
+      });
+    }
+    return null;
+  } catch (error) {
+    console.error("TomTom route error:", error);
+    return null;
+  }
+};
+
 // Enhanced OTP fetch function with API selection
 const fetchOTPRoute = async (fromCoords, toCoords, time, isArriveBy, dayType, useCurrentAPI = false) => {
   try {
@@ -1882,7 +1914,23 @@ function App() {
 
     if (mode === 'vehicle') {
       setCompareMode('comparing');
-      setCurrentRouteOptions([]);
+      setIsLoadingCurrentRoutes(true);
+
+      try {
+        const carRoutes = await fetchTomTomRoute(originCoords, destinationCoords, departureTime, travelDate);
+        if (carRoutes) {
+          setCurrentRouteOptions(carRoutes);
+          setSelectedCurrentRouteIndex(0);
+        } else {
+          // fallback: show no API results
+          setCurrentRouteOptions([]);
+        }
+      } catch (err) {
+        console.error("TomTom fetch failed, fallback to static text:", err);
+        setCurrentRouteOptions([]);
+      }
+
+      setIsLoadingCurrentRoutes(false);
     } else {
       setIsLoadingCurrentRoutes(true);
       try {
@@ -2773,25 +2821,65 @@ function App() {
 
           {/* Message for vehicle mode */}
           {compareMode === 'comparing' && selectedTravelMode === 'vehicle' && (
-            <div style={{ flex: '1 1 auto', paddingBottom: '80px' }}>
-              <div style={{ 
-                padding: '20px', 
-                textAlign: 'center', 
-                color: '#495057',
-                fontSize: '14px',
-                border: '2px solid #e1e5e9',
-                borderRadius: '6px',
-                backgroundColor: '#f8f9fa'
-              }}>
-                <i className="fas fa-car" style={{ fontSize: '48px', color: '#6c757d', marginBottom: '16px' }}></i>
-                <p style={{ margin: '0', fontWeight: '500' }}>
-                  You indicated you usually make this trip by private motor vehicle.
-                </p>
-                <p style={{ margin: '8px 0 0 0', color: '#6c757d' }}>
-                  Compare the future transit route (left map) with your usual driving route.
-                </p>
-              </div>
-            </div>
+            <>
+              {isLoadingCurrentRoutes ? (
+                <div style={{ padding: '20px', textAlign: 'center', color: '#6c757d' }}>
+                  Loading driving routes...
+                </div>
+              ) : currentRouteOptions.length > 0 ? (
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '6px',
+                  paddingBottom: '80px',
+                  maxHeight: '400px',
+                  overflowY: 'auto'
+                }}>
+                  {currentRouteOptions.map((route, index) => (
+                    <button
+                      key={route.id}
+                      style={{
+                        padding: '16px',
+                        backgroundColor: selectedCurrentRouteIndex === index ? '#fff5f5' : '#fff',
+                        border: `2px solid ${selectedCurrentRouteIndex === index ? '#dc3545' : '#e1e5e9'}`,
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontSize: '12px',
+                        textAlign: 'left',
+                        boxShadow: selectedCurrentRouteIndex === index ? '0 2px 6px rgba(220,53,69,0.15)' : '0 1px 2px rgba(0,0,0,0.05)'
+                      }}
+                      onClick={() => handleCurrentRouteSelection(index)}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                        <div style={{ fontSize: '20px', fontWeight: '700', color: '#dc3545' }}>
+                          {Math.round(route.duration / 60)} min
+                        </div>
+                        <div style={{ fontSize: '14px', color: '#6c757d' }}>
+                          {Math.round(route.distance / 1000)} km
+                        </div>
+                      </div>
+                      {route.delay > 0 && (
+                        <div style={{ fontSize: '12px', color: '#6c757d' }}>
+                          Includes {Math.round(route.delay / 60)} min traffic delay
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div style={{
+                  padding: '20px',
+                  textAlign: 'center',
+                  color: '#6c757d',
+                  border: '2px solid #e1e5e9',
+                  borderRadius: '6px',
+                  backgroundColor: '#f8f9fa'
+                }}>
+                  <i className="fas fa-car" style={{ fontSize: '32px', marginBottom: '12px' }}></i>
+                  <p>No driving route found. Compare against the transit option on the left.</p>
+                </div>
+              )}
+            </>
           )}
         </>
       );
@@ -3305,66 +3393,71 @@ function App() {
               )}
               
               {compareMode === 'comparing' && selectedTravelMode === 'vehicle' && (
+                <>
+                <MapContainer
+                  center={[43.7, -79.4]}
+                  zoom={11.8}
+                  style={{ height: "100%", width: "100%" }}
+                  zoomControl={false}
+                >
+                  <TileLayer
+                    url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+                  />
+
+                  <MapHandler setMapInstance={setCurrentMapInstance} />
+                  <CustomZoomControl compareMode={compareMode} />
+
+                  <DraggableMarker
+                    position={originCoords}
+                    onDragEnd={() => {}}
+                    icon={originIcon}
+                    popupText="Origin (A)"
+                    isDisabled={true}
+                  />
+                  <DraggableMarker
+                    position={destinationCoords}
+                    onDragEnd={() => {}}
+                    icon={destinationIcon}
+                    popupText="Destination (B)"
+                    isDisabled={true}
+                  />
+
+                  {currentRouteOptions.length > 0 && (
+                    <Polyline
+                      key={`car-route-${selectedCurrentRouteIndex}`}
+                      positions={currentRouteOptions[selectedCurrentRouteIndex].points.map(pt => [pt.latitude, pt.longitude])}
+                      color="#dc3545"
+                      weight={5}
+                      opacity={0.8}
+                    />
+                  )}
+
+                  <FitMap
+                    originCoords={originCoords}
+                    destinationCoords={destinationCoords}
+                    routeLegs={[]}
+                    shouldFit={true}
+                    triggerType={'compare'}
+                  />
+                </MapContainer>
+
+                {/* Driving route label */}
                 <div style={{
-                  height: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: '40px',
-                  backgroundColor: '#f8f9fa'
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  textAlign: 'center',
+                  backgroundColor: 'rgba(220, 53, 69, 0.9)',
+                  color: 'white',
+                  padding: '8px 12px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  zIndex: 1000
                 }}>
-                  <div style={{
-                    textAlign: 'center',
-                    maxWidth: '400px'
-                  }}>
-                    <i className="fas fa-car" style={{ fontSize: '72px', color: '#6c757d', marginBottom: '24px' }}></i>
-                    <h3 style={{ 
-                      fontSize: '24px', 
-                      fontWeight: '600', 
-                      color: '#495057',
-                      marginBottom: '16px'
-                    }}>
-                      Private Vehicle Route
-                    </h3>
-                    <p style={{ 
-                      fontSize: '16px', 
-                      color: '#6c757d',
-                      lineHeight: '1.5',
-                      marginBottom: '24px'
-                    }}>
-                      You indicated you usually drive for this trip. Consider how the new transit option (shown on the left) might compare to your usual driving route in terms of convenience, time, and cost.
-                    </p>
-                    <div style={{
-                      backgroundColor: '#fff',
-                      padding: '20px',
-                      borderRadius: '8px',
-                      border: '1px solid #e1e5e9',
-                      textAlign: 'left'
-                    }}>
-                      <h4 style={{ 
-                        fontSize: '16px', 
-                        fontWeight: '600', 
-                        color: '#495057',
-                        marginBottom: '12px'
-                      }}>
-                        Consider these factors:
-                      </h4>
-                      <ul style={{ 
-                        margin: 0, 
-                        paddingLeft: '20px',
-                        color: '#6c757d',
-                        fontSize: '14px',
-                        lineHeight: '1.6'
-                      }}>
-                        <li>Travel time differences</li>
-                        <li>Parking availability and costs</li>
-                        <li>Traffic and congestion patterns</li>
-                        <li>Weather considerations</li>
-                        <li>Environmental impact</li>
-                      </ul>
-                    </div>
-                  </div>
+                  Driving Route (TomTom)
                 </div>
+                </>
               )}
             </div>
           </>
