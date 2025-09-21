@@ -1354,75 +1354,64 @@ function ClickableRoutePill({ pill, leg }) {
 }
 
 const findBestPillPosition = (coords, occupiedPositions, map) => {
-  if (coords.length === 0) return null;
-  
+  if (!coords || coords.length === 0) return null;
+
+  // ✅ prevent errors if map is not ready or already unmounted
+  if (!map || !map.getContainer || !map._loaded) return null;
+
   const minDistancePixels = 60;
-  
   const candidatePositions = [];
   const segmentCount = Math.min(coords.length - 1, 10);
-  
+
   for (let i = 0; i < segmentCount; i++) {
     const ratio = i / (segmentCount - 1);
     const index = Math.floor(ratio * (coords.length - 1));
     candidatePositions.push(coords[index]);
   }
-  
+
   const midIndex = Math.floor(coords.length / 2);
   if (!candidatePositions.some(pos => pos[0] === coords[midIndex][0] && pos[1] === coords[midIndex][1])) {
     candidatePositions.push(coords[midIndex]);
   }
-  
+
   let bestPosition = null;
   let maxMinDistance = 0;
-  
+
   candidatePositions.forEach(candidate => {
     let minDistance = Infinity;
-    
+
     occupiedPositions.forEach(occupied => {
-      const candidatePixel = map.latLngToContainerPoint(candidate);
-      const occupiedPixel = map.latLngToContainerPoint(occupied);
-      const distance = candidatePixel.distanceTo(occupiedPixel);
-      minDistance = Math.min(minDistance, distance);
+      // ✅ wrap pixel conversion in try/catch
+      try {
+        const candidatePixel = map.latLngToContainerPoint(candidate);
+        const occupiedPixel = map.latLngToContainerPoint(occupied);
+        const distance = candidatePixel.distanceTo(occupiedPixel);
+        minDistance = Math.min(minDistance, distance);
+      } catch (err) {
+        console.warn("latLngToContainerPoint failed:", err);
+      }
     });
-    
+
     if (minDistance > maxMinDistance && minDistance >= minDistancePixels) {
       maxMinDistance = minDistance;
       bestPosition = candidate;
     }
   });
-  
-  if (!bestPosition && candidatePositions.length > 0) {
-    candidatePositions.forEach(candidate => {
-      let minDistance = Infinity;
-      
-      occupiedPositions.forEach(occupied => {
-        const candidatePixel = map.latLngToContainerPoint(candidate);
-        const occupiedPixel = map.latLngToContainerPoint(occupied);
-        const distance = candidatePixel.distanceTo(occupiedPixel);
-        minDistance = Math.min(minDistance, distance);
-      });
-      
-      if (minDistance > maxMinDistance) {
-        maxMinDistance = minDistance;
-        bestPosition = candidate;
-      }
-    });
-  }
-  
+
   return bestPosition;
 };
 
-function RoutePills({ route, selectedRouteIndex, map, originCoords, destinationCoords }) {
-  const [zoom, setZoom] = useState(map?.getZoom() || 11);
+function RoutePills({ route, selectedRouteIndex, originCoords, destinationCoords }) {
+  const map = useMap(); // ✅ always points to the current MapContainer
   const [pills, setPills] = useState([]);
 
   useEffect(() => {
-    if (!map) return;
+    if (!map || !map.getContainer || !map._loaded) {
+      setPills([]);
+      return;
+    }
 
     const updatePills = () => {
-      const currentZoom = map.getZoom();
-      setZoom(currentZoom);
-      
       if (!route || !route.legs) {
         setPills([]);
         return;
@@ -1430,42 +1419,36 @@ function RoutePills({ route, selectedRouteIndex, map, originCoords, destinationC
 
       const newPills = [];
       const occupiedPositions = [];
-      
-      if (originCoords) {
-        occupiedPositions.push(originCoords);
-      }
-      if (destinationCoords) {
-        occupiedPositions.push(destinationCoords);
-      }
-      
+
+      if (originCoords) occupiedPositions.push(originCoords);
+      if (destinationCoords) occupiedPositions.push(destinationCoords);
+
       route.legs.forEach((leg, legIndex) => {
         if (legIndex > 0) {
           occupiedPositions.push([leg.from.lat, leg.from.lon]);
         }
       });
-      
+
       route.legs.forEach((leg, legIndex) => {
         if (leg.mode === 'WALK') return;
-        
+
         const legDuration = Math.round(leg.duration / 60);
         if (legDuration < 3) return;
-        
+
         try {
           if (!leg.legGeometry || !leg.legGeometry.points) return;
-          
+
           const coords = polyline.decode(leg.legGeometry.points);
           if (coords.length < 5) return;
-          
+
           const bounds = L.latLngBounds(coords);
-          const pixelBounds = map.latLngToContainerPoint(bounds.getNorthEast())
+          const size = map.latLngToContainerPoint(bounds.getNorthEast())
             .distanceTo(map.latLngToContainerPoint(bounds.getSouthWest()));
-          
-          if (pixelBounds < 100) return;
-          
+
+          if (size < 100) return;
+
           const bestPosition = findBestPillPosition(coords, occupiedPositions, map);
           if (!bestPosition) return;
-          
-          const textColor = leg.route?.textColor ? `#${leg.route.textColor}` : 'white';
 
           newPills.push({
             id: `pill-${selectedRouteIndex}-${legIndex}`,
@@ -1473,18 +1456,17 @@ function RoutePills({ route, selectedRouteIndex, map, originCoords, destinationC
             routeName: leg.route?.shortName || leg.mode,
             duration: legDuration,
             color: getRouteColor(leg),
-            textColor: textColor,
+            textColor: leg.route?.textColor ? `#${leg.route.textColor}` : 'white',
             routeLongName: leg.route?.longName,
-            leg: leg
+            leg
           });
-          
+
           occupiedPositions.push(bestPosition);
-          
         } catch (error) {
           console.error("Error processing route pill:", error);
         }
       });
-      
+
       setPills(newPills);
     };
 
@@ -1501,59 +1483,33 @@ function RoutePills({ route, selectedRouteIndex, map, originCoords, destinationC
   return (
     <>
       {pills.map(pill => (
-        <ClickableRoutePill 
-          key={pill.id}
-          pill={pill}
-          leg={pill.leg}
-        />
+        <ClickableRoutePill key={pill.id} pill={pill} leg={pill.leg} />
       ))}
     </>
   );
 }
 
-const MapHandler = ({ setMapInstance, compareMode }) => {
+function MapHandler({ setMapInstance }) {
   const map = useMap();
-  
-  useEffect(() => {
-    if (map && map.getContainer()) {
-      setMapInstance(map);
-    }
-  }, [map, setMapInstance]);
-  
+
   useEffect(() => {
     if (!map) return;
-    
-    // Wait for map to be ready
+
+    // wait for the map to be fully initialized
     map.whenReady(() => {
-      const timer1 = setTimeout(() => {
-        try {
-          if (map && map.invalidateSize && map.getContainer()) {
-            map.invalidateSize(true);
-          }
-        } catch (error) {
-          console.warn('Map invalidateSize failed:', error);
+      setMapInstance(map);
+
+      // ✅ use requestAnimationFrame instead of setTimeout
+      requestAnimationFrame(() => {
+        if (map && map.getContainer() && map._loaded) {
+          map.invalidateSize();
         }
-      }, 100);
-      
-      const timer2 = setTimeout(() => {
-        try {
-          if (map && map.invalidateSize && map.getContainer()) {
-            map.invalidateSize(true);
-          }
-        } catch (error) {
-          console.warn('Map invalidateSize failed:', error);
-        }
-      }, 300);
-      
-      return () => {
-        clearTimeout(timer1);
-        clearTimeout(timer2);
-      };
+      });
     });
-  }, [map, compareMode]);
+  }, [map, setMapInstance]);
 
   return null;
-};
+}
 
 function App() {
   // Basic state
@@ -1615,6 +1571,18 @@ function App() {
   const [showTravelModeModal, setShowTravelModeModal] = useState(false);
   const [selectedTravelMode, setSelectedTravelMode] = useState(null);
   const [isLoadingCurrentRoutes, setIsLoadingCurrentRoutes] = useState(false);
+
+  const handleBackFromCompare = () => {
+    // Reset compare mode
+    setCompareMode("default");
+
+    // Clear current routes so only future route shows
+    setCurrentRouteOptions([]);
+    setSelectedCurrentRouteIndex(null);
+
+    // You don’t need invalidateSize here anymore,
+    // central resize effect will handle it
+  };
 
   useEffect(() => {
     let storedSessionId = localStorage.getItem('session_id');
@@ -1837,66 +1805,26 @@ function App() {
   const handleTravelModeSelect = async (mode) => {
     setSelectedTravelMode(mode);
     setShowTravelModeModal(false);
-    
+
     if (mode === 'vehicle') {
-      // For private vehicle, just show the compare view without loading current routes
       setCompareMode('comparing');
       setCurrentRouteOptions([]);
     } else {
-      // For transit, other, or none - load current routes
       setIsLoadingCurrentRoutes(true);
-      
-      // Add some debugging
-      console.log('Loading current routes for:', { originCoords, destinationCoords, departureTime, arriveBy, dayType });
-      
       try {
         const currentRoutes = await fetchOTPRoute(originCoords, destinationCoords, departureTime, arriveBy, dayType, true);
-        
-        console.log('Current routes response:', currentRoutes);
-        
         if (currentRoutes && currentRoutes.length > 0) {
           setCurrentRouteOptions(currentRoutes);
           setSelectedCurrentRouteIndex(0);
         } else {
           setCurrentRouteOptions([]);
-          console.log('No current routes found');
         }
       } catch (error) {
         console.error('Error loading current routes:', error);
         setCurrentRouteOptions([]);
       }
-      
       setIsLoadingCurrentRoutes(false);
       setCompareMode('comparing');
-    }
-
-      // Add this timeout to invalidate map size after layout change
-    setTimeout(() => {
-      if (mapInstance) {
-        mapInstance.invalidateSize();
-        // Force a more aggressive resize
-        setTimeout(() => {
-          mapInstance.invalidateSize(true); // true forces a hard reset
-        }, 50);
-      }
-    }, 300); // Longer delay
-  };
-
-  // Handle back button in compare mode
-  const handleBackFromCompare = () => {
-    if (compareMode === 'comparing' && selectedTravelMode !== 'vehicle') {
-      // Go back to travel mode selection
-      setCompareMode('selecting');
-      setShowTravelModeModal(true);
-      setCurrentRouteOptions([]);
-      setSelectedCurrentRouteIndex(0);
-    } else {
-      // Go back to default mode
-      setCompareMode('default');
-      setShowTravelModeModal(false);
-      setSelectedTravelMode(null);
-      setCurrentRouteOptions([]);
-      setSelectedCurrentRouteIndex(0);
     }
   };
 
@@ -2795,6 +2723,33 @@ function App() {
     }
   };
 
+  // Centralized resize handling
+  useEffect(() => {
+    const resizeMaps = () => {
+      if (mapInstance && mapInstance.getContainer && mapInstance._loaded) {
+        try {
+          mapInstance.invalidateSize();
+        } catch (e) {
+          console.warn("Future map resize failed:", e);
+        }
+      }
+      if (currentMapInstance && currentMapInstance.getContainer && currentMapInstance._loaded) {
+        try {
+          currentMapInstance.invalidateSize();
+        } catch (e) {
+          console.warn("Current map resize failed:", e);
+        }
+      }
+    };
+
+    // Run once when compareMode changes
+    requestAnimationFrame(resizeMaps);
+
+    // Also listen for window resizes
+    window.addEventListener("resize", resizeMaps);
+    return () => window.removeEventListener("resize", resizeMaps);
+  }, [compareMode, mapInstance, currentMapInstance]);
+
   return (
     <div style={{ margin: 0, padding: 0, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
       {/* Include Font Awesome CSS */}
@@ -2939,7 +2894,7 @@ function App() {
               url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
             />
             
-            <MapHandler setMapInstance={setMapInstance} compareMode={compareMode} />
+            <MapHandler setMapInstance={setMapInstance} />
             <CustomZoomControl />
             
             <TransitLines showLines={routeOptions.length === 0} transitLines={parsedTransitLines.length > 0 ? parsedTransitLines : TRANSIT_LINES} />
@@ -3043,7 +2998,7 @@ function App() {
                   url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
                 />
                 
-                <MapHandler setMapInstance={setMapInstance} compareMode={compareMode} />
+                <MapHandler setMapInstance={setMapInstance} />
                 <CustomZoomControl />
                 
                 <TransitLines showLines={false} transitLines={parsedTransitLines.length > 0 ? parsedTransitLines : TRANSIT_LINES} />
@@ -3161,7 +3116,7 @@ function App() {
                       url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
                     />
                     
-                    <MapHandler setMapInstance={setCurrentMapInstance} compareMode={compareMode} />
+                    <MapHandler setMapInstance={setCurrentMapInstance} />
                     <CustomZoomControl />
                     
                     <TransitLines showLines={false} transitLines={parsedTransitLines.length > 0 ? parsedTransitLines : TRANSIT_LINES} />
