@@ -964,6 +964,46 @@ function NoRoutesFoundModal({ isOpen, onClose }) {
   );
 }
 
+function UnaffectedRouteModal({ isOpen, onClose }) {
+  if (!isOpen) return null;
+  return (
+    <div style={{
+      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+      backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 3000,
+      display: 'flex', alignItems: 'center', justifyContent: 'center'
+    }}>
+      <div style={{ backgroundColor: '#fff', padding: '24px', borderRadius: '8px', maxWidth: '400px' }}>
+        <h2 style={{ marginBottom: '12px', color: '#007bff' }}>Route Unaffected</h2>
+        <p>Your chosen route is unaffected or already exists at present.  
+        To compare, please select a route that uses a new transit service.</p>
+        <button onClick={onClose} style={{ marginTop: '12px', padding: '8px 16px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '4px' }}>
+          Okay
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ChangedODModal({ isOpen, onClose }) {
+  if (!isOpen) return null;
+  return (
+    <div style={{
+      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+      backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 3000,
+      display: 'flex', alignItems: 'center', justifyContent: 'center'
+    }}>
+      <div style={{ backgroundColor: '#fff', padding: '24px', borderRadius: '8px', maxWidth: '400px' }}>
+        <h2 style={{ marginBottom: '12px', color: '#dc3545' }}>Origin/Destination Changed</h2>
+        <p>It looks like your origin or destination has changed since your last search.  
+        Please find the route again before comparing.</p>
+        <button onClick={onClose} style={{ marginTop: '12px', padding: '8px 16px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '4px' }}>
+          Got it
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // GTFS File Loader Component
 function GTFSFileLoader({ onDataLoaded }) {
   const [uploadedFiles, setUploadedFiles] = useState({
@@ -1573,6 +1613,11 @@ function App() {
   const [selectedTravelMode, setSelectedTravelMode] = useState(null);
   const [isLoadingCurrentRoutes, setIsLoadingCurrentRoutes] = useState(false);
 
+  const [lastPlannedOrigin, setLastPlannedOrigin] = useState(null);
+  const [lastPlannedDestination, setLastPlannedDestination] = useState(null);
+  const [showUnaffectedModal, setShowUnaffectedModal] = useState(false);
+  const [showChangedODModal, setShowChangedODModal] = useState(false);
+
   const handleBackFromCompare = () => {
     // Reset compare mode
     //setCompareMode("default");
@@ -1702,6 +1747,9 @@ function App() {
     setSelectedRouteIndex(0);
     setOtpTravelTime(null);
 
+    setLastPlannedOrigin(originAddress);
+    setLastPlannedDestination(destinationAddress);
+
     let finalTravelTime;
 
     const otpRoutes = await fetchOTPRoute(oCoords, dCoords, departureTime, arriveBy, dayType);
@@ -1810,6 +1858,19 @@ function App() {
 
   // Handle compare button click
   const handleCompareClick = () => {
+    // Check if OD changed
+    if (origin !== lastPlannedOrigin || destination !== lastPlannedDestination) {
+      setShowChangedODModal(true);
+      return;
+    }
+
+    // Check if route uses new transit
+    if (!hasNewRoute(routeOptions[selectedRouteIndex])) {
+      setShowUnaffectedModal(true);
+      return;
+    }
+
+    // Otherwise proceed
     setCompareMode('selecting');
     setShowTravelModeModal(true);
   };
@@ -2808,6 +2869,15 @@ function App() {
         isOpen={showNoRoutesModal}
         onClose={() => setShowNoRoutesModal(false)}
       />
+
+      <UnaffectedRouteModal
+        isOpen={showUnaffectedModal}
+        onClose={() => setShowUnaffectedModal(false)}
+      />
+      <ChangedODModal
+        isOpen={showChangedODModal}
+        onClose={() => setShowChangedODModal(false)}
+      />
       
       {/* Sidebar */}
       <div style={sidebarStyle}>
@@ -2845,7 +2915,7 @@ function App() {
             gap: '8px'
           }}>
             {/* Compare/Back button logic */}
-            {compareMode === 'default' && currentRouteHasNewTransit && (
+            {compareMode === 'default' &&  (
               <button
                 onClick={handleCompareClick}
                 style={{
