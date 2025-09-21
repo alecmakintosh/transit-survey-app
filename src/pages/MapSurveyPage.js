@@ -360,7 +360,7 @@ const fetchOTPRoute = async (fromCoords, toCoords, time, isArriveBy, dayType, us
 
     // Use appropriate OTP API based on useCurrentAPI parameter
     const otpUrl = useCurrentAPI 
-      ? process.env.REACT_APP_OTP_CURRENT_URL 
+      ? process.env.REACT_APP_OTP_PRESENT_URL 
       : process.env.REACT_APP_OTP_FUTURE_URL;
     
     let response = await fetch(otpUrl, {
@@ -1039,13 +1039,14 @@ function MapClickHandler({ onOriginSet, onDestinationSet, originCoords, destinat
 }
 
 // Custom Zoom Control Component
-function CustomZoomControl() {
+function CustomZoomControl({ compareMode }) {
   const map = useMap();
-  
+  const topOffset = compareMode === "default" ? "20px" : "70px"; // shift down if banner
+
   return (
     <div style={{
       position: 'absolute',
-      top: '20px',
+      top: topOffset,
       right: '20px',
       zIndex: 1000,
       display: 'flex',
@@ -1574,14 +1575,26 @@ function App() {
 
   const handleBackFromCompare = () => {
     // Reset compare mode
-    setCompareMode("default");
+    //setCompareMode("default");
 
     // Clear current routes so only future route shows
-    setCurrentRouteOptions([]);
-    setSelectedCurrentRouteIndex(null);
+    //setCurrentRouteOptions([]);
+    //setSelectedCurrentRouteIndex(null);
 
     // You don’t need invalidateSize here anymore,
     // central resize effect will handle it
+      if (compareMode === "comparing") {
+      // 👈 go back to the selecting step instead of all the way out
+      setCompareMode("selecting");
+      setShowTravelModeModal(true);   
+      setCurrentRouteOptions([]);
+      setSelectedCurrentRouteIndex(null);
+    } else {
+      // fallback: go to default mode
+      setCompareMode("default");
+      setCurrentRouteOptions([]);
+      setSelectedCurrentRouteIndex(null);
+    }
   };
 
   useEffect(() => {
@@ -1900,7 +1913,8 @@ function App() {
           flex: '1',
           height: '100%',
           position: 'relative',
-          minWidth: 0 // This is important for flex items
+          minWidth: 0, // This is important for flex items
+          borderRight: '3px solid #dee2e6'
         },
         rightPanel: {
           flex: '1',
@@ -2895,7 +2909,7 @@ function App() {
             />
             
             <MapHandler setMapInstance={setMapInstance} />
-            <CustomZoomControl />
+            <CustomZoomControl compareMode={compareMode} />
             
             <TransitLines showLines={routeOptions.length === 0} transitLines={parsedTransitLines.length > 0 ? parsedTransitLines : TRANSIT_LINES} />
             
@@ -2999,7 +3013,7 @@ function App() {
                 />
                 
                 <MapHandler setMapInstance={setMapInstance} />
-                <CustomZoomControl />
+                <CustomZoomControl compareMode={compareMode} />
                 
                 <TransitLines showLines={false} transitLines={parsedTransitLines.length > 0 ? parsedTransitLines : TRANSIT_LINES} />
                 
@@ -3079,12 +3093,16 @@ function App() {
               {/* Future route label */}
               <div style={{
                 position: 'absolute',
-                top: '10px',
-                left: '10px',
+                //top: '10px',
+                //left: '10px',
+                top: 0,
+                left: 0,
+                right: 0,
+                textAlign: 'center',
                 backgroundColor: 'rgba(0, 123, 255, 0.9)',
                 color: 'white',
                 padding: '8px 12px',
-                borderRadius: '6px',
+                //borderRadius: '6px',
                 fontSize: '14px',
                 fontWeight: '600',
                 zIndex: 1000
@@ -3117,7 +3135,7 @@ function App() {
                     />
                     
                     <MapHandler setMapInstance={setCurrentMapInstance} />
-                    <CustomZoomControl />
+                    <CustomZoomControl compareMode={compareMode} />
                     
                     <TransitLines showLines={false} transitLines={parsedTransitLines.length > 0 ? parsedTransitLines : TRANSIT_LINES} />
                     
@@ -3197,12 +3215,16 @@ function App() {
                   {/* Current route label */}
                   <div style={{
                     position: 'absolute',
-                    top: '10px',
-                    left: '10px',
+                    //top: '10px',
+                    //left: '10px',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    textAlign: 'center',
                     backgroundColor: 'rgba(220, 53, 69, 0.9)',
                     color: 'white',
                     padding: '8px 12px',
-                    borderRadius: '6px',
+                    //borderRadius: '6px',
                     fontSize: '14px',
                     fontWeight: '600',
                     zIndex: 1000
