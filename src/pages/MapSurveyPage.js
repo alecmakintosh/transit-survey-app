@@ -1511,12 +1511,46 @@ function RoutePills({ route, selectedRouteIndex, map, originCoords, destinationC
   );
 }
 
-const MapHandler = ({ setMapInstance }) => {
+const MapHandler = ({ setMapInstance, compareMode }) => {
   const map = useMap();
   
   useEffect(() => {
-    setMapInstance(map);
+    if (map && map.getContainer()) {
+      setMapInstance(map);
+    }
   }, [map, setMapInstance]);
+  
+  useEffect(() => {
+    if (!map) return;
+    
+    // Wait for map to be ready
+    map.whenReady(() => {
+      const timer1 = setTimeout(() => {
+        try {
+          if (map && map.invalidateSize && map.getContainer()) {
+            map.invalidateSize(true);
+          }
+        } catch (error) {
+          console.warn('Map invalidateSize failed:', error);
+        }
+      }, 100);
+      
+      const timer2 = setTimeout(() => {
+        try {
+          if (map && map.invalidateSize && map.getContainer()) {
+            map.invalidateSize(true);
+          }
+        } catch (error) {
+          console.warn('Map invalidateSize failed:', error);
+        }
+      }, 300);
+      
+      return () => {
+        clearTimeout(timer1);
+        clearTimeout(timer2);
+      };
+    });
+  }, [map, compareMode]);
 
   return null;
 };
@@ -1811,18 +1845,41 @@ function App() {
     } else {
       // For transit, other, or none - load current routes
       setIsLoadingCurrentRoutes(true);
-      const currentRoutes = await fetchOTPRoute(originCoords, destinationCoords, departureTime, arriveBy, dayType, true);
       
-      if (currentRoutes && currentRoutes.length > 0) {
-        setCurrentRouteOptions(currentRoutes);
-        setSelectedCurrentRouteIndex(0);
-      } else {
+      // Add some debugging
+      console.log('Loading current routes for:', { originCoords, destinationCoords, departureTime, arriveBy, dayType });
+      
+      try {
+        const currentRoutes = await fetchOTPRoute(originCoords, destinationCoords, departureTime, arriveBy, dayType, true);
+        
+        console.log('Current routes response:', currentRoutes);
+        
+        if (currentRoutes && currentRoutes.length > 0) {
+          setCurrentRouteOptions(currentRoutes);
+          setSelectedCurrentRouteIndex(0);
+        } else {
+          setCurrentRouteOptions([]);
+          console.log('No current routes found');
+        }
+      } catch (error) {
+        console.error('Error loading current routes:', error);
         setCurrentRouteOptions([]);
       }
       
       setIsLoadingCurrentRoutes(false);
       setCompareMode('comparing');
     }
+
+      // Add this timeout to invalidate map size after layout change
+    setTimeout(() => {
+      if (mapInstance) {
+        mapInstance.invalidateSize();
+        // Force a more aggressive resize
+        setTimeout(() => {
+          mapInstance.invalidateSize(true); // true forces a hard reset
+        }, 50);
+      }
+    }, 300); // Longer delay
   };
 
   // Handle back button in compare mode
@@ -1900,7 +1957,6 @@ function App() {
         }
       };
     } else {
-      // Split screen in compare mode
       return {
         mapContainer: {
           position: 'fixed',
@@ -1909,18 +1965,21 @@ function App() {
           right: 0,
           bottom: 0,
           height: '100vh',
-          display: 'flex'
+          display: 'flex',
+          backgroundColor: '#f8f9fa'
         },
         leftMap: {
-          flex: 1,
-          height: '100%',
-          position: 'relative'
-        },
-        rightPanel: {
-          flex: 1,
+          flex: '1',
           height: '100%',
           position: 'relative',
-          backgroundColor: '#f8f9fa'
+          minWidth: 0 // This is important for flex items
+        },
+        rightPanel: {
+          flex: '1',
+          height: '100%',
+          position: 'relative',
+          backgroundColor: '#f8f9fa',
+          minWidth: 0 // This is important for flex items
         }
       };
     }
@@ -2375,86 +2434,95 @@ function App() {
       // Compare mode - show frozen state with selected route
       return (
         <>
-          {/* Frozen Trip Information */}
+      {/* Frozen Trip Information */}
+      <div style={{ 
+        marginBottom: '16px',
+        flex: '0 0 auto'
+      }}>
+        <h3 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: '600', color: '#495057' }}>
+          Trip Information
+        </h3>
+        
+        {/* Frozen Address Display */}
+        <div style={{ 
+          border: '2px solid #e1e5e9', 
+          borderRadius: '6px', 
+          backgroundColor: '#f8f9fa',
+          overflow: 'hidden',
+          marginBottom: '12px',
+          opacity: 0.8
+        }}>
           <div style={{ 
-            marginBottom: '16px',
-            flex: '0 0 auto'
+            display: 'flex', 
+            alignItems: 'center', 
+            padding: '8px 12px',
+            borderBottom: '1px solid #e1e5e9'
           }}>
-            <h3 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: '600', color: '#495057' }}>
-              Trip Information
-            </h3>
-            
-            {/* Frozen Address Display */}
-            <div style={{ 
-              border: '2px solid #e1e5e9', 
-              borderRadius: '6px', 
-              backgroundColor: '#f8f9fa',
-              overflow: 'hidden',
-              marginBottom: '12px',
-              opacity: 0.8
-            }}>
-              <div style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                padding: '8px 12px',
-                borderBottom: '1px solid #e1e5e9'
-              }}>
-                <div style={{
-                  width: '20px',
-                  height: '20px',
-                  borderRadius: '50%',
-                  backgroundColor: '#28a745',
-                  color: 'white',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '12px',
-                  fontWeight: 'bold',
-                  marginRight: '10px',
-                  flexShrink: 0
-                }}>A</div>
-                <span style={{ fontSize: '14px', color: '#6c757d' }}>{origin}</span>
-              </div>
-              
-              <div style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                padding: '8px 12px'
-              }}>
-                <div style={{
-                  width: '20px',
-                  height: '20px',
-                  borderRadius: '50%',
-                  backgroundColor: '#dc3545',
-                  color: 'white',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '12px',
-                  fontWeight: 'bold',
-                  marginRight: '10px',
-                  flexShrink: 0
-                }}>B</div>
-                <span style={{ fontSize: '14px', color: '#6c757d' }}>{destination}</span>
-              </div>
-            </div>
-
-            {/* Frozen Travel Time Controls */}
-            <div style={{ 
-              border: '2px solid #e1e5e9', 
-              borderRadius: '6px', 
-              backgroundColor: '#f8f9fa',
-              padding: '8px 12px',
-              marginBottom: '12px',
-              opacity: 0.8
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
-                <span style={{ fontSize: '12px', color: '#6c757d' }}>
-                  {arriveBy ? 'Arrive' : 'Leave'} at {departureTime}, {dayType}
-                </span>
-              </div>
-            </div>
+            <div style={{
+              width: '20px',
+              height: '20px',
+              borderRadius: '50%',
+              backgroundColor: '#28a745',
+              color: 'white',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '12px',
+              fontWeight: 'bold',
+              marginRight: '10px',
+              flexShrink: 0
+            }}>A</div>
+            <span style={{ fontSize: '14px', color: '#000000', fontWeight: '500' }}>{origin}</span>
           </div>
+          
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            padding: '8px 12px'
+          }}>
+            <div style={{
+              width: '20px',
+              height: '20px',
+              borderRadius: '50%',
+              backgroundColor: '#dc3545',
+              color: 'white',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '12px',
+              fontWeight: 'bold',
+              marginRight: '10px',
+              flexShrink: 0
+            }}>B</div>
+            <span style={{ fontSize: '14px', color: '#000000', fontWeight: '500' }}>{destination}</span>
+          </div>
+        </div>
+
+        {/* Frozen Travel Time Controls */}
+          <div style={{ 
+            border: '2px solid #e1e5e9', 
+            borderRadius: '6px', 
+            backgroundColor: '#f8f9fa',
+            padding: '8px 12px',
+            marginBottom: '12px',
+            opacity: 0.8,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '12px', color: '#000000', fontWeight: '500' }}>
+                {arriveBy ? 'Arrive by' : 'Leave at'}
+              </span>
+              <span style={{ fontSize: '12px', color: '#000000', fontWeight: '600' }}>
+                {departureTime}
+              </span>
+            </div>
+            <span style={{ fontSize: '12px', color: '#000000', fontWeight: '500' }}>
+              {dayType}
+            </span>
+          </div>
+        </div>
 
           {/* Future Route Card */}
           {routeOptions.length > 0 && (
@@ -2871,7 +2939,7 @@ function App() {
               url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
             />
             
-            <MapHandler setMapInstance={setMapInstance} />
+            <MapHandler setMapInstance={setMapInstance} compareMode={compareMode} />
             <CustomZoomControl />
             
             <TransitLines showLines={routeOptions.length === 0} transitLines={parsedTransitLines.length > 0 ? parsedTransitLines : TRANSIT_LINES} />
@@ -2964,18 +3032,18 @@ function App() {
           <>
             {/* Left map - Future routes */}
             <div style={mapStyles.leftMap}>
-              <MapContainer 
-                center={[43.7, -79.4]} 
-                zoom={11.8} 
-                style={{ height: "100%", width: "100%" }}
-                zoomControl={false}
-                className={compareMode === 'selecting' ? 'map-shrink' : ''}
-              >
+                <MapContainer 
+                  key={`left-map-${compareMode}`} // This will force a complete remount
+                  center={[43.7, -79.4]} 
+                  zoom={11.8} 
+                  style={{ height: "100%", width: "100%" }}
+                  zoomControl={false}
+                >
                 <TileLayer
                   url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
                 />
                 
-                <MapHandler setMapInstance={setMapInstance} />
+                <MapHandler setMapInstance={setMapInstance} compareMode={compareMode} />
                 <CustomZoomControl />
                 
                 <TransitLines showLines={false} transitLines={parsedTransitLines.length > 0 ? parsedTransitLines : TRANSIT_LINES} />
@@ -3080,20 +3148,20 @@ function App() {
                 />
               )}
               
-              {compareMode === 'comparing' && selectedTravelMode !== 'vehicle' && currentRouteOptions.length > 0 && (
+              {compareMode === 'comparing' && selectedTravelMode !== 'vehicle' && (
                 <>
                   {/* Current route map */}
                   <MapContainer 
                     center={[43.7, -79.4]} 
                     zoom={11.8} 
-                    style={{ height: "100%", width: "100%" }}
+                    style={{ height: "100%", width: "100%" }} // Make sure this is set
                     zoomControl={false}
                   >
                     <TileLayer
                       url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
                     />
                     
-                    <MapHandler setMapInstance={setCurrentMapInstance} />
+                    <MapHandler setMapInstance={setCurrentMapInstance} compareMode={compareMode} />
                     <CustomZoomControl />
                     
                     <TransitLines showLines={false} transitLines={parsedTransitLines.length > 0 ? parsedTransitLines : TRANSIT_LINES} />
@@ -3113,7 +3181,7 @@ function App() {
                       isDisabled={true}
                     />
                     
-                    {currentRouteOptions[selectedCurrentRouteIndex] && (
+                    {currentRouteOptions.length > 0 && currentRouteOptions[selectedCurrentRouteIndex] && (
                       <div key={`current-route-${selectedCurrentRouteIndex}`}>
                         <TransferMarkers 
                           route={currentRouteOptions[selectedCurrentRouteIndex]} 
