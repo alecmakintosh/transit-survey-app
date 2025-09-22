@@ -628,7 +628,7 @@ const fetchOTPRoute = async (fromCoords, toCoords, time, isArriveBy, dayType, us
         numItineraries: 15
         transferPenalty: 60
         modeWeight: {BUS: 1.2, SUBWAY: 0.9, RAIL: 0.85, TRAM: 0.95}
-        searchWindow: 1800
+        searchWindow: 1200
         walkReluctance: 2.0
         maxTransfers: 5
       ) {
