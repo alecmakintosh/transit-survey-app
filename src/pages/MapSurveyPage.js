@@ -3,9 +3,45 @@ import { MapContainer, TileLayer, Marker, Polyline, Popup, useMap, useMapEvents 
 import 'leaflet/dist/leaflet.css';
 import { supabase } from '../supabaseClient'
 import { v4 as uuidv4 } from 'uuid';
-import { useNavigate } from 'react-router-dom'; 
+import { useNavigate } from 'react-router-dom';
 import polyline from "@mapbox/polyline";
 import L from 'leaflet';
+
+// Extracted components and utilities
+import {
+  createCustomIcon,
+  createTransferIcon,
+  createRoutePillIcon,
+  originIcon,
+  destinationIcon,
+  transferIcon
+} from '../components/MapIcons';
+import TravelModeModal from '../components/TravelModeModal';
+import UserProfileModal from '../components/UserProfileModal';
+import NoRoutesFoundModal from '../components/NoRoutesFoundModal';
+import UnaffectedRouteModal from '../components/UnaffectedRouteModal';
+import ChangedODModal from '../components/ChangedODModal';
+import {
+  isWalkOnlyItinerary,
+  deduplicateItineraries,
+  sortItineraries,
+  legHasNewRoute,
+  hasNewRoute,
+  getLineMidpoint,
+  haversineDistance,
+  estimateTravelTime,
+  getRouteColor,
+  getModeIcon
+} from '../utils/routeUtils';
+import { reverseGeocode } from '../utils/geocodingUtils';
+import { NEW_ROUTES_CONFIG } from '../config/routeConfig';
+import { useRouteCalculation } from '../hooks/useRouteCalculation';
+import { useMapState } from '../hooks/useMapState';
+import { useCompareMode } from '../hooks/useCompareMode';
+import { fetchTomTomRoute } from '../services/tomtomService';
+import TripPlannerForm from '../components/TripPlannerForm';
+import RouteResults from '../components/RouteResults';
+import MapDisplay from '../components/MapDisplay';
 
 // Fix for default markers in react-leaflet
 delete L.Icon.Default.prototype._getIconUrl;
@@ -15,603 +51,11 @@ L.Icon.Default.mergeOptions({
   shadowUrl: require('leaflet/dist/images/marker-shadow.png'),
 });
 
-// Custom marker icons
-const createCustomIcon = (color, isDestination = false) => {
-  return L.divIcon({
-    className: 'custom-marker',
-    html: `
-      <div style="
-        background-color: ${color};
-        width: 25px;
-        height: 25px;
-        border-radius: 50% 50% 50% 0;
-        border: 3px solid white;
-        transform: rotate(-45deg);
-        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      ">
-        <span style="
-          color: white;
-          font-weight: bold;
-          font-size: 12px;
-          transform: rotate(45deg);
-        ">${isDestination ? 'B' : 'A'}</span>
-      </div>
-    `,
-    iconSize: [25, 25],
-    iconAnchor: [12, 25],
-    popupAnchor: [0, -25],
-    zIndexOffset: 1000
-  });
-};
+// Extracted components and utilities have been moved to separate modules
 
-const createTransferIcon = () => {
-  return L.divIcon({
-    className: 'transfer-marker',
-    html: `
-      <div style="
-        background-color: #ffc107;
-        width: 20px;
-        height: 20px;
-        border-radius: 50% 50% 50% 0;
-        border: 2px solid white;
-        transform: rotate(-45deg);
-        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      ">
-        <span style="
-          color: white;
-          font-weight: bold;
-          font-size: 10px;
-          transform: rotate(45deg);
-        ">T</span>
-      </div>
-    `,
-    iconSize: [20, 20],
-    iconAnchor: [10, 20],
-    popupAnchor: [0, -20],
-    zIndexOffset: -5000
-  });
-};
+// All TomTom-related functions have been moved to tomtomService.js
 
-const createRoutePillIcon = (routeName, duration, color, textColor = 'white', mode = null, isNewRoute = false) => {
-  const shouldShowIcon = ['TRAM', 'SUBWAY', 'RAIL'].includes(mode);
-  
-  let iconHTML = '';
-  if (shouldShowIcon) {
-    const modeIcons = {
-      SUBWAY: 'fas fa-subway',
-      TRAM: 'fas fa-tram', 
-      RAIL: 'fas fa-train'
-    };
-    
-    const iconClass = modeIcons[mode] || '';
-    iconHTML = `<i class="${iconClass}" style="margin-right: 6px; font-size: 10px;"></i>`;
-  }
-  
-  const textContent = `${routeName} • ${duration}min`;
-  const approxWidth = Math.max(80, textContent.length * 7 + 16 + (shouldShowIcon ? 20 : 0) + (isNewRoute ? 20 : 0));
-  
-  const sparkleHTML = isNewRoute ? `
-    <img src="/stars.png"
-         style="
-           position: absolute;
-           top: -3px;
-           right: -3px;
-           width: 16px;
-           height: 16px;
-           z-index: 10;
-         " 
-         alt="New route" />
-  ` : '';
-  
-  return L.divIcon({
-    className: 'route-pill',
-    html: `
-      <div style="
-        background-color: ${color};
-        color: ${textColor || 'white'};
-        padding: 5px 10px;
-        border-radius: 15px;
-        font-size: 11px;
-        font-weight: bold;
-        white-space: nowrap;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.4);
-        border: 2px solid white;
-        text-align: center;
-        line-height: 1.1;
-        min-width: 80px;
-        position: relative;
-        z-index: 500;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      ">
-        ${iconHTML}${routeName} • ${duration}min
-        ${sparkleHTML}
-      </div>
-    `,
-    iconSize: [approxWidth, 26],
-    iconAnchor: [approxWidth / 2, 13],
-    className: 'route-pill-marker'
-  });
-};
-
-const originIcon = createCustomIcon('#28a745', false);
-const destinationIcon = createCustomIcon('#dc3545', true);
-const transferIcon = createTransferIcon();
-
-// Helper functions
-const haversineDistance = (coords1, coords2) => {
-  const toRad = (x) => x * Math.PI / 180;
-  const [lat1, lon1] = coords1;
-  const [lat2, lon2] = coords2;
-
-  const R = 6371;
-  const dLat = toRad(lat2 - lat1);
-  const dLon = toRad(lon2 - lon1);
-
-  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-            Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
-            Math.sin(dLon/2) * Math.sin(dLon/2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-
-  return R * c;
-};
-
-const estimateTravelTime = (distanceKm) => {
-  const averageSpeedKmH = 25;
-  return Math.round((distanceKm / averageSpeedKmH) * 60);
-};
-
-const getRouteColor = (leg) => {
-  if (leg.route && leg.route.color) {
-    return `#${leg.route.color}`;
-  }
-  
-  const modeColors = {
-    WALK: '#28a745',
-    BUS: '#000000',
-    SUBWAY: '#000000',
-    TRAM: '#000000',
-    RAIL: '#6f42c1',
-    FERRY: '#17a2b8'
-  };
-  
-  return modeColors[leg.mode] || '#6c757d';
-};
-
-const getModeIcon = (leg) => {
-  const modeIcons = {
-    WALK: 'fas fa-walking',
-    BUS: 'fas fa-bus',
-    SUBWAY: 'fas fa-subway',
-    TRAM: 'fas fa-tram',
-    RAIL: 'fas fa-train',
-    FERRY: 'fas fa-ship'
-  };
-  
-  return modeIcons[leg.mode] || 'fas fa-bus';
-};
-
-const isWalkOnlyItinerary = (itinerary) => {
-  return itinerary.legs.every(leg => leg.mode === 'WALK');
-};
-
-const deduplicateItineraries = (itineraries) => {
-  const uniqueRoutes = new Map();
-  
-  itineraries.forEach(itinerary => {
-    const routeSignature = itinerary.legs
-      .filter(leg => leg.mode !== 'WALK')
-      .map((leg, index) => {
-        const transferPoint = index > 0 ? leg.from.name : '';
-        return `${leg.mode}-${leg.route?.shortName || leg.mode}-${transferPoint}`;
-      })
-      .join('|');
-    
-    const signature = routeSignature || `WALK-${itinerary.legs[0]?.from?.lat}-${itinerary.legs[0]?.from?.lon}-${itinerary.legs[itinerary.legs.length-1]?.to?.lat}-${itinerary.legs[itinerary.legs.length-1]?.to?.lon}`;
-    
-    if (!uniqueRoutes.has(signature)) {
-      uniqueRoutes.set(signature, itinerary);
-    }
-  });
-  
-  return Array.from(uniqueRoutes.values());
-};
-
-const sortItineraries = (itineraries) => {
-  if (itineraries.length <= 1) return itineraries;
-  
-  const nonWalkOnly = itineraries.filter(itinerary => !isWalkOnlyItinerary(itinerary));
-  const walkOnly = itineraries.filter(itinerary => isWalkOnlyItinerary(itinerary));
-  
-  return [...nonWalkOnly, ...walkOnly];
-};
-
-// Configuration for new routes
-const NEW_ROUTES_CONFIG = {
-  routeIdentifiers: [
-    { type: 'longName', value: 'LINE 5 (EGLINTON)' },
-    { type: 'longName', value: 'LINE 6 (FINCH WEST)' }
-  ]
-};
-
-const legHasNewRoute = (leg) => {
-  if (!leg.route) return false;
-  
-  return NEW_ROUTES_CONFIG.routeIdentifiers.some(identifier => {
-    switch (identifier.type) {
-      case 'longName':
-        return leg.route.longName === identifier.value;
-      case 'shortName':
-        return leg.route.shortName === identifier.value;
-      case 'agency':
-        return leg.route.agency === identifier.value;
-      default:
-        return false;
-    }
-  });
-};
-
-const hasNewRoute = (itinerary) => {
-  return itinerary.legs.some(leg => {
-    if (!leg.route) return false;
-    
-    return NEW_ROUTES_CONFIG.routeIdentifiers.some(identifier => {
-      switch (identifier.type) {
-        case 'longName':
-          return leg.route.longName === identifier.value;
-        case 'shortName':
-          return leg.route.shortName === identifier.value;
-        case 'agency':
-          return leg.route.agency === identifier.value;
-        default:
-          return false;
-      }
-    });
-  });
-};
-
-// Reverse geocoding function
-const reverseGeocode = async (coords, mapboxToken) => {
-  try {
-    const [lat, lon] = coords;
-    const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${lon},${lat}.json?access_token=${mapboxToken}`;
-    
-    const response = await fetch(url);
-    const data = await response.json();
-    
-    if (data.features && data.features.length > 0) {
-      return data.features[0].place_name;
-    }
-    return `${lat.toFixed(6)}, ${lon.toFixed(6)}`;
-  } catch (error) {
-    console.error("Reverse geocoding error:", error);
-    return `${coords[0].toFixed(6)}, ${coords[1].toFixed(6)}`;
-  }
-};
-
-const getLineMidpoint = (coordinates) => {
-  if (coordinates.length === 0) return null;
-  if (coordinates.length === 1) return coordinates[0];
-  
-  const midIndex = Math.floor(coordinates.length / 2);
-  return coordinates[midIndex];
-};
-
-// Enhanced fetchTomTomRoute function with better debugging:
-// Corrected TomTom API function with proper parameters and road extraction
-const fetchTomTomRoute = async (fromCoords, toCoords, departureTime, travelDate, arriveBy = false) => {
-  function isWeekend(date = new Date()) {
-    const day = date.getDay();
-    return day === 0 || day === 6;
-  }
-  
-  // Get Toronto timezone offset (EDT/EST)
-  const getTorontoTimezone = () => {
-    const now = new Date();
-    const january = new Date(now.getFullYear(), 0, 1);
-    const july = new Date(now.getFullYear(), 6, 1);
-    const stdTimezoneOffset = Math.max(january.getTimezoneOffset(), july.getTimezoneOffset());
-    const isDST = now.getTimezoneOffset() < stdTimezoneOffset;
-    return isDST ? '-04:00' : '-05:00'; // EDT or EST
-  };
-  
-  try {
-    const apiKey = process.env.REACT_APP_TOMTOM_KEY;
-    const targetDate = isWeekend() ? getNextDateForDay(2) : getNextDateForDay(5);
-    const torontoOffset = getTorontoTimezone();
-    console.log(targetDate, ", ", departureTime);
-    
-    // Format time properly for Toronto timezone
-    const departAt = `${targetDate}T${departureTime}:00${torontoOffset}`;
-    
-    // Build URL with proper parameters based on TomTom documentation
-    let url = `https://api.tomtom.com/routing/1/calculateRoute/${fromCoords[0]},${fromCoords[1]}:${toCoords[0]},${toCoords[1]}/json`;
-    url += `?key=${apiKey}`;
-    url += `&traffic=true`;
-    url += `&computeTravelTimeFor=all`;
-    url += `&routeType=fastest`;
-    url += `&maxAlternatives=3`;
-    url += `&instructionsType=text`;
-    
-    // ✅ Request all relevant section types for analysis
-    url += `&sectionType=traffic`;
-    url += `&sectionType=toll`;
-    url += `&sectionType=importantRoadStretch`;
-    url += `&sectionType=motorway`;
-    url += `&sectionType=country`;
-    url += `&sectionType=travelMode`;
-    
-    // Handle arrive by vs depart at
-    if (arriveBy) {
-      url += `&arriveAt=${departAt}`;
-    } else {
-      url += `&departAt=${departAt}`;
-    }
-
-    console.log("TomTom API URL:", url);
-
-    const response = await fetch(url);
-    const data = await response.json();
-
-    console.log("TomTom API Full Response:", data);
-
-    if (data.routes && data.routes.length > 0) {
-      return data.routes.map((r, idx) => {
-        const summary = r.summary;
-
-        console.log(`Route ${idx} summary:`, summary);
-        console.log(`Route ${idx} sections:`, r.sections);
-
-        // ✅ 1. Extract major roads using importantRoadStretch sections FIRST
-        let majorRoads = extractMajorRoadsFromSections(r.sections, r.guidance);
-        
-        // ✅ 2. Check for tolls using section analysis
-        const hasTolls = checkForTolls(r.sections);
-        
-        // ✅ 3. Verify delay calculation (it should use summary values)
-        const verifiedDelay = calculateTrafficDelay(summary);
-
-        console.log(`Route ${idx} extracted major roads:`, majorRoads);
-        console.log(`Route ${idx} has tolls:`, hasTolls);
-        console.log(`Route ${idx} traffic delay verification:`, verifiedDelay);
-
-        const routeData = {
-          id: `car-${idx}`,
-          mode: "CAR",
-          duration: summary.travelTimeInSeconds,
-          delay: verifiedDelay.trafficDelayInSeconds,
-          distance: summary.lengthInMeters,
-          points: r.legs.flatMap(leg => leg.points),
-          departureTime: summary.departureTime,
-          arrivalTime: summary.arrivalTime,
-          hasTollRoad: hasTolls,
-          majorRoads: majorRoads,
-          // Additional fields for debugging/analysis
-          routeAnalysis: {
-            importantRoadSections: getImportantRoadSections(r.sections),
-            tollSections: getTollSections(r.sections),
-            trafficSections: getTrafficSections(r.sections),
-            delayAnalysis: verifiedDelay
-          },
-          // Add route legs structure similar to transit for consistency
-          legs: [{
-            mode: 'CAR',
-            duration: summary.travelTimeInSeconds,
-            distance: summary.lengthInMeters,
-            from: { 
-              name: 'Origin',
-              lat: fromCoords[0], 
-              lon: fromCoords[1] 
-            },
-            to: { 
-              name: 'Destination',
-              lat: toCoords[0], 
-              lon: toCoords[1] 
-            },
-            legGeometry: { 
-              points: '' // TomTom uses different geometry format
-            }
-          }]
-        };
-
-        console.log(`Route ${idx} final data:`, routeData);
-        return routeData;
-      });
-    }
-    return null;
-  } catch (error) {
-    console.error("TomTom route error:", error);
-    return null;
-  }
-};
-
-// ✅ NEW: Extract major roads using importantRoadStretch sections as primary method
-function extractMajorRoadsFromSections(sections, guidance) {
-  let majorRoads = [];
-  
-  const importantRoadSections = sections.filter(section => 
-    section.sectionType === 'IMPORTANT_ROAD_STRETCH'
-  );
-  
-  if (importantRoadSections.length > 0) {
-    console.log("Found important road stretch sections:", importantRoadSections);
-    
-    importantRoadSections.forEach(section => {
-      try {
-        // Safe extraction with object handling
-        let roadName = null;
-        
-        if (section.streetName) {
-          if (typeof section.streetName === 'string') {
-            roadName = section.streetName.trim();
-          } else if (typeof section.streetName === 'object') {
-            roadName = section.streetName.text || section.streetName.name || null;
-          }
-        }
-        
-        if (roadName && roadName !== '' && !majorRoads.includes(roadName)) {
-          majorRoads.push(roadName);
-        } else if (section.roadNumbers && Array.isArray(section.roadNumbers) && section.roadNumbers.length > 0) {
-          section.roadNumbers.forEach(roadNum => {
-            const safeRoadNum = typeof roadNum === 'string' ? roadNum : String(roadNum);
-            if (safeRoadNum && !majorRoads.includes(safeRoadNum)) {
-              majorRoads.push(safeRoadNum);
-            }
-          });
-        } else if (section.roadNumber) {
-          const safeRoadNumber = typeof section.roadNumber === 'string' ? section.roadNumber : String(section.roadNumber);
-          if (safeRoadNumber && !majorRoads.includes(safeRoadNumber)) {
-            majorRoads.push(safeRoadNumber);
-          }
-        }
-      } catch (error) {
-        console.warn('Error processing section:', error, section);
-      }
-    });
-  }
-  
-  // Continue with motorway sections if needed...
-  // (apply same safe extraction pattern)
-  
-  return differentiateRoutes(majorRoads, sections);
-}
-
-// ✅ NEW: Differentiate routes when they use largely the same important roads
-function differentiateRoutes(majorRoads, sections) {
-  // If we have few major roads, add distinguishing characteristics
-  if (majorRoads.length < 2) {
-    // Look for distinctive sections
-    const tollSections = sections.filter(s => s.sectionType === 'TOLL');
-    const countrySections = sections.filter(s => s.sectionType === 'COUNTRY');
-    
-    // Add toll indicator
-    if (tollSections.length > 0) {
-      majorRoads.push('Toll Route');
-    }
-    
-    // Add country changes if applicable
-    if (countrySections.length > 1) {
-      majorRoads.push('Multi-Country');
-    }
-    
-    // Add traffic level indicator
-    const trafficSections = sections.filter(s => s.sectionType === 'TRAFFIC');
-    const heavyTrafficSections = trafficSections.filter(s => 
-      s.effectiveSpeedInKmh && s.simpleCategory === 'JAM'
-    );
-    
-    if (heavyTrafficSections.length > 0) {
-      majorRoads.push('Heavy Traffic');
-    }
-  }
-  
-  return majorRoads.slice(0, 3); // Limit to 3 identifiers
-}
-
-// ✅ NEW: Extract roads from guidance instructions (improved fallback)
-function extractRoadsFromGuidance(instructions) {
-  const roads = [];
-  
-  instructions.forEach(instruction => {
-    const text = instruction.instruction || instruction.message || '';
-    
-    // Enhanced regex patterns for road extraction
-    const patterns = [
-      /(?:onto|on|along|via|take|follow)\s+([A-Z]\d+[A-Z]?)/gi, // Highway numbers (A1, M25, etc.)
-      /(?:onto|on|along|via|take|follow)\s+(Highway\s+\d+)/gi,   // Highway 401
-      /(?:onto|on|along|via|take|follow)\s+([^,\.\s]+(?:\s+(?:Highway|Hwy|Route|Rd|Road|Ave|Avenue|St|Street|Blvd|Boulevard|Dr|Drive|Way|Pkwy|Parkway|Expy|Expressway))?)/gi
-    ];
-    
-    patterns.forEach(pattern => {
-      const matches = text.match(pattern);
-      if (matches) {
-        matches.forEach(match => {
-          const roadName = match.replace(/^(?:onto|on|along|via|take|follow)\s+/i, '').trim();
-          if (roadName.length > 2 && !roads.includes(roadName)) {
-            roads.push(roadName);
-          }
-        });
-      }
-    });
-  });
-  
-  return roads.slice(0, 3);
-}
-
-// ✅ NEW: Check for tolls using section analysis (CORRECT METHOD)
-function checkForTolls(sections) {
-  // Look for toll sections in the route
-  const tollSections = sections.filter(section => 
-    section.sectionType === 'TOLL' || 
-    section.sectionType === 'TOLL_ROAD' ||
-    (section.sectionType === 'TRAVEL_MODE' && section.tollSummary)
-  );
-  
-  console.log("Toll sections found:", tollSections);
-  
-  return tollSections.length > 0;
-}
-
-// ✅ NEW: Verify traffic delay calculation using summary values
-function calculateTrafficDelay(summary) {
-  const result = {
-    trafficDelayInSeconds: summary.trafficDelayInSeconds || 0,
-    calculationMethod: 'summary_direct',
-    verification: null
-  };
-  
-  // Verify the calculation if we have the component travel times
-  if (summary.noTrafficTravelTimeInSeconds && summary.travelTimeInSeconds) {
-    const calculatedDelay = summary.travelTimeInSeconds - summary.noTrafficTravelTimeInSeconds;
-    
-    result.verification = {
-      directDelay: summary.trafficDelayInSeconds || 0,
-      calculatedDelay: calculatedDelay,
-      matches: Math.abs((summary.trafficDelayInSeconds || 0) - calculatedDelay) < 5 // 5 second tolerance
-    };
-    
-    // Use the calculated delay if the direct one seems incorrect
-    if (!result.verification.matches && calculatedDelay > 0) {
-      result.trafficDelayInSeconds = calculatedDelay;
-      result.calculationMethod = 'calculated_from_components';
-    }
-  }
-  
-  console.log("Traffic delay analysis:", result);
-  return result;
-}
-
-// ✅ Helper functions to extract specific section types for analysis
-function getImportantRoadSections(sections) {
-  return sections.filter(section => section.sectionType === 'IMPORTANT_ROAD_STRETCH');
-}
-
-function getTollSections(sections) {
-  return sections.filter(section => 
-    section.sectionType === 'TOLL' || section.sectionType === 'TOLL_ROAD'
-  );
-}
-
-function getTrafficSections(sections) {
-  return sections.filter(section => section.sectionType === 'TRAFFIC');
-}
-
-// Update the existing helper function
-function getNextDateForDay(targetDay) {
-  const today = new Date();
-  const result = new Date(today);
-  while (result.getDay() !== targetDay) {
-    result.setDate(result.getDate() + 1);
-  }
-  return result.toISOString().split("T")[0];
-}
+// Enhanced OTP fetch function with API selection
 
 // Enhanced OTP fetch function with API selection
 const fetchOTPRoute = async (fromCoords, toCoords, time, isArriveBy, dayType, useCurrentAPI = false) => {
@@ -984,334 +428,14 @@ const loadPreprocessedData = async () => {
 };
 
 // Travel Mode Selection Modal Component
-function TravelModeModal({ isOpen, onClose, onModeSelect }) {
-  if (!isOpen) return null;
+// TravelModeModal component moved to src/components/TravelModeModal.js
 
-  const travelModes = [
-    { id: 'transit', label: 'Transit (bus, subway, etc.)', icon: 'fas fa-bus' },
-    { id: 'vehicle', label: 'Private motor vehicle (car, motorcycle, etc.)', icon: 'fas fa-car' },
-    { id: 'other', label: 'Other (walking, cycling, scootering, etc.)', icon: 'fas fa-walking' },
-    { id: 'none', label: "I don't usually make this trip", icon: 'fas fa-question' }
-  ];
+// UserProfileModal component moved to src/components/UserProfileModal.js
 
-  return (
-    <div style={{
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(255,255,255,0.95)',
-      zIndex: 2000,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '20px'
-    }}>
-      <div style={{
-        backgroundColor: '#fff',
-        padding: '32px',
-        borderRadius: '12px',
-        width: '100%',
-        maxWidth: '500px',
-        boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
-        border: '1px solid #e1e5e9'
-      }}>
-        <h2 style={{ 
-          margin: '0 0 24px 0', 
-          fontSize: '24px', 
-          fontWeight: '600', 
-          color: '#2c3e50',
-          textAlign: 'center'
-        }}>
-          How do you usually make this trip?
-        </h2>
-        
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {travelModes.map(mode => (
-            <button
-              key={mode.id}
-              onClick={() => onModeSelect(mode.id)}
-              style={{
-                padding: '16px 20px',
-                backgroundColor: '#f8f9fa',
-                border: '2px solid #e1e5e9',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontSize: '16px',
-                fontWeight: '500',
-                color: '#495057',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                transition: 'all 0.2s',
-                textAlign: 'left'
-              }}
-              onMouseOver={e => {
-                e.target.style.backgroundColor = '#e9ecef';
-                e.target.style.borderColor = '#007bff';
-              }}
-              onMouseOut={e => {
-                e.target.style.backgroundColor = '#f8f9fa';
-                e.target.style.borderColor = '#e1e5e9';
-              }}
-            >
-              <i className={mode.icon} style={{ fontSize: '20px', color: '#6c757d', width: '24px' }}></i>
-              {mode.label}
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
+// NoRoutesFoundModal component moved to src/components/NoRoutesFoundModal.js
 
-// User Profile Modal Component
-function UserProfileModal({ isOpen, onClose, onSubmit }) {
-  const [hasVehicle, setHasVehicle] = useState(null);
-  const [isRegularTransitUser, setIsRegularTransitUser] = useState(null);
-
-  const handleSubmit = () => {
-    if (hasVehicle !== null && isRegularTransitUser !== null) {
-      onSubmit({ hasVehicle, isRegularTransitUser });
-      onClose();
-    }
-  };
-
-  if (!isOpen) return null;
-
-  return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(0,0,0,0.6)',
-      zIndex: 3000,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center'
-    }}>
-      <div style={{
-        backgroundColor: '#fff',
-        padding: '32px',
-        borderRadius: '12px',
-        width: '500px',
-        maxWidth: '90vw',
-        boxShadow: '0 10px 25px rgba(0,0,0,0.3)'
-      }}>
-        <h2 style={{ margin: '0 0 16px 0', fontSize: '24px', fontWeight: '600', color: '#2c3e50' }}>
-          Welcome to the Future Toronto Transit Mapper!
-        </h2>
-        <p style={{ marginBottom: '24px', color: '#6c757d', lineHeight: '1.5' }}>
-          These questions help me design your user experience and understand how different types of travelers use transit services.
-        </p>
-        
-        <div style={{ marginBottom: '24px' }}>
-          <h3 style={{ margin: '0 0 12px 0', fontSize: '16px', fontWeight: '600' }}>
-            Do you own or have regular access to a motor vehicle (car, motorcycle)?
-          </h3>
-          <div style={{ display: 'flex', gap: '12px' }}>
-            <button 
-              onClick={() => setHasVehicle(true)}
-              style={{
-                flex: 1,
-                padding: '12px',
-                backgroundColor: hasVehicle === true ? '#007bff' : '#f8f9fa',
-                color: hasVehicle === true ? 'white' : '#495057',
-                border: '2px solid ' + (hasVehicle === true ? '#007bff' : '#e1e5e9'),
-                borderRadius: '6px',
-                fontSize: '14px',
-                cursor: 'pointer',
-                fontWeight: '500'
-              }}
-            >
-              Yes
-            </button>
-            <button 
-              onClick={() => setHasVehicle(false)}
-              style={{
-                flex: 1,
-                padding: '12px',
-                backgroundColor: hasVehicle === false ? '#007bff' : '#f8f9fa',
-                color: hasVehicle === false ? 'white' : '#495057',
-                border: '2px solid ' + (hasVehicle === false ? '#007bff' : '#e1e5e9'),
-                borderRadius: '6px',
-                fontSize: '14px',
-                cursor: 'pointer',
-                fontWeight: '500'
-              }}
-            >
-              No
-            </button>
-          </div>
-        </div>
-
-        <div style={{ marginBottom: '32px' }}>
-          <h3 style={{ margin: '0 0 12px 0', fontSize: '16px', fontWeight: '600' }}>
-            Would you classify yourself as a regular transit user?
-          </h3>
-          <p style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#6c757d' }}>
-            (more than 2 trips on transit per week)
-          </p>
-          <div style={{ display: 'flex', gap: '12px' }}>
-            <button 
-              onClick={() => setIsRegularTransitUser(true)}
-              style={{
-                flex: 1,
-                padding: '12px',
-                backgroundColor: isRegularTransitUser === true ? '#007bff' : '#f8f9fa',
-                color: isRegularTransitUser === true ? 'white' : '#495057',
-                border: '2px solid ' + (isRegularTransitUser === true ? '#007bff' : '#e1e5e9'),
-                borderRadius: '6px',
-                fontSize: '14px',
-                cursor: 'pointer',
-                fontWeight: '500'
-              }}
-            >
-              Yes
-            </button>
-            <button 
-              onClick={() => setIsRegularTransitUser(false)}
-              style={{
-                flex: 1,
-                padding: '12px',
-                backgroundColor: isRegularTransitUser === false ? '#007bff' : '#f8f9fa',
-                color: isRegularTransitUser === false ? 'white' : '#495057',
-                border: '2px solid ' + (isRegularTransitUser === false ? '#007bff' : '#e1e5e9'),
-                borderRadius: '6px',
-                fontSize: '14px',
-                cursor: 'pointer',
-                fontWeight: '500'
-              }}
-            >
-              No
-            </button>
-          </div>
-        </div>
-
-        <button
-          onClick={handleSubmit}
-          disabled={hasVehicle === null || isRegularTransitUser === null}
-          style={{
-            width: '100%',
-            padding: '14px',
-            backgroundColor: (hasVehicle !== null && isRegularTransitUser !== null) ? '#28a745' : '#6c757d',
-            color: 'white',
-            border: 'none',
-            borderRadius: '6px',
-            fontSize: '16px',
-            fontWeight: '600',
-            cursor: (hasVehicle !== null && isRegularTransitUser !== null) ? 'pointer' : 'not-allowed'
-          }}
-        >
-          Continue to Transit Mapper
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// No Routes Found Modal Component
-function NoRoutesFoundModal({ isOpen, onClose }) {
-  if (!isOpen) return null;
-
-  return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(0,0,0,0.5)',
-      zIndex: 2000,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center'
-    }}>
-      <div style={{
-        backgroundColor: '#fff',
-        padding: '32px',
-        borderRadius: '12px',
-        width: '400px',
-        maxWidth: '90vw',
-        boxShadow: '0 10px 25px rgba(0,0,0,0.3)'
-      }}>
-        <h2 style={{ margin: '0 0 16px 0', fontSize: '20px', fontWeight: '600', color: '#dc3545' }}>
-          No Routes Found
-        </h2>
-        <p style={{ marginBottom: '20px', color: '#6c757d', lineHeight: '1.5' }}>
-          We couldn't find any transit routes for this trip. This might be because:
-        </p>
-        <ul style={{ marginBottom: '24px', color: '#6c757d', paddingLeft: '20px' }}>
-          <li>The locations are too far apart for transit service</li>
-          <li>No transit service is available at the selected time</li>
-          <li>The locations are not well-connected by public transit</li>
-        </ul>
-        <p style={{ marginBottom: '24px', color: '#495057', fontWeight: '500' }}>
-          Try adjusting your departure time, day type, or choose different locations.
-        </p>
-        <button 
-          onClick={onClose}
-          style={{
-            width: '100%',
-            padding: '12px',
-            backgroundColor: '#007bff',
-            color: 'white',
-            border: 'none',
-            borderRadius: '6px',
-            fontSize: '16px',
-            cursor: 'pointer',
-            fontWeight: '500'
-          }}
-        >
-          Okay
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function UnaffectedRouteModal({ isOpen, onClose }) {
-  if (!isOpen) return null;
-  return (
-    <div style={{
-      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-      backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 3000,
-      display: 'flex', alignItems: 'center', justifyContent: 'center'
-    }}>
-      <div style={{ backgroundColor: '#fff', padding: '24px', borderRadius: '8px', maxWidth: '400px' }}>
-        <h2 style={{ marginBottom: '12px', color: '#007bff' }}>Route Unaffected</h2>
-        <p>Your chosen route already exists today.  
-        To compare, please select a route that uses a new transit service.</p>
-        <button onClick={onClose} style={{ marginTop: '12px', padding: '8px 16px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '4px' }}>
-          Okay
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function ChangedODModal({ isOpen, onClose }) {
-  if (!isOpen) return null;
-  return (
-    <div style={{
-      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-      backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 3000,
-      display: 'flex', alignItems: 'center', justifyContent: 'center'
-    }}>
-      <div style={{ backgroundColor: '#fff', padding: '24px', borderRadius: '8px', maxWidth: '400px' }}>
-        <h2 style={{ marginBottom: '12px', color: '#dc3545' }}>Origin/Destination Changed</h2>
-        <p>It looks like your origin or destination has changed since your last search.  
-        Please find a route for this trip before comparing.</p>
-        <button onClick={onClose} style={{ marginTop: '12px', padding: '8px 16px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '4px' }}>
-          Got it
-        </button>
-      </div>
-    </div>
-  );
-}
+// UnaffectedRouteModal component moved to src/components/UnaffectedRouteModal.js
+// ChangedODModal component moved to src/components/ChangedODModal.js
 
 // GTFS File Loader Component
 function GTFSFileLoader({ onDataLoaded }) {
@@ -1873,14 +997,25 @@ function App() {
   const navigate = useNavigate();
   const [tripHistory, setTripHistory] = useState([]);
   
-  // Multi-route state
-  const [routeOptions, setRouteOptions] = useState([]);
-  const [selectedRouteIndex, setSelectedRouteIndex] = useState(0);
-  const [otpTravelTime, setOtpTravelTime] = useState(null);
-  
-  // Current routes state (for comparison)
-  const [currentRouteOptions, setCurrentRouteOptions] = useState([]);
-  const [selectedCurrentRouteIndex, setSelectedCurrentRouteIndex] = useState(0);
+  // Use custom hooks for state management
+  const {
+    routeOptions,
+    setRouteOptions,
+    selectedRouteIndex,
+    setSelectedRouteIndex,
+    otpTravelTime,
+    setOtpTravelTime,
+    currentRouteOptions,
+    setCurrentRouteOptions,
+    selectedCurrentRouteIndex,
+    setSelectedCurrentRouteIndex,
+    isCalculating,
+    setIsCalculating,
+    readyToCalculate,
+    setReadyToCalculate,
+    isLoadingCurrentRoutes,
+    setIsLoadingCurrentRoutes
+  } = useRouteCalculation();
   
   // User profile state
   const [showUserProfileModal, setShowUserProfileModal] = useState(true);
@@ -1898,58 +1033,44 @@ function App() {
   const [arriveBy, setArriveBy] = useState(false);
   const [dayType, setDayType] = useState('weekday');
 
-  // Map interaction state
-  const [mapMode, setMapMode] = useState('none');
-  const [inputMode, setInputMode] = useState('text');
+  // Map state hook
+  const {
+    mapMode,
+    setMapMode,
+    inputMode,
+    setInputMode,
+    shouldFitMap,
+    setShouldFitMap,
+    mapInstance,
+    setMapInstance,
+    currentMapInstance,
+    setCurrentMapInstance,
+    parsedTransitLines,
+    setParsedTransitLines,
+    fitTriggerType,
+    setFitTriggerType
+  } = useMapState();
 
-  // Route calculation state
-  const [isCalculating, setIsCalculating] = useState(false);
-  const [readyToCalculate, setReadyToCalculate] = useState(false);
-  
-  // Map fitting control
-  const [shouldFitMap, setShouldFitMap] = useState(false);
-  
-  // Map reference
-  const [mapInstance, setMapInstance] = useState(null);
-  const [currentMapInstance, setCurrentMapInstance] = useState(null);
+  // Compare mode hook
+  const {
+    compareMode,
+    setCompareMode,
+    showTravelModeModal,
+    setShowTravelModeModal,
+    selectedTravelMode,
+    setSelectedTravelMode,
+    lastPlannedOrigin,
+    setLastPlannedOrigin,
+    lastPlannedDestination,
+    setLastPlannedDestination,
+    showUnaffectedModal,
+    setShowUnaffectedModal,
+    showChangedODModal,
+    setShowChangedODModal,
+    handleBackFromCompare
+  } = useCompareMode();
 
-  const [parsedTransitLines, setParsedTransitLines] = useState([]);
-  const [fitTriggerType, setFitTriggerType] = useState(null);
-
-  // Compare mode states
-  const [compareMode, setCompareMode] = useState('default'); // 'default', 'selecting', 'comparing'
-  const [showTravelModeModal, setShowTravelModeModal] = useState(false);
-  const [selectedTravelMode, setSelectedTravelMode] = useState(null);
-  const [isLoadingCurrentRoutes, setIsLoadingCurrentRoutes] = useState(false);
-
-  const [lastPlannedOrigin, setLastPlannedOrigin] = useState(null);
-  const [lastPlannedDestination, setLastPlannedDestination] = useState(null);
-  const [showUnaffectedModal, setShowUnaffectedModal] = useState(false);
-  const [showChangedODModal, setShowChangedODModal] = useState(false);
-
-  const handleBackFromCompare = () => {
-    // Reset compare mode
-    //setCompareMode("default");
-
-    // Clear current routes so only future route shows
-    //setCurrentRouteOptions([]);
-    //setSelectedCurrentRouteIndex(null);
-
-    // You don’t need invalidateSize here anymore,
-    // central resize effect will handle it
-      if (compareMode === "comparing") {
-      // 👈 go back to the selecting step instead of all the way out
-      setCompareMode("selecting");
-      setShowTravelModeModal(true);   
-      setCurrentRouteOptions([]);
-      setSelectedCurrentRouteIndex(0);
-    } else {
-      // fallback: go to default mode
-      setCompareMode("default");
-      setCurrentRouteOptions([]);
-      setSelectedCurrentRouteIndex(0);
-    }
-  };
+  // handleBackFromCompare is now provided by the useCompareMode hook
 
   useEffect(() => {
     let storedSessionId = localStorage.getItem('session_id');
