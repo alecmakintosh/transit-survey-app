@@ -3865,8 +3865,8 @@ function App() {
                         <Polyline
                           key={`car-route-${index}-selected-${selectedCurrentRouteIndex}`} // Forces re-render
                           positions={route.points.map(pt => [pt.latitude, pt.longitude])}
-                          color={isSelected ? "#ff0000" : "#999999"}
-                          weight={isSelected ? 8 : 3}
+                          color={isSelected ? "#dc3545" : "#5e3a3eff"}
+                          weight={isSelected ? 4 : 3}
                           opacity={isSelected ? 1.0 : 0.3}
                           eventHandlers={{
                             click: () => {
