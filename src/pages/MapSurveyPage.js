@@ -198,6 +198,15 @@ const getModeIcon = (leg) => {
   return modeIcons[leg.mode] || 'fas fa-bus';
 };
 
+function getNextDateForDay(targetDay) {
+  const today = new Date();
+  const result = new Date(today);
+  while (result.getDay() !== targetDay) {
+    result.setDate(result.getDate() + 1);
+  }
+  return result.toISOString().split("T")[0];
+}
+
 const isWalkOnlyItinerary = (itinerary) => {
   return itinerary.legs.every(leg => leg.mode === 'WALK');
 };
@@ -304,29 +313,180 @@ const getLineMidpoint = (coordinates) => {
   return coordinates[midIndex];
 };
 
-const fetchTomTomRoute = async (fromCoords, toCoords, departureTime, travelDate) => {
+// Enhanced fetchTomTomRoute function with better debugging:
+// Corrected TomTom API function with proper parameters and road extraction
+const fetchTomTomRoute = async (fromCoords, toCoords, departureTime, travelDate, arriveBy = false) => {
+  function isWeekend(date = new Date()) {
+    const day = date.getDay();
+    return day === 0 || day === 6;
+  }
+  
+  // Get Toronto timezone offset (EDT/EST)
+  const getTorontoTimezone = () => {
+    const now = new Date();
+    const january = new Date(now.getFullYear(), 0, 1);
+    const july = new Date(now.getFullYear(), 6, 1);
+    const stdTimezoneOffset = Math.max(january.getTimezoneOffset(), july.getTimezoneOffset());
+    const isDST = now.getTimezoneOffset() < stdTimezoneOffset;
+    return isDST ? '-04:00' : '-05:00'; // EDT or EST
+  };
+  
   try {
     const apiKey = process.env.REACT_APP_TOMTOM_KEY;
-    const departAt = `${travelDate}T${departureTime}:00-04:00`;
+    const targetDate = isWeekend() ? getNextDateForDay(2) : getNextDateForDay(5);
+    const torontoOffset = getTorontoTimezone();
+    console.log(targetDate, ", ", departureTime)
+    
+    // Format time properly for Toronto timezone
+    const departAt = `${targetDate}T${departureTime}:00${torontoOffset}`;
+    
+    // Build URL with proper parameters based on TomTom documentation
+    let url = `https://api.tomtom.com/routing/1/calculateRoute/${fromCoords[0]},${fromCoords[1]}:${toCoords[0]},${toCoords[1]}/json`;
+    url += `?key=${apiKey}`;
+    url += `&traffic=true`;
+    url += `&computeTravelTimeFor=all`;
+    url += `&routeType=fastest`;
+    url += `&maxAlternatives=2`;
+    //url += `&guidance=true`; // Required for detailed instructions
+    url += `&instructionsType=text`;
+    url += `&sectionType=traffic`; // Get traffic sections
+    url += '&sectionType=toll'
+    url += '&sectionType=importantRoadStretch'
+    
+    // Handle arrive by vs depart at
+    if (arriveBy) {
+      url += `&arriveAt=${departAt}`;
+    } else {
+      url += `&departAt=${departAt}`;
+    }
 
-    const url = `https://api.tomtom.com/routing/1/calculateRoute/${fromCoords[0]},${fromCoords[1]}:${toCoords[0]},${toCoords[1]}/json?key=${apiKey}&traffic=true&departAt=${departAt}&computeTravelTimeFor=all&routeType=fastest&maxAlternatives=2`;
+    console.log("TomTom API URL:", url);
 
     const response = await fetch(url);
     const data = await response.json();
 
+    console.log("TomTom API Full Response:", data);
+
     if (data.routes && data.routes.length > 0) {
       return data.routes.map((r, idx) => {
         const summary = r.summary;
-        return {
+
+        console.log(`Route ${idx} summary:`, summary);
+        console.log(`Route ${idx} guidance:`, r.guidance);
+        console.log(`Route ${idx} sections:`, r.sections);
+
+        // Extract major roads from guidance.instructions and sections
+        let majorRoads = [];
+        
+        // Method 1: Extract from guidance instructions
+        if (r.guidance && r.guidance.instructions) {
+          const instructions = r.guidance.instructions;
+          console.log(`Route ${idx} instructions:`, instructions);
+          
+          // Look for road names in instruction text
+          instructions.forEach(instruction => {
+            const text = instruction.instruction || instruction.message || '';
+            
+            // Extract road names from instruction text using various patterns
+            const roadMatches = text.match(/(?:onto|on|along|via|take|follow)\s+([^,\.\s]+(?:\s+[^,\.\s]+)*(?:\s+(?:Highway|Hwy|Route|Rd|Road|Ave|Avenue|St|Street|Blvd|Boulevard|Dr|Drive|Way|Pkwy|Parkway|Expy|Expressway|Lane|Ln))?)/gi);
+            
+            if (roadMatches) {
+              roadMatches.forEach(match => {
+                const roadName = match.replace(/^(?:onto|on|along|via|take|follow)\s+/i, '').trim();
+                if (roadName.length > 2 && !majorRoads.includes(roadName)) {
+                  majorRoads.push(roadName);
+                }
+              });
+            }
+          });
+        }
+        
+        // Method 2: Extract from sections if available
+        if (r.sections && majorRoads.length < 3) {
+          r.sections.forEach(section => {
+            if (section.effectiveSpeedInKmh && section.travelTimeInSeconds > 300) { // Focus on longer sections
+              // Try to extract road info from section data
+              const sectionText = JSON.stringify(section);
+              const roadMatches = sectionText.match(/[A-Z][a-z]*\s+(?:Highway|Hwy|Route|Rd|Road|Ave|Avenue|St|Street|Blvd|Boulevard)/g);
+              if (roadMatches) {
+                roadMatches.forEach(road => {
+                  if (!majorRoads.includes(road)) {
+                    majorRoads.push(road);
+                  }
+                });
+              }
+            }
+          });
+        }
+        
+        // Method 3: Fallback - extract highway numbers and major road patterns
+        if (majorRoads.length < 2 && r.guidance && r.guidance.instructions) {
+          const allText = r.guidance.instructions
+            .map(instr => instr.instruction || instr.message || '')
+            .join(' ');
+          
+          // Look for highway numbers
+          const highwayMatches = allText.match(/(?:Highway|Hwy|Route)\s+\d+[A-Z]?/gi);
+          if (highwayMatches) {
+            highwayMatches.forEach(highway => {
+              if (!majorRoads.includes(highway)) {
+                majorRoads.push(highway);
+              }
+            });
+          }
+          
+          // Look for major street patterns
+          const streetMatches = allText.match(/\b[A-Z][a-z]+\s+(?:Road|Street|Avenue|Boulevard|Drive)\b/g);
+          if (streetMatches) {
+            streetMatches.slice(0, 3).forEach(street => {
+              if (!majorRoads.includes(street)) {
+                majorRoads.push(street);
+              }
+            });
+          }
+        }
+        
+        // Clean up and limit to top 3
+        majorRoads = majorRoads
+          .filter(road => road.length > 2)
+          .slice(0, 3);
+
+        console.log(`Route ${idx} extracted major roads:`, majorRoads);
+
+        const routeData = {
           id: `car-${idx}`,
           mode: "CAR",
           duration: summary.travelTimeInSeconds,
-          delay: summary.trafficDelayInSeconds,
+          delay: summary.trafficDelayInSeconds || 0,
           distance: summary.lengthInMeters,
-          points: r.legs.flatMap(leg => leg.points), // polyline coords
+          points: r.legs.flatMap(leg => leg.points),
           departureTime: summary.departureTime,
-          arrivalTime: summary.arrivalTime
+          arrivalTime: summary.arrivalTime,
+          hasTollRoad: r.hasTollRoad || false,
+          majorRoads: majorRoads,
+          // Add route legs structure similar to transit for consistency
+          legs: [{
+            mode: 'CAR',
+            duration: summary.travelTimeInSeconds,
+            distance: summary.lengthInMeters,
+            from: { 
+              name: 'Origin',
+              lat: fromCoords[0], 
+              lon: fromCoords[1] 
+            },
+            to: { 
+              name: 'Destination',
+              lat: toCoords[0], 
+              lon: toCoords[1] 
+            },
+            legGeometry: { 
+              points: '' // TomTom uses different geometry format
+            }
+          }]
         };
+
+        console.log(`Route ${idx} final data:`, routeData);
+        return routeData;
       });
     }
     return null;
@@ -1665,12 +1825,12 @@ function App() {
       setCompareMode("selecting");
       setShowTravelModeModal(true);   
       setCurrentRouteOptions([]);
-      setSelectedCurrentRouteIndex(null);
+      setSelectedCurrentRouteIndex(0);
     } else {
       // fallback: go to default mode
       setCompareMode("default");
       setCurrentRouteOptions([]);
-      setSelectedCurrentRouteIndex(null);
+      setSelectedCurrentRouteIndex(0);
     }
   };
 
@@ -1917,19 +2077,18 @@ function App() {
       setIsLoadingCurrentRoutes(true);
 
       try {
-        const carRoutes = await fetchTomTomRoute(originCoords, destinationCoords, departureTime, travelDate);
+        // Pass the arriveBy parameter to TomTom
+        const carRoutes = await fetchTomTomRoute(originCoords, destinationCoords, departureTime, travelDate, arriveBy);
         if (carRoutes) {
           setCurrentRouteOptions(carRoutes);
           setSelectedCurrentRouteIndex(0);
         } else {
-          // fallback: show no API results
           setCurrentRouteOptions([]);
         }
       } catch (err) {
-        console.error("TomTom fetch failed, fallback to static text:", err);
+        console.error("TomTom fetch failed:", err);
         setCurrentRouteOptions([]);
       }
-
       setIsLoadingCurrentRoutes(false);
     } else {
       setIsLoadingCurrentRoutes(true);
@@ -1987,8 +2146,15 @@ function App() {
 
   // Handle current route selection
   const handleCurrentRouteSelection = (index) => {
+    console.log(`Selecting driving route ${index} out of ${currentRouteOptions.length} routes`);
+    console.log(`Previous selectedCurrentRouteIndex: ${selectedCurrentRouteIndex}`);
     setSelectedCurrentRouteIndex(index);
+    console.log(`New selectedCurrentRouteIndex should be: ${index}`);
+    
+    // Force a map re-render by updating a dummy state if needed
+    // This ensures the visual changes take effect immediately
   };
+
 
   // Check if current route uses new transit lines
   const currentRouteHasNewTransit = routeOptions.length > 0 && hasNewRoute(routeOptions[selectedRouteIndex]);
@@ -2821,65 +2987,205 @@ function App() {
 
           {/* Message for vehicle mode */}
           {compareMode === 'comparing' && selectedTravelMode === 'vehicle' && (
-            <>
-              {isLoadingCurrentRoutes ? (
-                <div style={{ padding: '20px', textAlign: 'center', color: '#6c757d' }}>
-                  Loading driving routes...
-                </div>
-              ) : currentRouteOptions.length > 0 ? (
-                <div style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '6px',
-                  paddingBottom: '80px',
-                  maxHeight: '400px',
-                  overflowY: 'auto'
-                }}>
-                  {currentRouteOptions.map((route, index) => (
+            <div style={{ flex: '1 1 auto', paddingBottom: '80px' }}>
+              <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', fontWeight: '600', color: '#495057' }}>
+                Driving Route Options
+              </h3>
+              
+              <div style={{ 
+                display: 'flex', 
+                flexDirection: 'column', 
+                gap: '6px', 
+                paddingBottom: '80px',
+                maxHeight: '400px',
+                overflowY: 'auto'
+              }}>
+                {currentRouteOptions.map((route, index) => {
+                  // Calculate traffic impact
+                  const trafficRatio = route.delay / route.duration;
+                  let trafficColor = "#28a745"; // Green for light traffic
+                  
+                  if (trafficRatio > 0.3) {
+                    trafficColor = "#dc3545"; // Red for heavy traffic
+                  } else if (trafficRatio > 0.15) {
+                    trafficColor = "#fd7e14"; // Orange for moderate traffic
+                  } else if (trafficRatio > 0.05) {
+                    trafficColor = "#ffc107"; // Yellow for light-moderate traffic
+                  }
+
+                  const majorRoads = route.majorRoads || [];
+                  const arrival = new Date(route.arrivalTime).toLocaleTimeString([], { 
+                    hour: 'numeric', 
+                    minute: '2-digit',
+                    hour12: true 
+                  });
+                  const departure = new Date(route.departureTime).toLocaleTimeString([], { 
+                    hour: 'numeric', 
+                    minute: '2-digit',
+                    hour12: true 
+                  });
+
+                  return (
                     <button
                       key={route.id}
                       style={{
-                        padding: '16px',
+                        padding: '16px', // EXACT same as transit cards
                         backgroundColor: selectedCurrentRouteIndex === index ? '#fff5f5' : '#fff',
+                        color: '#000',
                         border: `2px solid ${selectedCurrentRouteIndex === index ? '#dc3545' : '#e1e5e9'}`,
                         borderRadius: '6px',
                         cursor: 'pointer',
                         fontSize: '12px',
                         textAlign: 'left',
-                        boxShadow: selectedCurrentRouteIndex === index ? '0 2px 6px rgba(220,53,69,0.15)' : '0 1px 2px rgba(0,0,0,0.05)'
+                        transition: 'all 0.2s',
+                        boxShadow: selectedCurrentRouteIndex === index ? '0 2px 6px rgba(220,53,69,0.15)' : '0 1px 2px rgba(0,0,0,0.05)',
+                        minHeight: '120px' // Same minimum height as transit cards
                       }}
                       onClick={() => handleCurrentRouteSelection(index)}
                     >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-                        <div style={{ fontSize: '20px', fontWeight: '700', color: '#dc3545' }}>
-                          {Math.round(route.duration / 60)} min
+                      {/* EXACT same structure as transit cards */}
+                      <div style={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        alignItems: 'center',
+                        marginBottom: '10px' // EXACT same margin as transit
+                      }}>
+                        <div style={{ 
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px'
+                        }}>
+                          {/* Traffic indicator dot */}
+                          <div style={{
+                            width: '12px',
+                            height: '12px',
+                            borderRadius: '50%',
+                            backgroundColor: trafficColor,
+                            flexShrink: 0
+                          }}></div>
+                          <div style={{ 
+                            fontSize: '20px', // EXACT same as transit
+                            fontWeight: '700',
+                            color: selectedCurrentRouteIndex === index ? '#dc3545' : '#28a745'
+                          }}>
+                            {Math.round(route.duration / 60)} min
+                          </div>
                         </div>
-                        <div style={{ fontSize: '14px', color: '#6c757d' }}>
-                          {Math.round(route.distance / 1000)} km
+                        <div style={{ 
+                          fontSize: '16px', // EXACT same as transit
+                          fontWeight: '600',
+                          color: '#495057',
+                          textAlign: 'right'
+                        }}>
+                          <div>{departure}</div>
+                          <div style={{ fontSize: '12px', color: '#6c757d' }}>to {arrival}</div>
                         </div>
                       </div>
-                      {route.delay > 0 && (
-                        <div style={{ fontSize: '12px', color: '#6c757d' }}>
-                          Includes {Math.round(route.delay / 60)} min traffic delay
+
+                      {/* Second row - same structure as transit */}
+                      <div style={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        alignItems: 'center',
+                        marginBottom: '10px', // EXACT same as transit
+                        fontSize: '12px',
+                        color: '#6c757d'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '2px', fontWeight: '500' }}>
+                            <i className="fas fa-road" style={{ fontSize: '10px' }}></i>
+                            {Math.round(route.distance / 1000)} km
+                          </span>
+                          {route.delay > 0 && (
+                            <span style={{ 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              gap: '2px', 
+                              fontWeight: '500',
+                              color: trafficColor
+                            }}>
+                              <i className="fas fa-clock" style={{ fontSize: '10px' }}></i>
+                              +{Math.round(route.delay / 60)}min delay
+                            </span>
+                          )}
                         </div>
-                      )}
+                        {route.hasTollRoad && (
+                          <span style={{ 
+                            backgroundColor: '#fff3cd',
+                            color: '#856404',
+                            padding: '2px 6px',
+                            borderRadius: '10px',
+                            fontSize: '10px',
+                            fontWeight: '600'
+                          }}>
+                            <i className="fas fa-dollar-sign" style={{ fontSize: '8px', marginRight: '2px' }}></i>
+                            Tolls
+                          </span>
+                        )}
+                      </div>
+                      
+                      {/* Third row - roads display, same structure as transit legs */}
+                      <div style={{ 
+                        display: 'flex', 
+                        flexWrap: 'wrap', 
+                        alignItems: 'center',
+                        minHeight: '20px' // EXACT same as transit
+                      }}>
+                        {majorRoads.length > 0 ? (
+                          <>
+                            <span style={{ 
+                              fontSize: '10px', 
+                              color: '#6c757d', 
+                              marginRight: '4px',
+                              fontWeight: '500'
+                            }}>
+                              via
+                            </span>
+                            {majorRoads.map((road, roadIndex) => (
+                              <React.Fragment key={roadIndex}>
+                                <div
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    backgroundColor: '#6c757d',
+                                    color: 'white',
+                                    padding: '2px 6px',
+                                    borderRadius: '8px',
+                                    fontSize: '10px',
+                                    fontWeight: '600',
+                                    margin: '1px',
+                                    minWidth: '24px',
+                                    justifyContent: 'center'
+                                  }}
+                                >
+                                  <i className="fas fa-road" style={{ marginRight: '2px', fontSize: '8px' }}></i>
+                                  {road}
+                                </div>
+                                {roadIndex < majorRoads.length - 1 && (
+                                  <span style={{ 
+                                    margin: '0 2px', 
+                                    color: '#6c757d',
+                                    fontSize: '10px'
+                                  }}>→</span>
+                                )}
+                              </React.Fragment>
+                            ))}
+                          </>
+                        ) : (
+                          <span style={{ 
+                            fontSize: '10px', 
+                            color: '#6c757d',
+                            fontStyle: 'italic'
+                          }}>
+                            Alternative route {index + 1}
+                          </span>
+                        )}
+                      </div>
                     </button>
-                  ))}
-                </div>
-              ) : (
-                <div style={{
-                  padding: '20px',
-                  textAlign: 'center',
-                  color: '#6c757d',
-                  border: '2px solid #e1e5e9',
-                  borderRadius: '6px',
-                  backgroundColor: '#f8f9fa'
-                }}>
-                  <i className="fas fa-car" style={{ fontSize: '32px', marginBottom: '12px' }}></i>
-                  <p>No driving route found. Compare against the transit option on the left.</p>
-                </div>
-              )}
-            </>
+                  );
+                })}
+              </div>
+            </div>
           )}
         </>
       );
@@ -3422,15 +3728,35 @@ function App() {
                     isDisabled={true}
                   />
 
-                  {currentRouteOptions.length > 0 && (
-                    <Polyline
-                      key={`car-route-${selectedCurrentRouteIndex}`}
-                      positions={currentRouteOptions[selectedCurrentRouteIndex].points.map(pt => [pt.latitude, pt.longitude])}
-                      color="#dc3545"
-                      weight={5}
-                      opacity={0.8}
-                    />
-                  )}
+                  {currentRouteOptions.map((route, index) => {
+                    const isSelected = index === selectedCurrentRouteIndex;
+                    
+                    return (
+                      <Polyline
+                        key={`car-route-${index}`}
+                        positions={route.points.map(pt => [pt.latitude, pt.longitude])}
+                        color={isSelected ? "#ff0000" : "#999999"} // More dramatic color difference
+                        weight={isSelected ? 8 : 3} // More dramatic weight difference
+                        opacity={isSelected ? 1.0 : 0.3} // More dramatic opacity difference
+                        eventHandlers={{
+                          click: () => {
+                            console.log(`Map clicked on route ${index}`);
+                            handleCurrentRouteSelection(index);
+                          },
+                          mouseover: (e) => {
+                            if (!isSelected) {
+                              e.target.setStyle({ color: "#ff6666", weight: 5 });
+                            }
+                          },
+                          mouseout: (e) => {
+                            if (!isSelected) {
+                              e.target.setStyle({ color: "#999999", weight: 3 });
+                            }
+                          }
+                        }}
+                      />
+                    );
+                  })}
 
                   <FitMap
                     originCoords={originCoords}

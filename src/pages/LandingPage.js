@@ -5,7 +5,7 @@ const LandingPage = () => {
   const navigate = useNavigate();
 
   const handleStart = () => {
-    navigate('/survey');
+    navigate('/map');
   };
 
   return (
