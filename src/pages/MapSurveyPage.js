@@ -337,7 +337,7 @@ const fetchTomTomRoute = async (fromCoords, toCoords, departureTime, travelDate,
     url += `&traffic=true`;
     url += `&computeTravelTimeFor=all`;
     url += `&routeType=fastest`;
-    url += `&maxAlternatives=2`;
+    url += `&maxAlternatives=3`;
     url += `&instructionsType=text`;
     
     // ✅ Request all relevant section types for analysis
@@ -988,9 +988,9 @@ function TravelModeModal({ isOpen, onClose, onModeSelect }) {
   if (!isOpen) return null;
 
   const travelModes = [
-    { id: 'transit', label: 'Transit (Bus, Subway, etc.)', icon: 'fas fa-bus' },
-    { id: 'vehicle', label: 'Private Motor Vehicle', icon: 'fas fa-car' },
-    { id: 'other', label: 'Other Mode (Walking, Cycling, etc.)', icon: 'fas fa-walking' },
+    { id: 'transit', label: 'Transit (bus, subway, etc.)', icon: 'fas fa-bus' },
+    { id: 'vehicle', label: 'Private motor vehicle (car, motorcycle, etc.)', icon: 'fas fa-car' },
+    { id: 'other', label: 'Other (walking, cycling, scootering, etc.)', icon: 'fas fa-walking' },
     { id: 'none', label: "I don't usually make this trip", icon: 'fas fa-question' }
   ];
 
@@ -1102,10 +1102,10 @@ function UserProfileModal({ isOpen, onClose, onSubmit }) {
         boxShadow: '0 10px 25px rgba(0,0,0,0.3)'
       }}>
         <h2 style={{ margin: '0 0 16px 0', fontSize: '24px', fontWeight: '600', color: '#2c3e50' }}>
-          Welcome to the Transit Mapper
+          Welcome to the Future Toronto Transit Mapper!
         </h2>
         <p style={{ marginBottom: '24px', color: '#6c757d', lineHeight: '1.5' }}>
-          These questions help us design your user experience and understand how different types of travelers use transit services.
+          These questions help me design your user experience and understand how different types of travelers use transit services.
         </p>
         
         <div style={{ marginBottom: '24px' }}>
@@ -1283,7 +1283,7 @@ function UnaffectedRouteModal({ isOpen, onClose }) {
     }}>
       <div style={{ backgroundColor: '#fff', padding: '24px', borderRadius: '8px', maxWidth: '400px' }}>
         <h2 style={{ marginBottom: '12px', color: '#007bff' }}>Route Unaffected</h2>
-        <p>Your chosen route is unaffected or already exists at present.  
+        <p>Your chosen route already exists today.  
         To compare, please select a route that uses a new transit service.</p>
         <button onClick={onClose} style={{ marginTop: '12px', padding: '8px 16px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '4px' }}>
           Okay
@@ -1304,7 +1304,7 @@ function ChangedODModal({ isOpen, onClose }) {
       <div style={{ backgroundColor: '#fff', padding: '24px', borderRadius: '8px', maxWidth: '400px' }}>
         <h2 style={{ marginBottom: '12px', color: '#dc3545' }}>Origin/Destination Changed</h2>
         <p>It looks like your origin or destination has changed since your last search.  
-        Please find the route again before comparing.</p>
+        Please find a route for this trip before comparing.</p>
         <button onClick={onClose} style={{ marginTop: '12px', padding: '8px 16px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '4px' }}>
           Got it
         </button>
@@ -3449,7 +3449,7 @@ function App() {
                 onMouseOver={e => e.target.style.backgroundColor = '#0056b3'}
                 onMouseOut={e => e.target.style.backgroundColor = '#007bff'}
               >
-                Compare
+                Compare to Today
               </button>
             )}
             
