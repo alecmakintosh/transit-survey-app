@@ -306,7 +306,7 @@ const getLineMidpoint = (coordinates) => {
 
 // Enhanced fetchTomTomRoute function with better debugging:
 // Corrected TomTom API function with proper parameters and road extraction
-const fetchTomTomRoute = async (fromCoords, toCoords, departureTime, travelDate, arriveBy = false) => {
+const fetchTomTomRoute = async (fromCoords, toCoords, departureTime, dayType, arriveBy = false) => {
   function isWeekend(date = new Date()) {
     const day = date.getDay();
     return day === 0 || day === 6;
@@ -324,7 +324,8 @@ const fetchTomTomRoute = async (fromCoords, toCoords, departureTime, travelDate,
   
   try {
     const apiKey = process.env.REACT_APP_TOMTOM_KEY;
-    const targetDate = isWeekend() ? getNextDateForDay(2) : getNextDateForDay(5);
+    //const targetDate = isWeekend() ? getNextDateForDay(2) : getNextDateForDay(5);
+    const targetDate = dayType === 'weekend' ? getNextDateForDay(6) : getNextDateForDay(2);
     const torontoOffset = getTorontoTimezone();
     console.log(targetDate, ", ", departureTime);
     
@@ -1313,6 +1314,136 @@ function ChangedODModal({ isOpen, onClose }) {
   );
 }
 
+// FAQ Modal Component - add before the return statement
+function FAQModal({ isOpen, onClose }) {
+  if (!isOpen) return null;
+
+  const faqs = [
+    {
+      question: "What is this tool for?",
+      answer: "This is a research tool to help understand how new transit lines (like the Eglinton Crosstown LRT and Finch West LRT) might change travel patterns in Toronto."
+    },
+    {
+      question: "How accurate are the route predictions?",
+      answer: "The future routes use planned transit schedules and infrastructure. Current routes reflect real-time conditions when available."
+    },
+    {
+      question: "Why can't I drag markers in compare mode?",
+      answer: "Markers are locked during comparison to ensure you're comparing the same trip across different scenarios."
+    },
+    {
+      question: "What does 'new route' mean?",
+      answer: "Routes marked with a star (✨) use newly opened or planned transit lines that aren't available in current service."
+    },
+    {
+      question: "How is travel time calculated?",
+      answer: "Travel times include walking, waiting, and transit time. Future routes use planned schedules, while current routes use real-time data when available."
+    },
+    {
+      question: "Can I save my routes?",
+      answer: "This is a research tool and doesn't save routes permanently. Your usage data helps improve transit planning."
+    },
+    {
+      question: "What if no routes are found?",
+      answer: "Try different departure times, adjust your day type (weekday/weekend), or choose locations better served by transit."
+    },
+    {
+      question: "How do I interpret the comparison?",
+      answer: "The left map shows future routes with new transit lines. The right shows current options or your usual travel mode."
+    }
+  ];
+
+  return (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0,0,0,0.6)',
+      zIndex: 4000,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '20px'
+    }}>
+      <div style={{
+        backgroundColor: '#fff',
+        borderRadius: '12px',
+        width: '100%',
+        maxWidth: '600px',
+        maxHeight: '80vh',
+        display: 'flex',
+        flexDirection: 'column',
+        boxShadow: '0 10px 25px rgba(0,0,0,0.3)'
+      }}>
+        <div style={{
+          padding: '24px 32px 16px 32px',
+          borderBottom: '1px solid #e1e5e9'
+        }}>
+          <h2 style={{ 
+            margin: '0', 
+            fontSize: '24px', 
+            fontWeight: '600', 
+            color: '#2c3e50'
+          }}>
+            Frequently Asked Questions
+          </h2>
+        </div>
+        
+        <div style={{
+          flex: '1 1 auto',
+          overflowY: 'auto',
+          padding: '16px 32px'
+        }}>
+          {faqs.map((faq, index) => (
+            <div key={index} style={{ marginBottom: '24px' }}>
+              <h3 style={{
+                margin: '0 0 8px 0',
+                fontSize: '16px',
+                fontWeight: '600',
+                color: '#495057'
+              }}>
+                {faq.question}
+              </h3>
+              <p style={{
+                margin: '0',
+                fontSize: '14px',
+                color: '#6c757d',
+                lineHeight: '1.5'
+              }}>
+                {faq.answer}
+              </p>
+            </div>
+          ))}
+        </div>
+        
+        <div style={{
+          padding: '16px 32px 24px 32px',
+          borderTop: '1px solid #e1e5e9'
+        }}>
+          <button
+            onClick={onClose}
+            style={{
+              width: '100%',
+              padding: '12px',
+              backgroundColor: '#007bff',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              fontSize: '16px',
+              fontWeight: '600',
+              cursor: 'pointer'
+            }}
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // GTFS File Loader Component
 function GTFSFileLoader({ onDataLoaded }) {
   const [uploadedFiles, setUploadedFiles] = useState({
@@ -1470,35 +1601,76 @@ function DraggableMarker({ position, onDragEnd, icon, popupText, isDisabled = fa
   );
 }
 
-function FitMap({ originCoords, destinationCoords, routeLegs, shouldFit, triggerType}) {
+// Replace the existing FitMap component
+function FitMap({ originCoords, destinationCoords, routeLegs, shouldFit, triggerType, carRoutePoints}) {
   const map = useMap();
+  
   React.useEffect(() => {
     if (!shouldFit || triggerType === 'drag') return;
     
-    if (routeLegs && routeLegs.length > 0) {
-      const allPoints = [];
+    let allPoints = [];
+    
+    // Add origin and destination
+    if (originCoords) allPoints.push(originCoords);
+    if (destinationCoords) allPoints.push(destinationCoords);
+    
+    // Handle car route points (for driving routes)
+    if (carRoutePoints && carRoutePoints.length > 0) {
+      carRoutePoints.forEach(pt => {
+        allPoints.push([pt.latitude, pt.longitude]);
+      });
+    }
+    // Handle transit route legs
+    else if (routeLegs && routeLegs.length > 0) {
       routeLegs.forEach(leg => {
+        // Add leg endpoints
+        allPoints.push([leg.from.lat, leg.from.lon]);
+        allPoints.push([leg.to.lat, leg.to.lon]);
+        
+        // Add geometry points if available
         if (leg.legGeometry && leg.legGeometry.points) {
           try {
             const legPoints = polyline.decode(leg.legGeometry.points);
             allPoints.push(...legPoints);
           } catch (error) {
-            allPoints.push([leg.from.lat, leg.from.lon]);
-            allPoints.push([leg.to.lat, leg.to.lon]);
+            console.warn("Error decoding polyline:", error);
           }
-        } else {
-          allPoints.push([leg.from.lat, leg.from.lon]);
-          allPoints.push([leg.to.lat, leg.to.lon]);
         }
       });
-      
-      if (allPoints.length > 0) {
-        map.fitBounds(allPoints, { padding: [50, 50] });
-      }
-    } else if (originCoords && destinationCoords) {
-      map.fitBounds([originCoords, destinationCoords], { padding: [50, 50] });
     }
-  }, [originCoords, destinationCoords, routeLegs, map, shouldFit, triggerType]);
+    
+    if (allPoints.length > 0) {
+      // Remove duplicate points and ensure bounds make sense
+      const uniquePoints = allPoints.filter((point, index, self) => 
+        index === self.findIndex(p => p[0] === point[0] && p[1] === point[1])
+      );
+      
+      if (uniquePoints.length === 1) {
+        // Single point - center and zoom appropriately
+        map.setView(uniquePoints[0], 14);
+      } else {
+        // Multiple points - fit bounds with padding
+        const bounds = L.latLngBounds(uniquePoints);
+        
+        // Add padding based on the bounds size
+        const boundsSize = bounds.getNorthEast().distanceTo(bounds.getSouthWest());
+        let padding = [50, 50]; // Default padding
+        
+        // Adjust padding for larger routes
+        if (boundsSize > 20000) { // > 20km
+          padding = [100, 100];
+        } else if (boundsSize > 50000) { // > 50km  
+          padding = [150, 150];
+        }
+        
+        map.fitBounds(bounds, { 
+          padding: padding,
+          maxZoom: 15 // Prevent zooming in too much for long routes
+        });
+      }
+    }
+  }, [originCoords, destinationCoords, routeLegs, map, shouldFit, triggerType, carRoutePoints]);
+  
   return null;
 }
 
@@ -1888,6 +2060,8 @@ function App() {
   
   // No routes found modal state
   const [showNoRoutesModal, setShowNoRoutesModal] = useState(false);
+
+  const [showFAQModal, setShowFAQModal] = useState(false);
   
   // Time/date controls
   const [departureTime, setDepartureTime] = useState('08:00');
@@ -2166,23 +2340,42 @@ function App() {
   };
 
   // Handle compare button click
-  const handleCompareClick = () => {
-    // Check if OD changed
-    if (origin !== lastPlannedOrigin || destination !== lastPlannedDestination) {
-      setShowChangedODModal(true);
-      return;
-    }
+  // Replace the existing handleCompareClick function
+const handleCompareClick = () => {
+  // Check if OD changed
+  if (origin !== lastPlannedOrigin || destination !== lastPlannedDestination) {
+    setShowChangedODModal(true);
+    return;
+  }
 
-    // Check if route uses new transit
-    if (!hasNewRoute(routeOptions[selectedRouteIndex])) {
-      setShowUnaffectedModal(true);
-      return;
-    }
+  // Check if route uses new transit
+  if (!hasNewRoute(routeOptions[selectedRouteIndex])) {
+    setShowUnaffectedModal(true);
+    return;
+  }
 
-    // Otherwise proceed
+  // Find the map container more reliably
+  const mapContainer = document.querySelector('div[style*="position: fixed"][style*="left: 400px"]');
+  
+  if (mapContainer) {
+    console.log('Found map container, starting animation'); // Debug log
+    mapContainer.classList.add('map-transition');
+    
+    // After a brief delay, start the shrinking
+    setTimeout(() => {
+      mapContainer.classList.add('map-shrinking');
+      console.log('Added shrinking class'); // Debug log
+    }, 50);
+  } else {
+    console.log('Map container not found'); // Debug log
+  }
+
+  // Continue with mode change after animation starts
+  setTimeout(() => {
     setCompareMode('selecting');
     setShowTravelModeModal(true);
-  };
+  }, 300);
+};
 
   // Handle travel mode selection
   const handleTravelModeSelect = async (mode) => {
@@ -2195,7 +2388,7 @@ function App() {
 
       try {
         // Pass the arriveBy parameter to TomTom
-        const carRoutes = await fetchTomTomRoute(originCoords, destinationCoords, departureTime, travelDate, arriveBy);
+        const carRoutes = await fetchTomTomRoute(originCoords, destinationCoords, departureTime, dayType, arriveBy);
         if (carRoutes) {
           setCurrentRouteOptions(carRoutes);
           setSelectedCurrentRouteIndex(0);
@@ -2289,6 +2482,7 @@ function App() {
   const currentRouteHasNewTransit = routeOptions.length > 0 && hasNewRoute(routeOptions[selectedRouteIndex]);
 
   // Determine map layout styles based on compare mode
+  // Update the getMapStyles function
   const getMapStyles = () => {
     if (compareMode === 'default') {
       return {
@@ -2298,7 +2492,9 @@ function App() {
           top: 0,
           right: 0,
           bottom: 0,
-          height: '100vh'
+          height: '100vh',
+          // Remove transition class when in default mode
+          className: ''
         }
       };
     } else {
@@ -2317,7 +2513,7 @@ function App() {
           flex: '1',
           height: '100%',
           position: 'relative',
-          minWidth: 0, // This is important for flex items
+          minWidth: 0,
           borderRight: '3px solid #dee2e6'
         },
         rightPanel: {
@@ -2325,7 +2521,8 @@ function App() {
           height: '100%',
           position: 'relative',
           backgroundColor: '#f8f9fa',
-          minWidth: 0 // This is important for flex items
+          minWidth: 0,
+          className: compareMode === 'comparing' ? 'fade-in-right' : ''
         }
       };
     }
@@ -3378,6 +3575,31 @@ function App() {
         .map-shrink {
           animation: mapShrink 0.5s ease-out forwards;
         }
+
+        .map-transition {
+          transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1) !important;
+          transform-origin: left center !important;
+        }
+
+        .map-shrinking {
+          width: 50% !important;
+          border-right: 3px solid #dee2e6 !important;
+        }
+
+        .fade-in-right {
+          animation: fadeInRight 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        @keyframes fadeInRight {
+          from {
+            opacity: 0;
+            transform: translateX(100%);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
       `}</style>
       
       {/* User Profile Modal */}
@@ -3410,6 +3632,8 @@ function App() {
           </h1>
           <p style={{ color: '#6c757d', marginBottom: '16px', fontSize: '12px' }}> 
             Plan your trip and see how new transit lines can help!
+
+            Presently only searches within the City of Toronto proper are supported.
           </p>
         </div>
 
@@ -3888,13 +4112,14 @@ function App() {
                       );
                     })}
 
-                    <FitMap
-                      originCoords={originCoords}
-                      destinationCoords={destinationCoords}
-                      routeLegs={[]}
-                      shouldFit={true}
-                      triggerType={'compare'}
-                    />
+                  <FitMap 
+                    originCoords={originCoords} 
+                    destinationCoords={destinationCoords} 
+                    routeLegs={[]}
+                    carRoutePoints={currentRouteOptions[selectedCurrentRouteIndex]?.points || []}
+                    shouldFit={true}
+                    triggerType={'compare'}
+                  />
                   </MapContainer>
 
                   {/* Driving route label */}
@@ -3911,7 +4136,7 @@ function App() {
                     fontWeight: '600',
                     zIndex: 1000
                   }}>
-                    Driving Route (TomTom)
+                    Current Route (driving)
                   </div>
                 </>
               )}
@@ -3919,6 +4144,47 @@ function App() {
           </>
         )}
       </div>
+
+      {/* ADD FAQ BUTTON AND MODAL HERE - right before the closing </div> */}
+      <button
+        onClick={() => setShowFAQModal(true)}
+        style={{
+          position: 'fixed',
+          bottom: '20px',
+          right: '20px',
+          width: '50px',
+          height: '50px',
+          borderRadius: '50%',
+          backgroundColor: '#007bff',
+          color: 'white',
+          border: 'none',
+          cursor: 'pointer',
+          fontSize: '18px',
+          fontWeight: 'bold',
+          boxShadow: '0 4px 12px rgba(0,123,255,0.3)',
+          zIndex: 2000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          transition: 'all 0.2s'
+        }}
+        onMouseOver={e => {
+          e.target.style.backgroundColor = '#0056b3';
+          e.target.style.transform = 'scale(1.1)';
+        }}
+        onMouseOut={e => {
+          e.target.style.backgroundColor = '#007bff';
+          e.target.style.transform = 'scale(1)';
+        }}
+        title="Frequently Asked Questions"
+      >
+        ?
+      </button>
+
+      <FAQModal 
+        isOpen={showFAQModal}
+        onClose={() => setShowFAQModal(false)}
+      />
     </div>
   );
 }
