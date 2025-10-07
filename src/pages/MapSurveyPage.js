@@ -1324,8 +1324,12 @@ function FAQModal({ isOpen, onClose }) {
       answer: "This is a research tool to help understand how new transit lines (like the Eglinton Crosstown LRT and Finch West LRT) might change travel patterns in Toronto."
     },
     {
-      question: "How accurate are the route predictions?",
-      answer: "The future routes use planned transit schedules and infrastructure. Current routes reflect real-time conditions when available."
+      question: "What routes are currently included?",
+      answer: "Currently, the Eglinton Crosstown LRT and Finch West LRT, both projected to open in 2025, are included. Lines that are further from completion, such as the Ontario Line, are not included as of now."
+    },
+    {
+      question: "How accurate are the route predictions and travel times?",
+      answer: "The future routes are determined use my best estimates at travel times, and also do not reflect expected changes to the bus network. Current transit routes use the same basic data used by Google Maps today. Current auto routes use data provided by TomTom, a well-regarded transportation data company. There are two known issues being resolved at the moment: 1. Transfers at Yonge-Eglinton to"
     },
     {
       question: "Why can't I drag markers in compare mode?",
@@ -1333,24 +1337,36 @@ function FAQModal({ isOpen, onClose }) {
     },
     {
       question: "What does 'new route' mean?",
-      answer: "Routes marked with a star (✨) use newly opened or planned transit lines that aren't available in current service."
+      answer: "Routes marked with a star (✨) use newly opened or planned transit lines that aren't available in current service. This currently only includes the Eglinton Crosstown LRT and Finch West LRT."
     },
     {
       question: "How is travel time calculated?",
-      answer: "Travel times include walking, waiting, and transit time. Future routes use planned schedules, while current routes use real-time data when available."
+      answer: "Travel times include walking, waiting, and transit time."
     },
     {
       question: "Can I save my routes?",
-      answer: "This is a research tool and doesn't save routes permanently. Your usage data helps improve transit planning."
+      answer: "At present, this tool doesn't allow users to save routes. I may add this functionality in the future."
     },
     {
       question: "What if no routes are found?",
-      answer: "Try different departure times, adjust your day type (weekday/weekend), or choose locations better served by transit."
+      answer: "Try different departure/arrival times (add or subtract 5 minutes). Please note that only trips within Toronto, Mississauga, Brampton and York Region are supported."
     },
     {
       question: "How do I interpret the comparison?",
-      answer: "The left map shows future routes with new transit lines. The right shows current options or your usual travel mode."
-    }
+      answer: "The left map shows future routes with new transit lines. The right shows current options of your usual travel mode."
+    },
+    {
+      question: "How is my data used and stored?",
+      answer: "All data you enter into the site is stored anonymously, and is used in research to better understand the things that matter to travelers."
+    },
+    {
+      question: "Who are you?",
+      answer: "I'm Alec Mak, a transportation consultant working in Toronto. I'm a recent civil engineering graduate from the University of Toronto, looking to keep my research skills sharp."
+    },
+    {
+      question: "How can I contact you?",
+      answer: "If you have any questions, concerns or comments, please reach out to me at futuretorontotransit@gmail.com."
+    },
   ];
 
   return (
@@ -2341,41 +2357,53 @@ function App() {
 
   // Handle compare button click
   // Replace the existing handleCompareClick function
-const handleCompareClick = () => {
-  // Check if OD changed
-  if (origin !== lastPlannedOrigin || destination !== lastPlannedDestination) {
-    setShowChangedODModal(true);
-    return;
-  }
+  const handleCompareClick = () => {
+    // Check if OD changed
+    if (origin !== lastPlannedOrigin || destination !== lastPlannedDestination) {
+      setShowChangedODModal(true);
+      return;
+    }
 
-  // Check if route uses new transit
-  if (!hasNewRoute(routeOptions[selectedRouteIndex])) {
-    setShowUnaffectedModal(true);
-    return;
-  }
+    // Check if route uses new transit
+    if (!hasNewRoute(routeOptions[selectedRouteIndex])) {
+      setShowUnaffectedModal(true);
+      return;
+    }
 
-  // Find the map container more reliably
-  const mapContainer = document.querySelector('div[style*="position: fixed"][style*="left: 400px"]');
-  
-  if (mapContainer) {
-    console.log('Found map container, starting animation'); // Debug log
-    mapContainer.classList.add('map-transition');
+    // Try multiple selectors to find the map container
+    let mapContainer = document.querySelector('[style*="position: fixed"][style*="left: 400px"]');
     
-    // After a brief delay, start the shrinking
-    setTimeout(() => {
-      mapContainer.classList.add('map-shrinking');
-      console.log('Added shrinking class'); // Debug log
-    }, 50);
-  } else {
-    console.log('Map container not found'); // Debug log
-  }
+    if (!mapContainer) {
+      // Fallback: find by content structure
+      mapContainer = document.querySelector('.leaflet-container')?.parentElement?.parentElement;
+    }
+    
+    if (!mapContainer) {
+      // Another fallback: look for the map div by its position
+      const allDivs = document.querySelectorAll('div');
+      mapContainer = Array.from(allDivs).find(div => {
+        const styles = window.getComputedStyle(div);
+        return styles.position === 'fixed' && styles.left === '400px';
+      });
+    }
+    
+    if (mapContainer) {
+      console.log('Found map container:', mapContainer);
+      mapContainer.classList.add('map-transition');
+      
+      setTimeout(() => {
+        mapContainer.classList.add('map-shrinking');
+        console.log('Added shrinking class');
+      }, 50);
+    } else {
+      console.log('Map container not found - available elements:', document.querySelectorAll('[style*="position"]'));
+    }
 
-  // Continue with mode change after animation starts
-  setTimeout(() => {
-    setCompareMode('selecting');
-    setShowTravelModeModal(true);
-  }, 300);
-};
+    setTimeout(() => {
+      setCompareMode('selecting');
+      setShowTravelModeModal(true);
+    }, 300);
+  };
 
   // Handle travel mode selection
   const handleTravelModeSelect = async (mode) => {
@@ -3633,7 +3661,7 @@ const handleCompareClick = () => {
           <p style={{ color: '#6c757d', marginBottom: '16px', fontSize: '12px' }}> 
             Plan your trip and see how new transit lines can help!
 
-            Presently only searches within the City of Toronto proper are supported.
+            Presently only searches within Toronto, Missisauga, Brampton, and York Region are supported.
           </p>
         </div>
 
