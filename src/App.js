@@ -10,7 +10,7 @@ function App() {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/map" element={<MapSurveyPage />} />
-        <Route path="/survey" element={<ExitSurveyForm />} />
+        <Route path="/exit" element={<ExitSurveyForm />} />
       </Routes>
     </Router>
   );

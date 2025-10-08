@@ -1320,8 +1320,8 @@ function FAQModal({ isOpen, onClose }) {
 
   const faqs = [
     {
-      question: "What is this tool for?",
-      answer: "This is a research tool to help understand how new transit lines (like the Eglinton Crosstown LRT and Finch West LRT) might change travel patterns in Toronto."
+      question: "What is this?",
+      answer: "This is a research tool to help understand how new transit lines (like the Eglinton Crosstown LRT and Finch West LRT) might change travel patterns in Toronto. It however doubles as a public-facing tool for you to explore our hopefully soon-to-be transit network."
     },
     {
       question: "What routes are currently included?",
@@ -1329,7 +1329,7 @@ function FAQModal({ isOpen, onClose }) {
     },
     {
       question: "How accurate are the route predictions and travel times?",
-      answer: "The future routes are determined use my best estimates at travel times, and also do not reflect expected changes to the bus network. Current transit routes use the same basic data used by Google Maps today. Current auto routes use data provided by TomTom, a well-regarded transportation data company. There are two known issues being resolved at the moment: 1. Transfers at Yonge-Eglinton to"
+      answer: "The future routes are determined use my best estimates at travel times, and also do not reflect expected changes to the bus network. Current transit routes use the same basic data used by platforms such as Google Maps today. Current auto routes use data provided by TomTom, a well-regarded transportation data company."
     },
     {
       question: "Why can't I drag markers in compare mode?",
@@ -1349,7 +1349,7 @@ function FAQModal({ isOpen, onClose }) {
     },
     {
       question: "What if no routes are found?",
-      answer: "Try different departure/arrival times (add or subtract 5 minutes). Please note that only trips within Toronto, Mississauga, Brampton and York Region are supported."
+      answer: "Try different departure/arrival times (add or subtract 5 minutes). Please note that only trips within Toronto, Mississauga, Brampton and York Region are supported (apologies to the rest of the GTHA!)"
     },
     {
       question: "How do I interpret the comparison?",
@@ -1362,6 +1362,10 @@ function FAQModal({ isOpen, onClose }) {
     {
       question: "Who are you?",
       answer: "I'm Alec Mak, a transportation consultant working in Toronto. I'm a recent civil engineering graduate from the University of Toronto, looking to keep my research skills sharp."
+    },
+    {
+      question: "Do you know when the Eglinton Crosstown LRT will open?",
+      answer: "Despite my profession, I have no information about the Eglinton Crosstown LRT's projected opening date. Full disclosure: I interned at Metrolinx in 2024, but was not privy to that information."
     },
     {
       question: "How can I contact you?",
