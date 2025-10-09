@@ -15,6 +15,71 @@ L.Icon.Default.mergeOptions({
   shadowUrl: require('leaflet/dist/images/marker-shadow.png'),
 });
 
+const COLORS = {
+  primary: '#0369a1',
+  primaryHover: '#075985',
+  primaryLight: '#e0f2fe',
+  primaryLabel: 'rgba(3, 105, 161, 0.9)',
+  
+  advance: '#16a34a',
+  advanceHover: '#15803d',
+  advanceLight: '#dcfce7',
+  
+  danger: '#be123c',
+  dangerLight: '#ffe4e6',
+  
+  present: '#be123c',
+  presentLight: '#ffe4e6',
+  presentLabel: 'rgba(190, 18, 60, 0.9)',
+  
+  warning: '#ca8a04',
+  
+  textPrimary: '#18181b',
+  textSecondary: '#71717a',
+  textBold: '#3f3f46',
+  textBlack: '#09090b',
+  
+  bgPrimary: '#ffffff',
+  bgSecondary: '#71717a',
+  bgTertiary: '#f8f9fa',
+  bgPrimaryHover: '#f4f4f5',
+  bgSecondaryHover: '#52525b',
+  bgTertiaryHover: '#e4e4e7',
+  
+  border: '#d4d4d8',
+  borderHover: '#a1a1aa',
+  borderSecondary: '#d4d4d8',
+  borderSidebar: '#d4d4d8',
+  
+  // Specific UI elements
+  originMarker: '#16a34a',
+  destinationMarker: '#be123c',
+  transferMarker: '#ca8a04',
+  vehicleIcon: '#71717a',
+  comparisonBorder: '#d4d4d8',
+  bgToll: '#fef3c7',
+  textToll: '#92400e',
+  
+  //Traffic Condition Colors
+  heavyTraffic: '#be123c',
+  mediumTraffic: '#f97316',
+  lightTraffic: '#f59e0b',
+  noTraffic: '#16a34a',
+  
+  //AutoRoutes
+  autoSelected: '#be123c',
+  autoHover: '#e11d48',
+  autoLight: '#52525b',
+  
+  // Mode colors
+  WALK: '#16a34a',
+  BUS: '#18181b',
+  SUBWAY: '#18181b',
+  TRAM: '#18181b',
+  RAIL: '#7c3aed',
+  FERRY: '#0891b2'
+};
+
 // Custom marker icons
 const createCustomIcon = (color, isDestination = false) => {
   return L.divIcon({
@@ -52,7 +117,7 @@ const createTransferIcon = () => {
     className: 'transfer-marker',
     html: `
       <div style="
-        background-color: #ffc107;
+        background-color: ${COLORS.transferMarker};
         width: 20px;
         height: 20px;
         border-radius: 50% 50% 50% 0;
@@ -141,8 +206,8 @@ const createRoutePillIcon = (routeName, duration, color, textColor = 'white', mo
   });
 };
 
-const originIcon = createCustomIcon('#28a745', false);
-const destinationIcon = createCustomIcon('#dc3545', true);
+const originIcon = createCustomIcon(COLORS.originMarker, false);
+const destinationIcon = createCustomIcon(COLORS.destinationMarker, true);
 const transferIcon = createTransferIcon();
 
 // Helper functions
@@ -174,12 +239,12 @@ const getRouteColor = (leg) => {
   }
   
   const modeColors = {
-    WALK: '#28a745',
-    BUS: '#000000',
-    SUBWAY: '#000000',
-    TRAM: '#000000',
-    RAIL: '#6f42c1',
-    FERRY: '#17a2b8'
+    WALK: COLORS.WALK,
+    BUS: COLORS.BUS,
+    SUBWAY: COLORS.SUBWAY,
+    TRAM: COLORS.TRAM,
+    RAIL: COLORS.RAIL,
+    FERRY: COLORS.FERRY
   };
   
   return modeColors[leg.mode] || '#6c757d';
@@ -1010,19 +1075,19 @@ function TravelModeModal({ isOpen, onClose, onModeSelect }) {
       padding: '20px'
     }}>
       <div style={{
-        backgroundColor: '#fff',
+        backgroundColor: COLORS.bgPrimary,
         padding: '32px',
         borderRadius: '12px',
         width: '100%',
         maxWidth: '500px',
         boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
-        border: '1px solid #e1e5e9'
+        border: `1px solid ${COLORS.border}`
       }}>
         <h2 style={{ 
           margin: '0 0 24px 0', 
           fontSize: '24px', 
           fontWeight: '600', 
-          color: '#2c3e50',
+          color: COLORS.textPrimary,
           textAlign: 'center'
         }}>
           How do you usually make this trip?
@@ -1035,29 +1100,31 @@ function TravelModeModal({ isOpen, onClose, onModeSelect }) {
               onClick={() => onModeSelect(mode.id)}
               style={{
                 padding: '16px 20px',
-                backgroundColor: '#f8f9fa',
-                border: '2px solid #e1e5e9',
+                backgroundColor: COLORS.bgTertiary,
+                border: `2px solid ${COLORS.border}`,
                 borderRadius: '8px',
                 cursor: 'pointer',
                 fontSize: '16px',
                 fontWeight: '500',
-                color: '#495057',
+                color: COLORS.textBold,
                 display: 'flex',
                 alignItems: 'center',
                 gap: '12px',
                 transition: 'all 0.2s',
                 textAlign: 'left'
               }}
+              /*
               onMouseOver={e => {
-                e.target.style.backgroundColor = '#e9ecef';
-                e.target.style.borderColor = '#007bff';
+                e.target.style.backgroundColor = COLORS.bgTertiaryHover;
+                e.target.style.borderColor = COLORS.primary;
               }}
               onMouseOut={e => {
-                e.target.style.backgroundColor = '#f8f9fa';
-                e.target.style.borderColor = '#e1e5e9';
+                e.target.style.backgroundColor = COLORS.bgTertiary;
+                e.target.style.borderColor = COLORS.border;
               }}
+              */
             >
-              <i className={mode.icon} style={{ fontSize: '20px', color: '#6c757d', width: '24px' }}></i>
+              <i className={mode.icon} style={{ fontSize: '20px', color: COLORS.textSecondary, width: '24px' }}></i>
               {mode.label}
             </button>
           ))}
@@ -1095,17 +1162,17 @@ function UserProfileModal({ isOpen, onClose, onSubmit }) {
       justifyContent: 'center'
     }}>
       <div style={{
-        backgroundColor: '#fff',
+        backgroundColor: COLORS.bgPrimary,
         padding: '32px',
         borderRadius: '12px',
         width: '500px',
         maxWidth: '90vw',
         boxShadow: '0 10px 25px rgba(0,0,0,0.3)'
       }}>
-        <h2 style={{ margin: '0 0 16px 0', fontSize: '24px', fontWeight: '600', color: '#2c3e50' }}>
+        <h2 style={{ margin: '0 0 16px 0', fontSize: '24px', fontWeight: '600', color: COLORS.textPrimary }}>
           Welcome to the Future Toronto Transit Mapper!
         </h2>
-        <p style={{ marginBottom: '24px', color: '#6c757d', lineHeight: '1.5' }}>
+        <p style={{ marginBottom: '24px', color: COLORS.textSecondary, lineHeight: '1.5' }}>
           These questions help me design your user experience and understand how different types of travelers use transit services.
         </p>
         
@@ -1119,9 +1186,9 @@ function UserProfileModal({ isOpen, onClose, onSubmit }) {
               style={{
                 flex: 1,
                 padding: '12px',
-                backgroundColor: hasVehicle === true ? '#007bff' : '#f8f9fa',
-                color: hasVehicle === true ? 'white' : '#495057',
-                border: '2px solid ' + (hasVehicle === true ? '#007bff' : '#e1e5e9'),
+                backgroundColor: hasVehicle === true ? COLORS.primary : COLORS.bgTertiary,
+                color: hasVehicle === true ? 'white' : COLORS.textBold,
+                border: '2px solid ' + (hasVehicle === true ? COLORS.primary : COLORS.border),
                 borderRadius: '6px',
                 fontSize: '14px',
                 cursor: 'pointer',
@@ -1135,9 +1202,9 @@ function UserProfileModal({ isOpen, onClose, onSubmit }) {
               style={{
                 flex: 1,
                 padding: '12px',
-                backgroundColor: hasVehicle === false ? '#007bff' : '#f8f9fa',
-                color: hasVehicle === false ? 'white' : '#495057',
-                border: '2px solid ' + (hasVehicle === false ? '#007bff' : '#e1e5e9'),
+                backgroundColor: hasVehicle === false ? COLORS.primary : COLORS.bgTertiary,
+                color: hasVehicle === false ? 'white' : COLORS.textBold,
+                border: '2px solid ' + (hasVehicle === false ? COLORS.primary : COLORS.border),
                 borderRadius: '6px',
                 fontSize: '14px',
                 cursor: 'pointer',
@@ -1153,7 +1220,7 @@ function UserProfileModal({ isOpen, onClose, onSubmit }) {
           <h3 style={{ margin: '0 0 12px 0', fontSize: '16px', fontWeight: '600' }}>
             Would you classify yourself as a regular transit user?
           </h3>
-          <p style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#6c757d' }}>
+          <p style={{ margin: '0 0 12px 0', fontSize: '14px', color: COLORS.textSecondary }}>
             (more than 2 trips on transit per week)
           </p>
           <div style={{ display: 'flex', gap: '12px' }}>
@@ -1162,9 +1229,9 @@ function UserProfileModal({ isOpen, onClose, onSubmit }) {
               style={{
                 flex: 1,
                 padding: '12px',
-                backgroundColor: isRegularTransitUser === true ? '#007bff' : '#f8f9fa',
-                color: isRegularTransitUser === true ? 'white' : '#495057',
-                border: '2px solid ' + (isRegularTransitUser === true ? '#007bff' : '#e1e5e9'),
+                backgroundColor: isRegularTransitUser === true ? COLORS.primary : COLORS.bgTertiary,
+                color: isRegularTransitUser === true ? 'white' : COLORS.textBold,
+                border: '2px solid ' + (isRegularTransitUser === true ? COLORS.primary : COLORS.border),
                 borderRadius: '6px',
                 fontSize: '14px',
                 cursor: 'pointer',
@@ -1178,9 +1245,9 @@ function UserProfileModal({ isOpen, onClose, onSubmit }) {
               style={{
                 flex: 1,
                 padding: '12px',
-                backgroundColor: isRegularTransitUser === false ? '#007bff' : '#f8f9fa',
-                color: isRegularTransitUser === false ? 'white' : '#495057',
-                border: '2px solid ' + (isRegularTransitUser === false ? '#007bff' : '#e1e5e9'),
+                backgroundColor: isRegularTransitUser === false ? COLORS.primary : COLORS.bgTertiary,
+                color: isRegularTransitUser === false ? 'white' : COLORS.textBold,
+                border: '2px solid ' + (isRegularTransitUser === false ? COLORS.primary : COLORS.border),
                 borderRadius: '6px',
                 fontSize: '14px',
                 cursor: 'pointer',
@@ -1198,7 +1265,7 @@ function UserProfileModal({ isOpen, onClose, onSubmit }) {
           style={{
             width: '100%',
             padding: '14px',
-            backgroundColor: (hasVehicle !== null && isRegularTransitUser !== null) ? '#28a745' : '#6c757d',
+            backgroundColor: (hasVehicle !== null && isRegularTransitUser !== null) ? COLORS.advance : COLORS.bgSecondary,
             color: 'white',
             border: 'none',
             borderRadius: '6px',
@@ -1207,7 +1274,7 @@ function UserProfileModal({ isOpen, onClose, onSubmit }) {
             cursor: (hasVehicle !== null && isRegularTransitUser !== null) ? 'pointer' : 'not-allowed'
           }}
         >
-          Continue to Transit Mapper
+          Continue
         </button>
       </div>
     </div>
@@ -1232,33 +1299,33 @@ function NoRoutesFoundModal({ isOpen, onClose }) {
       justifyContent: 'center'
     }}>
       <div style={{
-        backgroundColor: '#fff',
+        backgroundColor: COLORS.bgPrimary,
         padding: '32px',
         borderRadius: '12px',
         width: '400px',
         maxWidth: '90vw',
         boxShadow: '0 10px 25px rgba(0,0,0,0.3)'
       }}>
-        <h2 style={{ margin: '0 0 16px 0', fontSize: '20px', fontWeight: '600', color: '#dc3545' }}>
+        <h2 style={{ margin: '0 0 16px 0', fontSize: '20px', fontWeight: '600', color: COLORS.danger }}>
           No Routes Found
         </h2>
-        <p style={{ marginBottom: '20px', color: '#6c757d', lineHeight: '1.5' }}>
-          We couldn't find any transit routes for this trip. This might be because:
+        <p style={{ marginBottom: '20px', color: COLORS.textSecondary, lineHeight: '1.5' }}>
+          No transit routes could be found for this trip. This might be because:
         </p>
-        <ul style={{ marginBottom: '24px', color: '#6c757d', paddingLeft: '20px' }}>
-          <li>The locations are too far apart for transit service</li>
-          <li>No transit service is available at the selected time</li>
-          <li>The locations are not well-connected by public transit</li>
+        <ul style={{ marginBottom: '24px', color: COLORS.textSecondary, paddingLeft: '20px' }}>
+          <li>Locations may be outside of the mappable area (presently only trips within Toronto, Mississauga, Brampton and York Region are supported),</li>
+          <li>The locations are not well-connected by public transit,</li>
+          <li>Issues with the route finding on our end.</li>
         </ul>
-        <p style={{ marginBottom: '24px', color: '#495057', fontWeight: '500' }}>
-          Try adjusting your departure time, day type, or choose different locations.
+        <p style={{ marginBottom: '24px', color: COLORS.textBold, fontWeight: '500' }}>
+          Try adjusting your departure time (add or subtract 5 minutes) or moving your origin and destination closer to a main road.
         </p>
         <button 
           onClick={onClose}
           style={{
             width: '100%',
             padding: '12px',
-            backgroundColor: '#007bff',
+            backgroundColor: COLORS.primary,
             color: 'white',
             border: 'none',
             borderRadius: '6px',
@@ -1282,11 +1349,11 @@ function UnaffectedRouteModal({ isOpen, onClose }) {
       backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 3000,
       display: 'flex', alignItems: 'center', justifyContent: 'center'
     }}>
-      <div style={{ backgroundColor: '#fff', padding: '24px', borderRadius: '8px', maxWidth: '400px' }}>
-        <h2 style={{ marginBottom: '12px', color: '#007bff' }}>Route Unaffected</h2>
+      <div style={{ backgroundColor: COLORS.bgPrimary, padding: '24px', borderRadius: '8px', maxWidth: '400px' }}>
+        <h2 style={{ marginBottom: '12px', color: COLORS.primary }}>Route Unaffected</h2>
         <p>Your chosen route already exists today.  
         To compare, please select a route that uses a new transit service.</p>
-        <button onClick={onClose} style={{ marginTop: '12px', padding: '8px 16px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '4px' }}>
+        <button onClick={onClose} style={{ marginTop: '12px', padding: '8px 16px', backgroundColor: COLORS.primary, color: 'white', border: 'none', borderRadius: '4px' }}>
           Okay
         </button>
       </div>
@@ -1302,11 +1369,11 @@ function ChangedODModal({ isOpen, onClose }) {
       backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 3000,
       display: 'flex', alignItems: 'center', justifyContent: 'center'
     }}>
-      <div style={{ backgroundColor: '#fff', padding: '24px', borderRadius: '8px', maxWidth: '400px' }}>
-        <h2 style={{ marginBottom: '12px', color: '#dc3545' }}>Origin/Destination Changed</h2>
+      <div style={{ backgroundColor: COLORS.bgPrimary, padding: '24px', borderRadius: '8px', maxWidth: '400px' }}>
+        <h2 style={{ marginBottom: '12px', color: COLORS.danger }}>Origin/Destination Changed</h2>
         <p>It looks like your origin or destination has changed since your last search.  
         Please find a route for this trip before comparing.</p>
-        <button onClick={onClose} style={{ marginTop: '12px', padding: '8px 16px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '4px' }}>
+        <button onClick={onClose} style={{ marginTop: '12px', padding: '8px 16px', backgroundColor: COLORS.primary, color: 'white', border: 'none', borderRadius: '4px' }}>
           Got it
         </button>
       </div>
@@ -1321,7 +1388,7 @@ function FAQModal({ isOpen, onClose }) {
   const faqs = [
     {
       question: "What is this?",
-      answer: "This is a research tool to help understand how new transit lines (like the Eglinton Crosstown LRT and Finch West LRT) might change travel patterns in Toronto. It however doubles as a public-facing tool for you to explore our hopefully soon-to-be transit network."
+      answer: "This is a research tool to help understand how new transit lines (like the Eglinton Crosstown LRT and Finch West LRT) might change travel patterns in Toronto. It however doubles as a public-facing tool for you to explore our hopefully soon-to-be transit network. Please also note this is a prototype tool and will have errors."
     },
     {
       question: "What routes are currently included?",
@@ -1330,6 +1397,10 @@ function FAQModal({ isOpen, onClose }) {
     {
       question: "How accurate are the route predictions and travel times?",
       answer: "The future routes are determined use my best estimates at travel times, and also do not reflect expected changes to the bus network. Current transit routes use the same basic data used by platforms such as Google Maps today. Current auto routes use data provided by TomTom, a well-regarded transportation data company."
+    },
+    {
+      question: "Why aren't fares included/considered?",
+      answer: "I am looking to add consideration for fares in the future, but as of right now it is difficult to incorporate. If you're someone who uses only local transit and avoids GO Transit, I apologize as the tool is not optimized for you yet."
     },
     {
       question: "Why can't I drag markers in compare mode?",
@@ -1353,7 +1424,7 @@ function FAQModal({ isOpen, onClose }) {
     },
     {
       question: "How do I interpret the comparison?",
-      answer: "The left map shows future routes with new transit lines. The right shows current options of your usual travel mode."
+      answer: "The left map shows future routes with new transit lines. The right shows current options of your usual travel mode. Consider travel times, but also number of transfers, the amount of walking required, etc."
     },
     {
       question: "How is my data used and stored?",
@@ -1388,7 +1459,7 @@ function FAQModal({ isOpen, onClose }) {
       padding: '20px'
     }}>
       <div style={{
-        backgroundColor: '#fff',
+        backgroundColor: COLORS.bgPrimary,
         borderRadius: '12px',
         width: '100%',
         maxWidth: '600px',
@@ -1399,13 +1470,13 @@ function FAQModal({ isOpen, onClose }) {
       }}>
         <div style={{
           padding: '24px 32px 16px 32px',
-          borderBottom: '1px solid #e1e5e9'
+          //borderBottom: `1px solid ${COLORS.border}`,
         }}>
           <h2 style={{ 
             margin: '0', 
             fontSize: '24px', 
             fontWeight: '600', 
-            color: '#2c3e50'
+            color: COLORS.textPrimary,
           }}>
             Frequently Asked Questions
           </h2>
@@ -1422,14 +1493,14 @@ function FAQModal({ isOpen, onClose }) {
                 margin: '0 0 8px 0',
                 fontSize: '16px',
                 fontWeight: '600',
-                color: '#495057'
+                color: COLORS.textBold
               }}>
                 {faq.question}
               </h3>
               <p style={{
                 margin: '0',
                 fontSize: '14px',
-                color: '#6c757d',
+                color: COLORS.textSecondary,
                 lineHeight: '1.5'
               }}>
                 {faq.answer}
@@ -1440,14 +1511,14 @@ function FAQModal({ isOpen, onClose }) {
         
         <div style={{
           padding: '16px 32px 24px 32px',
-          borderTop: '1px solid #e1e5e9'
+          //borderTop: `1px solid ${COLORS.border}`
         }}>
           <button
             onClick={onClose}
             style={{
               width: '100%',
               padding: '12px',
-              backgroundColor: '#007bff',
+              backgroundColor: COLORS.primary,
               color: 'white',
               border: 'none',
               borderRadius: '6px',
@@ -1485,7 +1556,7 @@ function GTFSFileLoader({ onDataLoaded }) {
   };
 
   return (
-    <div style={{ marginBottom: '16px', padding: '12px', border: '2px solid #e1e5e9', borderRadius: '6px', backgroundColor: '#f8f9fa' }}>
+    <div style={{ marginBottom: '16px', padding: '12px', border: `2px solid #e1e5e9`, borderRadius: '6px', backgroundColor: '#f8f9fa' }}>
       <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: '600' }}>GTFS Files (Optional)</h4>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
         <label style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1557,7 +1628,7 @@ function CustomZoomControl({ compareMode }) {
         style={{
           width: '34px',
           height: '34px',
-          backgroundColor: '#fff',
+          backgroundColor: COLORS.bgPrimary,
           border: '2px solid rgba(0,0,0,0.2)',
           borderRadius: '4px',
           cursor: 'pointer',
@@ -1569,8 +1640,8 @@ function CustomZoomControl({ compareMode }) {
           boxShadow: '0 1px 5px rgba(0,0,0,0.65)'
         }}
         onClick={() => map.zoomIn()}
-        onMouseOver={e => e.target.style.backgroundColor = '#f4f4f4'}
-        onMouseOut={e => e.target.style.backgroundColor = '#fff'}
+        onMouseOver={e => e.target.style.backgroundColor = COLORS.bgPrimaryHover}
+        onMouseOut={e => e.target.style.backgroundColor = COLORS.bgPrimary}
       >
         +
       </button>
@@ -1578,7 +1649,7 @@ function CustomZoomControl({ compareMode }) {
         style={{
           width: '34px',
           height: '34px',
-          backgroundColor: '#fff',
+          backgroundColor: COLORS.bgPrimary,
           border: '2px solid rgba(0,0,0,0.2)',
           borderRadius: '4px',
           cursor: 'pointer',
@@ -1590,8 +1661,8 @@ function CustomZoomControl({ compareMode }) {
           boxShadow: '0 1px 5px rgba(0,0,0,0.65)'
         }}
         onClick={() => map.zoomOut()}
-        onMouseOver={e => e.target.style.backgroundColor = '#f4f4f4'}
-        onMouseOut={e => e.target.style.backgroundColor = '#fff'}
+        onMouseOver={e => e.target.style.backgroundColor = COLORS.bgPrimaryHover}
+        onMouseOut={e => e.target.style.backgroundColor = COLORS.bgPrimary}
       >
         −
       </button>
@@ -1732,7 +1803,7 @@ function TransferMarkers({ route, selectedRouteIndex }) {
             <Popup>
               <div style={{ minWidth: '200px' }}>
                 <strong>{leg.from.name}</strong><br/>
-                <span style={{ color: '#6c757d' }}>Transfer Point</span>
+                <span style={{ color: COLORS.textSecondary }}>Transfer Point</span>
                 {leg.route && (
                   <>
                     <br/><strong>Next: {leg.route.shortName}</strong> {leg.route.longName}
@@ -1786,7 +1857,7 @@ function ClickableTransitLeg({ leg, legIndex, selectedRouteIndex, coords }) {
           <div style={{ minWidth: '200px' }}>
             <strong>{leg.route?.shortName || leg.mode}</strong><br/>
             {leg.route?.longName && <><em>{leg.route.longName}</em><br/></>}
-            <span style={{ color: '#6c757d' }}>Duration: {Math.round(leg.duration / 60)} minutes</span><br/>
+            <span style={{ color: COLORS.textSecondary }}>Duration: {Math.round(leg.duration / 60)} minutes</span><br/>
             <strong>From:</strong> {leg.from.name}<br/>
             <strong>To:</strong> {leg.to.name}
           </div>
@@ -1851,7 +1922,7 @@ const RouteOptionLeg = ({ leg, legIndex, displayLegs }) => {
       {legIndex < displayLegs.length - 1 && (
         <span style={{ 
           margin: '0 2px', 
-          color: '#6c757d',
+          color: COLORS.textSecondary,
           fontSize: '10px'
         }}>→</span>
       )}
@@ -1885,7 +1956,7 @@ function ClickableRoutePill({ pill, leg }) {
             <strong>{leg?.route?.shortName || leg?.mode || pill.routeName}</strong>
             <br/>
             {leg?.route?.longName && <><em>{leg.route.longName}</em><br/></>}
-            <span style={{ color: '#6c757d' }}>Duration: {Math.round((leg?.duration || pill.duration * 60) / 60)} minutes</span><br/>
+            <span style={{ color: COLORS.textSecondary }}>Duration: {Math.round((leg?.duration || pill.duration * 60) / 60)} minutes</span><br/>
             <strong>From:</strong> {leg?.from?.name || 'Transit segment'}<br/>
             <strong>To:</strong> {leg?.to?.name || 'Transit segment'}
           </div>
@@ -2539,20 +2610,20 @@ function App() {
           bottom: 0,
           height: '100vh',
           display: 'flex',
-          backgroundColor: '#f8f9fa'
+          backgroundColor: COLORS.bgTertiary,
         },
         leftMap: {
           flex: '1',
           height: '100%',
           position: 'relative',
           minWidth: 0,
-          borderRight: '3px solid #dee2e6'
+          borderRight: `3px solid ${COLORS.comparisonBorder}`
         },
         rightPanel: {
           flex: '1',
           height: '100%',
           position: 'relative',
-          backgroundColor: '#f8f9fa',
+          backgroundColor: COLORS.bgTertiary,
           minWidth: 0,
           className: compareMode === 'comparing' ? 'fade-in-right' : ''
         }
@@ -2569,8 +2640,8 @@ function App() {
     top: 0,
     width: '400px',
     height: '100vh',
-    backgroundColor: '#ffffff',
-    borderRight: '1px solid #e0e0e0',
+    backgroundColor: COLORS.bgPrimary,
+    borderRight: `1px solid ${COLORS.borderSidebar}`,
     overflowY: 'auto',
     zIndex: 1000,
     boxShadow: '2px 0 10px rgba(0,0,0,0.1)',
@@ -2581,7 +2652,7 @@ function App() {
   const buttonStyle = {
     width: '100%',
     padding: '12px',
-    backgroundColor: '#007bff',
+    backgroundColor: COLORS.primary,
     color: 'white',
     border: 'none',
     borderRadius: '6px',
@@ -2594,7 +2665,7 @@ function App() {
 
   const smallButtonStyle = {
     padding: '6px 10px',
-    backgroundColor: '#6c757d',
+    backgroundColor: COLORS.textSecondary,
     color: 'white',
     border: 'none',
     borderRadius: '4px',
@@ -2618,14 +2689,14 @@ function App() {
           }}>
             {/* Trip Information Header with Input Mode Toggle */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-              <h3 style={{ margin: '0', fontSize: '14px', fontWeight: '600', color: '#495057' }}>
+              <h3 style={{ margin: '0', fontSize: '14px', fontWeight: '600', color: COLORS.textBold }}>
                 Trip Information
               </h3>
               <div style={{ display: 'flex', gap: '4px' }}>
                 <button
                   style={{
                     ...smallButtonStyle,
-                    backgroundColor: inputMode === 'text' ? '#007bff' : '#6c757d',
+                    backgroundColor: inputMode === 'text' ? COLORS.primary : COLORS.bgSecondary,
                     marginRight: '4px',
                     marginBottom: '0',
                     fontSize: '11px',
@@ -2641,7 +2712,7 @@ function App() {
                 <button
                   style={{
                     ...smallButtonStyle,
-                    backgroundColor: inputMode === 'map' ? '#007bff' : '#6c757d',
+                    backgroundColor: inputMode === 'map' ? COLORS.primary : COLORS.bgSecondary,
                     marginBottom: '0',
                     fontSize: '11px',
                     padding: '4px 8px'
@@ -2655,9 +2726,9 @@ function App() {
             
             {/* Address Input Container */}
             <div style={{ 
-              border: '2px solid #e1e5e9', 
+              border: `2px solid ${COLORS.border}`, 
               borderRadius: '6px', 
-              backgroundColor: '#fff',
+              backgroundColor: COLORS.bgPrimary,
               overflow: 'hidden',
               marginBottom: '12px',
               position: 'relative'
@@ -2667,13 +2738,13 @@ function App() {
                 display: 'flex', 
                 alignItems: 'center', 
                 padding: '8px 12px',
-                borderBottom: '1px solid #e1e5e9'
+                borderBottom: `1px solid ${COLORS.border}`
               }}>
                 <div style={{
                   width: '20px',
                   height: '20px',
                   borderRadius: '50%',
-                  backgroundColor: '#28a745',
+                  backgroundColor: COLORS.originMarker,
                   color: 'white',
                   display: 'flex',
                   alignItems: 'center',
@@ -2706,8 +2777,8 @@ function App() {
                   right: '8px',
                   top: '50%',
                   transform: 'translateY(-50%) rotate(90deg)',
-                  backgroundColor: '#f8f9fa',
-                  border: '1px solid #dee2e6',
+                  backgroundColor: COLORS.bgTertiary,
+                  border: `1px solid ${COLORS.borderSecondary}`,
                   borderRadius: '4px',
                   width: '24px',
                   height: '24px',
@@ -2716,7 +2787,7 @@ function App() {
                   justifyContent: 'center',
                   cursor: 'pointer',
                   fontSize: '12px',
-                  color: '#6c757d'
+                  color: COLORS.textSecondary
                 }}
                 onClick={() => {
                   const tempOrigin = origin;
@@ -2741,7 +2812,7 @@ function App() {
                   width: '20px',
                   height: '20px',
                   borderRadius: '50%',
-                  backgroundColor: '#dc3545',
+                  backgroundColor: COLORS.destinationMarker,
                   color: 'white',
                   display: 'flex',
                   alignItems: 'center',
@@ -2771,35 +2842,35 @@ function App() {
             {/* Map interaction controls - only show when Click on Map is selected */}
             {inputMode === 'map' && (
               <div style={{ marginBottom: '12px' }}>
-                <p style={{ fontSize: '12px', color: '#6c757d', margin: '0 0 8px 0' }}>
+                <p style={{ fontSize: '12px', color: COLORS.textSecondary, margin: '0 0 8px 0' }}>
                   Click the buttons below, then click on the map to set locations:
                 </p>
                 <div style={{ display: 'flex', gap: '6px' }}>
                   <button
                     style={{
                       ...smallButtonStyle,
-                      backgroundColor: mapMode === 'setOrigin' ? '#28a745' : '#6c757d',
+                      backgroundColor: mapMode === 'setOrigin' ? COLORS.originMarker : COLORS.bgSecondary,
                       marginBottom: '0'
                     }}
-                    onClick={() => setMapMode('setOrigin')}
+                    onClick={() => setMapMode(mapMode === 'setOrigin' ? 'none' : 'setOrigin')}
                   >
                     Set Origin (A)
                   </button>
                   <button
                     style={{
                       ...smallButtonStyle,
-                      backgroundColor: mapMode === 'setDestination' ? '#dc3545' : '#6c757d',
+                      backgroundColor: mapMode === 'setDestination' ? COLORS.destinationMarker : COLORS.bgSecondary,
                       marginBottom: '0'
                     }}
-                    onClick={() => setMapMode('setDestination')}
+                    onClick={() => setMapMode(mapMode === 'setDestination' ? 'none' : 'setDestination')}
                   >
                     Set Destination (B)
                   </button>
                   <button
                     style={{
                       ...smallButtonStyle,
-                      backgroundColor: '#ffc107',
-                      color: '#000',
+                      backgroundColor: COLORS.warning,
+                      color: 'white',
                       marginBottom: '0'
                     }}
                     onClick={handleClear}
@@ -2812,9 +2883,9 @@ function App() {
 
             {/* Travel Time Controls */}
             <div style={{ 
-              border: '2px solid #e1e5e9', 
+              border: `2px solid ${COLORS.border}`, 
               borderRadius: '6px', 
-              backgroundColor: '#fff',
+              backgroundColor: COLORS.bgPrimary,
               padding: '8px 12px',
               marginBottom: '12px'
             }}>
@@ -2827,7 +2898,7 @@ function App() {
                       onChange={() => setArriveBy(false)}
                       style={{ marginRight: '4px' }}
                     />
-                    <span style={{ fontSize: '12px', color: '#495057' }}>Leave</span>
+                    <span style={{ fontSize: '12px', color: COLORS.textBold }}>Leave</span>
                   </label>
                   <label style={{ display: 'flex', alignItems: 'center', whiteSpace: 'nowrap' }}>
                     <input 
@@ -2836,7 +2907,7 @@ function App() {
                       onChange={() => setArriveBy(true)}
                       style={{ marginRight: '4px' }}
                     />
-                    <span style={{ fontSize: '12px', color: '#495057' }}>Arrive</span>
+                    <span style={{ fontSize: '12px', color: COLORS.textBold }}>Arrive</span>
                   </label>
                 </div>
                 
@@ -2846,7 +2917,7 @@ function App() {
                     value={departureTime}
                     onChange={e => setDepartureTime(e.target.value)}
                     style={{
-                      border: '1px solid #ddd',
+                      border: `1px solid ${COLORS.borderSecondary}`,
                       borderRadius: '4px',
                       padding: '4px 6px',
                       fontSize: '12px'
@@ -2857,7 +2928,7 @@ function App() {
                     value={dayType}
                     onChange={e => setDayType(e.target.value)}
                     style={{
-                      border: '1px solid #ddd',
+                      border: `1px solid ${COLORS.borderSecondary}`,
                       borderRadius: '4px',
                       padding: '4px 6px',
                       fontSize: '12px'
@@ -2876,18 +2947,18 @@ function App() {
               disabled={!readyToCalculate || isCalculating}
               style={{
                 ...buttonStyle,
-                backgroundColor: !readyToCalculate || isCalculating ? '#6c757d' : '#007bff',
+                backgroundColor: !readyToCalculate || isCalculating ? COLORS.bgSecondary : COLORS.primary,
                 cursor: !readyToCalculate || isCalculating ? 'not-allowed' : 'pointer',
                 marginBottom: '0'
               }}
               onMouseOver={e => {
                 if (readyToCalculate && !isCalculating) {
-                  e.target.style.backgroundColor = '#0056b3';
+                  e.target.style.backgroundColor = COLORS.primaryHover;
                 }
               }}
               onMouseOut={e => {
                 if (readyToCalculate && !isCalculating) {
-                  e.target.style.backgroundColor = '#007bff';
+                  e.target.style.backgroundColor = COLORS.primary;
                 }
               }}
             >
@@ -2898,7 +2969,7 @@ function App() {
           {/* Route Options Container */}
           {routeOptions.length > 0 && (
             <div style={{ flex: '1 1 auto', minHeight: '200px' }}>
-              <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', fontWeight: '600', color: '#495057' }}>
+              <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', fontWeight: '600', color: COLORS.textBold }}>
                 Route Options
               </h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', paddingBottom: currentRouteHasNewTransit ? '120px' : '80px' }}>
@@ -2922,9 +2993,9 @@ function App() {
                       key={route.id}
                       style={{
                         padding: '16px',
-                        backgroundColor: selectedRouteIndex === index ? '#f0f8ff' : '#fff',
-                        color: '#000',
-                        border: `2px solid ${selectedRouteIndex === index ? '#007bff' : '#e1e5e9'}`,
+                        backgroundColor: selectedRouteIndex === index ? COLORS.primaryLight : COLORS.bgPrimary,
+                        color: COLORS.textBlack,
+                        border: `2px solid ${selectedRouteIndex === index ? COLORS.primary : COLORS.border}`,
                         borderRadius: '6px',
                         cursor: 'pointer',
                         fontSize: '12px',
@@ -2943,18 +3014,18 @@ function App() {
                         <div style={{ 
                           fontSize: '20px', 
                           fontWeight: '700',
-                          color: selectedRouteIndex === index ? '#007bff' : '#28a745'
+                          color: selectedRouteIndex === index ? COLORS.primary : COLORS.advance
                         }}>
                           {Math.round(route.duration / 60)} min
                         </div>
                         <div style={{ 
                           fontSize: '16px', 
                           fontWeight: '600',
-                          color: '#495057',
+                          color: COLORS.textBold,
                           textAlign: 'right'
                         }}>
                           <div>{formatTime(route.startTime)}</div>
-                          <div style={{ fontSize: '12px', color: '#6c757d' }}>to {formatTime(route.endTime)}</div>
+                          <div style={{ fontSize: '12px', color: COLORS.textSecondary }}>to {formatTime(route.endTime)}</div>
                         </div>
                       </div>
 
@@ -2964,7 +3035,7 @@ function App() {
                         alignItems: 'center',
                         marginBottom: '10px',
                         fontSize: '12px',
-                        color: '#6c757d'
+                        color: COLORS.textSecondary
                       }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                           {walkingTime > 0 && (
@@ -3009,75 +3080,75 @@ function App() {
       // Compare mode - show frozen state with selected route
       return (
         <>
-      {/* Frozen Trip Information */}
-      <div style={{ 
-        marginBottom: '16px',
-        flex: '0 0 auto'
-      }}>
-        <h3 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: '600', color: '#495057' }}>
-          Trip Information
-        </h3>
-        
-        {/* Frozen Address Display */}
+        {/* Frozen Trip Information */}
         <div style={{ 
-          border: '2px solid #e1e5e9', 
-          borderRadius: '6px', 
-          backgroundColor: '#f8f9fa',
-          overflow: 'hidden',
-          marginBottom: '12px',
-          opacity: 0.8
+          marginBottom: '16px',
+          flex: '0 0 auto'
         }}>
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            padding: '8px 12px',
-            borderBottom: '1px solid #e1e5e9'
-          }}>
-            <div style={{
-              width: '20px',
-              height: '20px',
-              borderRadius: '50%',
-              backgroundColor: '#28a745',
-              color: 'white',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '12px',
-              fontWeight: 'bold',
-              marginRight: '10px',
-              flexShrink: 0
-            }}>A</div>
-            <span style={{ fontSize: '14px', color: '#000000', fontWeight: '500' }}>{origin}</span>
-          </div>
+          <h3 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: '600', color: COLORS.textBold }}>
+            Trip Information
+          </h3>
           
+          {/* Frozen Address Display */}
           <div style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            padding: '8px 12px'
+            border: `2px solid ${COLORS.border}`, 
+            borderRadius: '6px', 
+            backgroundColor: COLORS.bgTertiary,
+            overflow: 'hidden',
+            marginBottom: '12px',
+            opacity: 0.8
           }}>
-            <div style={{
-              width: '20px',
-              height: '20px',
-              borderRadius: '50%',
-              backgroundColor: '#dc3545',
-              color: 'white',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '12px',
-              fontWeight: 'bold',
-              marginRight: '10px',
-              flexShrink: 0
-            }}>B</div>
-            <span style={{ fontSize: '14px', color: '#000000', fontWeight: '500' }}>{destination}</span>
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              padding: '8px 12px',
+              borderBottom: `px solid ${COLORS.border}`
+            }}>
+              <div style={{
+                width: '20px',
+                height: '20px',
+                borderRadius: '50%',
+                backgroundColor: COLORS.originMarker,
+                color: 'white',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '12px',
+                fontWeight: 'bold',
+                marginRight: '10px',
+                flexShrink: 0
+              }}>A</div>
+              <span style={{ fontSize: '14px', color: COLORS.textBlack, fontWeight: '500' }}>{origin}</span>
+            </div>
+            
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              padding: '8px 12px'
+            }}>
+              <div style={{
+                width: '20px',
+                height: '20px',
+                borderRadius: '50%',
+                backgroundColor: COLORS.destinationMarker,
+                color: 'white',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '12px',
+                fontWeight: 'bold',
+                marginRight: '10px',
+                flexShrink: 0
+              }}>B</div>
+              <span style={{ fontSize: '14px', color: COLORS.textBlack, fontWeight: '500' }}>{destination}</span>
+            </div>
           </div>
-        </div>
 
         {/* Frozen Travel Time Controls */}
           <div style={{ 
-            border: '2px solid #e1e5e9', 
+            border: `2px solid ${COLORS.border}`, 
             borderRadius: '6px', 
-            backgroundColor: '#f8f9fa',
+            backgroundColor: COLORS.bgTertiary,
             padding: '8px 12px',
             marginBottom: '12px',
             opacity: 0.8,
@@ -3086,14 +3157,14 @@ function App() {
             justifyContent: 'space-between'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '12px', color: '#000000', fontWeight: '500' }}>
+              <span style={{ fontSize: '12px', color: COLORS.textBlack, fontWeight: '500' }}>
                 {arriveBy ? 'Arrive by' : 'Leave at'}
               </span>
-              <span style={{ fontSize: '12px', color: '#000000', fontWeight: '600' }}>
+              <span style={{ fontSize: '12px', color: COLORS.textBlack, fontWeight: '600' }}>
                 {departureTime}
               </span>
             </div>
-            <span style={{ fontSize: '12px', color: '#000000', fontWeight: '500' }}>
+            <span style={{ fontSize: '12px', color: COLORS.textBlack, fontWeight: '500' }}>
               {dayType}
             </span>
           </div>
@@ -3102,7 +3173,7 @@ function App() {
           {/* Future Route Card */}
           {routeOptions.length > 0 && (
             <div style={{ flex: '0 0 auto', marginBottom: '16px' }}>
-              <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', fontWeight: '600', color: '#495057' }}>
+              <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', fontWeight: '600', color: COLORS.textBold }}>
                 Future Route
               </h3>
               {(() => {
@@ -3125,9 +3196,9 @@ function App() {
                   <div
                     style={{
                       padding: '16px',
-                      backgroundColor: '#e8f4fd',
-                      color: '#000',
-                      border: '2px solid #007bff',
+                      backgroundColor: COLORS.primaryLight,
+                      color: COLORS.textBlack,
+                      border: `2px solid ${COLORS.primary}`,
                       borderRadius: '6px',
                       fontSize: '12px',
                       boxShadow: '0 2px 6px rgba(0,123,255,0.15)',
@@ -3143,18 +3214,18 @@ function App() {
                       <div style={{ 
                         fontSize: '20px', 
                         fontWeight: '700',
-                        color: '#007bff'
+                        color: COLORS.primary
                       }}>
                         {Math.round(route.duration / 60)} min
                       </div>
                       <div style={{ 
                         fontSize: '16px', 
                         fontWeight: '600',
-                        color: '#495057',
+                        color: COLORS.textBold,
                         textAlign: 'right'
                       }}>
                         <div>{formatTime(route.startTime)}</div>
-                        <div style={{ fontSize: '12px', color: '#6c757d' }}>to {formatTime(route.endTime)}</div>
+                        <div style={{ fontSize: '12px', color: COLORS.textSecondary }}>to {formatTime(route.endTime)}</div>
                       </div>
                     </div>
 
@@ -3164,7 +3235,7 @@ function App() {
                       alignItems: 'center',
                       marginBottom: '10px',
                       fontSize: '12px',
-                      color: '#6c757d'
+                      color: COLORS.textSecondary
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                         {walkingTime > 0 && (
@@ -3206,7 +3277,7 @@ function App() {
           {/* Current Route Options - only show when comparing and not vehicle mode */}
           {compareMode === 'comparing' && selectedTravelMode !== 'vehicle' && (
             <div style={{ flex: '1 1 auto', minHeight: '200px' }}>
-              <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', fontWeight: '600', color: '#495057' }}>
+              <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', fontWeight: '600', color: COLORS.textBold }}>
                 Current Route Options
               </h3>
               
@@ -3214,7 +3285,7 @@ function App() {
                 <div style={{ 
                   padding: '20px', 
                   textAlign: 'center', 
-                  color: '#6c757d',
+                  color: COLORS.textSecondary,
                   fontSize: '14px'
                 }}>
                   Loading current routes...
@@ -3225,8 +3296,8 @@ function App() {
                   flexDirection: 'column', 
                   gap: '6px', 
                   paddingBottom: '80px',
-                  maxHeight: '400px',
-                  overflowY: 'auto'
+                  //maxHeight: '400px',
+                  //overflowY: 'auto'
                 }}>
                   {currentRouteOptions.map((route, index) => {
                     const walkingTime = route.legs
@@ -3248,9 +3319,9 @@ function App() {
                         key={route.id}
                         style={{
                           padding: '16px',
-                          backgroundColor: selectedCurrentRouteIndex === index ? '#fff5f5' : '#fff',
-                          color: '#000',
-                          border: `2px solid ${selectedCurrentRouteIndex === index ? '#dc3545' : '#e1e5e9'}`,
+                          backgroundColor: selectedCurrentRouteIndex === index ? COLORS.presentLight : COLORS.bgPrimary,
+                          color: COLORS.textBlack,
+                          border: `2px solid ${selectedCurrentRouteIndex === index ? COLORS.present : COLORS.border}`,
                           borderRadius: '6px',
                           cursor: 'pointer',
                           fontSize: '12px',
@@ -3269,18 +3340,18 @@ function App() {
                           <div style={{ 
                             fontSize: '20px', 
                             fontWeight: '700',
-                            color: selectedCurrentRouteIndex === index ? '#dc3545' : '#28a745'
+                            color: selectedCurrentRouteIndex === index ? COLORS.present : COLORS.advance
                           }}>
                             {Math.round(route.duration / 60)} min
                           </div>
                           <div style={{ 
                             fontSize: '16px', 
                             fontWeight: '600',
-                            color: '#495057',
+                            color: COLORS.textBold,
                             textAlign: 'right'
                           }}>
                             <div>{formatTime(route.startTime)}</div>
-                            <div style={{ fontSize: '12px', color: '#6c757d' }}>to {formatTime(route.endTime)}</div>
+                            <div style={{ fontSize: '12px', color: COLORS.textSecondary }}>to {formatTime(route.endTime)}</div>
                           </div>
                         </div>
 
@@ -3290,7 +3361,7 @@ function App() {
                           alignItems: 'center',
                           marginBottom: '10px',
                           fontSize: '12px',
-                          color: '#6c757d'
+                          color: COLORS.textSecondary
                         }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                             {walkingTime > 0 && (
@@ -3331,11 +3402,11 @@ function App() {
                 <div style={{ 
                   padding: '20px', 
                   textAlign: 'center', 
-                  color: '#6c757d',
+                  color: COLORS.textSecondary,
                   fontSize: '14px',
-                  border: '2px solid #e1e5e9',
+                  border: `2px solid ${COLORS.border}`,
                   borderRadius: '6px',
-                  backgroundColor: '#f8f9fa'
+                  backgroundColor: COLORS.bgTertiary
                 }}>
                   No current routes found for this trip.
                 </div>
@@ -3346,7 +3417,7 @@ function App() {
           {/* Message for vehicle mode */}
           {compareMode === 'comparing' && selectedTravelMode === 'vehicle' && (
             <div style={{ flex: '1 1 auto', paddingBottom: '80px' }}>
-              <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', fontWeight: '600', color: '#495057' }}>
+              <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', fontWeight: '600', color: COLORS.textBold }}>
                 Driving Route Options
               </h3>
               
@@ -3355,20 +3426,20 @@ function App() {
                 flexDirection: 'column', 
                 gap: '6px', 
                 paddingBottom: '80px',
-                maxHeight: '400px',
-                overflowY: 'auto'
+                //maxHeight: '400px',
+                //overflowY: 'auto'
               }}>
                 {currentRouteOptions.map((route, index) => {
                   // Calculate traffic impact
                   const trafficRatio = route.delay / route.duration;
-                  let trafficColor = "#28a745"; // Green for light traffic
+                  let trafficColor = COLORS.noTraffic; // Green for light traffic
                   
                   if (trafficRatio > 0.3) {
-                    trafficColor = "#dc3545"; // Red for heavy traffic
+                    trafficColor = COLORS.heavyTraffic; // Red for heavy traffic
                   } else if (trafficRatio > 0.15) {
-                    trafficColor = "#fd7e14"; // Orange for moderate traffic
+                    trafficColor = COLORS.mediumTraffic; // Orange for moderate traffic
                   } else if (trafficRatio > 0.05) {
-                    trafficColor = "#ffc107"; // Yellow for light-moderate traffic
+                    trafficColor = COLORS.lightTraffic; // Yellow for light-moderate traffic
                   }
 
                   const majorRoads = route.majorRoads || [];
@@ -3388,9 +3459,9 @@ function App() {
                       key={route.id}
                       style={{
                         padding: '16px', // EXACT same as transit cards
-                        backgroundColor: selectedCurrentRouteIndex === index ? '#fff5f5' : '#fff',
-                        color: '#000',
-                        border: `2px solid ${selectedCurrentRouteIndex === index ? '#dc3545' : '#e1e5e9'}`,
+                        backgroundColor: selectedCurrentRouteIndex === index ? COLORS.presentLight : COLORS.bgPrimary,
+                        color: COLORS.textBlack,
+                        border: `2px solid ${selectedCurrentRouteIndex === index ? COLORS.present : COLORS.border}`,
                         borderRadius: '6px',
                         cursor: 'pointer',
                         fontSize: '12px',
@@ -3424,7 +3495,7 @@ function App() {
                           <div style={{ 
                             fontSize: '20px', // EXACT same as transit
                             fontWeight: '700',
-                            color: selectedCurrentRouteIndex === index ? '#dc3545' : '#28a745'
+                            color: selectedCurrentRouteIndex === index ? COLORS.present : COLORS.advance
                           }}>
                             {Math.round(route.duration / 60)} min
                           </div>
@@ -3432,11 +3503,11 @@ function App() {
                         <div style={{ 
                           fontSize: '16px', // EXACT same as transit
                           fontWeight: '600',
-                          color: '#495057',
+                          color: COLORS.textBold,
                           textAlign: 'right'
                         }}>
                           <div>{departure}</div>
-                          <div style={{ fontSize: '12px', color: '#6c757d' }}>to {arrival}</div>
+                          <div style={{ fontSize: '12px', color: COLORS.textSecondary }}>to {arrival}</div>
                         </div>
                       </div>
 
@@ -3447,7 +3518,7 @@ function App() {
                         alignItems: 'center',
                         marginBottom: '10px', // EXACT same as transit
                         fontSize: '12px',
-                        color: '#6c757d'
+                        color: COLORS.textSecondary
                       }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                           <span style={{ display: 'flex', alignItems: 'center', gap: '2px', fontWeight: '500' }}>
@@ -3469,8 +3540,8 @@ function App() {
                         </div>
                         {route.hasTollRoad && (
                           <span style={{ 
-                            backgroundColor: '#fff3cd',
-                            color: '#856404',
+                            backgroundColor: COLORS.bgToll,
+                            color: COLORS.textToll,
                             padding: '2px 6px',
                             borderRadius: '10px',
                             fontSize: '10px',
@@ -3493,7 +3564,7 @@ function App() {
                           <>
                             <span style={{ 
                               fontSize: '10px', 
-                              color: '#6c757d', 
+                              color: COLORS.textSecondary, 
                               marginRight: '4px',
                               fontWeight: '500'
                             }}>
@@ -3505,7 +3576,7 @@ function App() {
                                   style={{
                                     display: 'inline-flex',
                                     alignItems: 'center',
-                                    backgroundColor: '#6c757d',
+                                    backgroundColor: COLORS.bgSecondary,
                                     color: 'white',
                                     padding: '2px 6px',
                                     borderRadius: '8px',
@@ -3522,7 +3593,7 @@ function App() {
                                 {roadIndex < majorRoads.length - 1 && (
                                   <span style={{ 
                                     margin: '0 2px', 
-                                    color: '#6c757d',
+                                    color: COLORS.textSecondary,
                                     fontSize: '10px'
                                   }}>→</span>
                                 )}
@@ -3532,7 +3603,7 @@ function App() {
                         ) : (
                           <span style={{ 
                             fontSize: '10px', 
-                            color: '#6c757d',
+                            color: COLORS.textSecondary,
                             fontStyle: 'italic'
                           }}>
                             Alternative route {index + 1}
@@ -3615,7 +3686,7 @@ function App() {
 
         .map-shrinking {
           width: 50% !important;
-          border-right: 3px solid #dee2e6 !important;
+          border-right: 3px solid ${COLORS.borderSecondary} !important;
         }
 
         .fade-in-right {
@@ -3659,10 +3730,10 @@ function App() {
       {/* Sidebar */}
       <div style={sidebarStyle}>
         <div style={{ padding: '16px', paddingBottom: '8px' }}>
-          <h1 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '4px', color: '#2c3e50' }}>
+          <h1 style={{ fontSize: '22px', fontWeight: '700', marginBottom: '4px', color: COLORS.textPrimary, letterSpacing: '-0.02em' }}>
             Future Toronto Transit Mapper
           </h1>
-          <p style={{ color: '#6c757d', marginBottom: '16px', fontSize: '12px' }}> 
+          <p style={{ color: COLORS.textSecondary, marginBottom: '16px', fontSize: '14px' }}> 
             Plan your trip and see how new transit lines can help!
 
             Presently only searches within Toronto, Missisauga, Brampton, and York Region are supported.
@@ -3702,8 +3773,8 @@ function App() {
                   margin: '0',
                   boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
                 }}
-                onMouseOver={e => e.target.style.backgroundColor = '#0056b3'}
-                onMouseOut={e => e.target.style.backgroundColor = '#007bff'}
+                onMouseOver={e => e.target.style.backgroundColor = COLORS.primaryHover}
+                onMouseOut={e => e.target.style.backgroundColor = COLORS.primary}
               >
                 Compare to Today
               </button>
@@ -3714,12 +3785,12 @@ function App() {
                 onClick={handleBackFromCompare}
                 style={{
                   ...buttonStyle,
-                  backgroundColor: '#6c757d',
+                  backgroundColor: COLORS.bgSecondary,
                   margin: '0',
                   boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
                 }}
-                onMouseOver={e => e.target.style.backgroundColor = '#5a6268'}
-                onMouseOut={e => e.target.style.backgroundColor = '#6c757d'}
+                onMouseOver={e => e.target.style.backgroundColor = COLORS.bgSecondaryHover}
+                onMouseOut={e => e.target.style.backgroundColor = COLORS.bgSecondary}
               >
                 Back
               </button>
@@ -3730,12 +3801,12 @@ function App() {
               onClick={() => navigate('/exit')}
               style={{
                 ...buttonStyle,
-                backgroundColor: '#28a745',
+                backgroundColor: COLORS.advance,
                 margin: '0',
                 boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
               }}
-              onMouseOver={e => e.target.style.backgroundColor = '#218838'}
-              onMouseOut={e => e.target.style.backgroundColor = '#28a745'}
+              onMouseOver={e => e.target.style.backgroundColor = COLORS.advanceHover}
+              onMouseOut={e => e.target.style.backgroundColor = COLORS.advance}
             >
               Finish Survey
             </button>
@@ -3824,7 +3895,7 @@ function App() {
               </div>
             ) : (
               originCoords && destinationCoords && 
-              <Polyline positions={[originCoords, destinationCoords]} color="#007bff" weight={4} opacity={0.7} />
+              <Polyline positions={[originCoords, destinationCoords]} color={COLORS.primary} weight={4} opacity={0.7} />
             )}
             
             {routeOptions.length > 0 && mapInstance && (
@@ -3948,7 +4019,7 @@ function App() {
                 left: 0,
                 right: 0,
                 textAlign: 'center',
-                backgroundColor: 'rgba(0, 123, 255, 0.9)',
+                backgroundColor: COLORS.primaryLabel,
                 color: 'white',
                 padding: '8px 12px',
                 //borderRadius: '6px',
@@ -4070,7 +4141,7 @@ function App() {
                     left: 0,
                     right: 0,
                     textAlign: 'center',
-                    backgroundColor: 'rgba(220, 53, 69, 0.9)',
+                    backgroundColor: COLORS.presentLabel,
                     color: 'white',
                     padding: '8px 12px',
                     //borderRadius: '6px',
@@ -4121,7 +4192,7 @@ function App() {
                         <Polyline
                           key={`car-route-${index}-selected-${selectedCurrentRouteIndex}`} // Forces re-render
                           positions={route.points.map(pt => [pt.latitude, pt.longitude])}
-                          color={isSelected ? "#dc3545" : "#5e3a3eff"}
+                          color={isSelected ? COLORS.autoSelected : COLORS.autoLight}
                           weight={isSelected ? 4 : 3}
                           opacity={isSelected ? 1.0 : 0.3}
                           eventHandlers={{
@@ -4131,12 +4202,12 @@ function App() {
                             },
                             mouseover: (e) => {
                               if (!isSelected) {
-                                e.target.setStyle({ color: "#ff6666", weight: 5, opacity: 0.7 });
+                                e.target.setStyle({ color: COLORS.autoHover, weight: 5, opacity: 0.7 });
                               }
                             },
                             mouseout: (e) => {
                               if (!isSelected) {
-                                e.target.setStyle({ color: "#999999", weight: 3, opacity: 0.3 });
+                                e.target.setStyle({ color: COLORS.autoLight, weight: 3, opacity: 0.3 });
                               }
                             }
                           }}
@@ -4187,7 +4258,7 @@ function App() {
           width: '50px',
           height: '50px',
           borderRadius: '50%',
-          backgroundColor: '#007bff',
+          backgroundColor: COLORS.primary,
           color: 'white',
           border: 'none',
           cursor: 'pointer',
@@ -4201,11 +4272,11 @@ function App() {
           transition: 'all 0.2s'
         }}
         onMouseOver={e => {
-          e.target.style.backgroundColor = '#0056b3';
+          e.target.style.backgroundColor = COLORS.primaryHover;
           e.target.style.transform = 'scale(1.1)';
         }}
         onMouseOut={e => {
-          e.target.style.backgroundColor = '#007bff';
+          e.target.style.backgroundColor = COLORS.primary;
           e.target.style.transform = 'scale(1)';
         }}
         title="Frequently Asked Questions"
