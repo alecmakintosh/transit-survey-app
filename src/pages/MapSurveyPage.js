@@ -1057,7 +1057,7 @@ function TravelModeModal({ isOpen, onClose, onModeSelect }) {
     { id: 'transit', label: 'Transit (bus, subway, etc.)', icon: 'fas fa-bus' },
     { id: 'vehicle', label: 'Private motor vehicle (car, motorcycle, etc.)', icon: 'fas fa-car' },
     { id: 'other', label: 'Other (walking, cycling, scootering, etc.)', icon: 'fas fa-walking' },
-    { id: 'none', label: "I don't usually make this trip", icon: 'fas fa-question' }
+    { id: 'none', label: "I don't make this trip regularly", icon: 'fas fa-question' }
   ];
 
   return (
@@ -1351,8 +1351,9 @@ function UnaffectedRouteModal({ isOpen, onClose }) {
     }}>
       <div style={{ backgroundColor: COLORS.bgPrimary, padding: '24px', borderRadius: '8px', maxWidth: '400px' }}>
         <h2 style={{ marginBottom: '12px', color: COLORS.primary }}>Route Unaffected</h2>
-        <p>Your chosen route already exists today.  
-        To compare, please select a route that uses a new transit service.</p>
+        <p>Your chosen route uses transit lines that already exist today.  
+        To compare, please select a route that uses a new transit service (i.e. the Eglinton Crosstown LRT or Finch West LRT).
+        Your trips may not be affected by these new routes.</p>
         <button onClick={onClose} style={{ marginTop: '12px', padding: '8px 16px', backgroundColor: COLORS.primary, color: 'white', border: 'none', borderRadius: '4px' }}>
           Okay
         </button>
@@ -1391,12 +1392,16 @@ function FAQModal({ isOpen, onClose }) {
       answer: "This is a research tool to help understand how new transit lines (like the Eglinton Crosstown LRT and Finch West LRT) might change travel patterns in Toronto. It however doubles as a public-facing tool for you to explore our hopefully soon-to-be transit network. Please also note this is a prototype tool and will have errors."
     },
     {
-      question: "What routes are currently included?",
+      question: "What new routes are currently included?",
       answer: "Currently, the Eglinton Crosstown LRT and Finch West LRT, both projected to open in 2025, are included. Lines that are further from completion, such as the Ontario Line, are not included as of now."
     },
     {
       question: "How accurate are the route predictions and travel times?",
-      answer: "The future routes are determined use my best estimates at travel times, and also do not reflect expected changes to the bus network. Current transit routes use the same basic data used by platforms such as Google Maps today. Current auto routes use data provided by TomTom, a well-regarded transportation data company."
+      answer: "The future routes are determined use my best estimates at travel times, and also do not encapsulate all expected changes to the bus network. Current transit routes use the same basic data used by platforms such as Google Maps today. Current auto routes use data provided by TomTom, a well-regarded transportation data company."
+    },
+    {
+      question: "Why are expected bus changes not incorporated?",
+      answer: "Programming in new LRTs is relatively simple, but modifying the bus network takes a lot of work. I'm waiting for the TTC and City of Toronto to release their latest bus network modifications in a format I can use, and will update the site once this becomes available."
     },
     {
       question: "Why aren't fares included/considered?",
@@ -1428,7 +1433,7 @@ function FAQModal({ isOpen, onClose }) {
     },
     {
       question: "How is my data used and stored?",
-      answer: "All data you enter into the site is stored anonymously, and is used in research to better understand the things that matter to travelers."
+      answer: "All data you enter into the site is stored anonymously, and is used in research to better understand the things that matter to travelers. Read more about my privacy policy <a href='/privacy' target='_blank' rel='noopener noreferrer' style={{ color: COLORS.link }}>here</a>."
     },
     {
       question: "Who are you?",
@@ -2719,7 +2724,7 @@ function App() {
                   }}
                   onClick={() => setInputMode('map')}
                 >
-                  Click on Map
+                  Click On Map
                 </button>
               </div>
             </div>
@@ -3734,7 +3739,7 @@ function App() {
             Future Toronto Transit Mapper
           </h1>
           <p style={{ color: COLORS.textSecondary, marginBottom: '16px', fontSize: '14px' }}> 
-            Plan your trip and see how new transit lines can help!
+            Plan your trip and see how the Eglinton Crosstown LRT and Finch West LRT can help!
 
             Presently only searches within Toronto, Missisauga, Brampton, and York Region are supported.
           </p>
@@ -3776,7 +3781,7 @@ function App() {
                 onMouseOver={e => e.target.style.backgroundColor = COLORS.primaryHover}
                 onMouseOut={e => e.target.style.backgroundColor = COLORS.primary}
               >
-                Compare to Today
+                Compare Selected Route To Today
               </button>
             )}
             
@@ -4027,7 +4032,7 @@ function App() {
                 fontWeight: '600',
                 zIndex: 1000
               }}>
-                Future Route (with new transit lines)
+                Future Route (Using New Transit Network)
               </div>
             </div>
 
@@ -4149,7 +4154,7 @@ function App() {
                     fontWeight: '600',
                     zIndex: 1000
                   }}>
-                    Current Route (existing transit)
+                    Current Route (Using Existing Transit Network)
                   </div>
                 </>
               )}
@@ -4239,7 +4244,7 @@ function App() {
                     fontWeight: '600',
                     zIndex: 1000
                   }}>
-                    Current Route (driving)
+                    Current Route (Driving)
                   </div>
                 </>
               )}
