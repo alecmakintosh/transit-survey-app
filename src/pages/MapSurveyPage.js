@@ -1136,7 +1136,7 @@ function TravelModeModal({ isOpen, onClose, onModeSelect }) {
 
 // User Profile Modal Component
 function UserProfileModal({ isOpen, onClose, onSubmit }) {
-  const [hasVehicle, setHasVehicle] = useState(null);
+const [hasVehicle, setHasVehicle] = useState(null);
   const [isRegularTransitUser, setIsRegularTransitUser] = useState(null);
 
   const handleSubmit = () => {
@@ -1165,34 +1165,51 @@ function UserProfileModal({ isOpen, onClose, onSubmit }) {
         backgroundColor: COLORS.bgPrimary,
         padding: '32px',
         borderRadius: '12px',
-        width: '500px',
+        width: '460px',
         maxWidth: '90vw',
         boxShadow: '0 10px 25px rgba(0,0,0,0.3)'
       }}>
-        <h2 style={{ margin: '0 0 16px 0', fontSize: '24px', fontWeight: '600', color: COLORS.textPrimary }}>
+        <h2 style={{ 
+          margin: '0 0 8px 0', 
+          fontSize: '20px', 
+          fontWeight: '600', 
+          color: COLORS.textPrimary 
+        }}>
           Two quick questions:
         </h2>
-        <p style={{ marginBottom: '24px', color: COLORS.textSecondary, lineHeight: '1.5' }}>
+        <p style={{ 
+          marginBottom: '28px', 
+          color: COLORS.textSecondary, 
+          lineHeight: '1.5',
+          fontSize: '14px'
+        }}>
           These help me understand who's using the website.
         </p>
         
         <div style={{ marginBottom: '24px' }}>
-          <h3 style={{ margin: '0 0 12px 0', fontSize: '16px', fontWeight: '600' }}>
+          <label style={{ 
+            display: 'block',
+            margin: '0 0 10px 0', 
+            fontSize: '15px', 
+            fontWeight: '500',
+            color: COLORS.textPrimary
+          }}>
             Do you own or have regular access to a motor vehicle (car, motorcycle)?
-          </h3>
-          <div style={{ display: 'flex', gap: '12px' }}>
+          </label>
+          <div style={{ display: 'flex', gap: '10px' }}>
             <button 
               onClick={() => setHasVehicle(true)}
               style={{
                 flex: 1,
-                padding: '12px',
-                backgroundColor: hasVehicle === true ? COLORS.primary : COLORS.bgTertiary,
-                color: hasVehicle === true ? 'white' : COLORS.textBold,
-                border: '2px solid ' + (hasVehicle === true ? COLORS.primary : COLORS.border),
+                padding: '11px',
+                backgroundColor: hasVehicle === true ? COLORS.primary : 'transparent',
+                color: hasVehicle === true ? 'white' : COLORS.textPrimary,
+                border: '1.5px solid ' + (hasVehicle === true ? COLORS.primary : COLORS.border),
                 borderRadius: '6px',
                 fontSize: '14px',
                 cursor: 'pointer',
-                fontWeight: '500'
+                fontWeight: '500',
+                transition: 'all 0.2s'
               }}
             >
               Yes
@@ -1201,14 +1218,15 @@ function UserProfileModal({ isOpen, onClose, onSubmit }) {
               onClick={() => setHasVehicle(false)}
               style={{
                 flex: 1,
-                padding: '12px',
-                backgroundColor: hasVehicle === false ? COLORS.primary : COLORS.bgTertiary,
-                color: hasVehicle === false ? 'white' : COLORS.textBold,
-                border: '2px solid ' + (hasVehicle === false ? COLORS.primary : COLORS.border),
+                padding: '11px',
+                backgroundColor: hasVehicle === false ? COLORS.primary : 'transparent',
+                color: hasVehicle === false ? 'white' : COLORS.textPrimary,
+                border: '1.5px solid ' + (hasVehicle === false ? COLORS.primary : COLORS.border),
                 borderRadius: '6px',
                 fontSize: '14px',
                 cursor: 'pointer',
-                fontWeight: '500'
+                fontWeight: '500',
+                transition: 'all 0.2s'
               }}
             >
               No
@@ -1216,26 +1234,39 @@ function UserProfileModal({ isOpen, onClose, onSubmit }) {
           </div>
         </div>
 
-        <div style={{ marginBottom: '32px' }}>
-          <h3 style={{ margin: '0 0 12px 0', fontSize: '16px', fontWeight: '600' }}>
+        <div style={{ marginBottom: '28px' }}>
+          <label style={{ 
+            display: 'block',
+            margin: '0 0 10px 0', 
+            fontSize: '15px', 
+            fontWeight: '500',
+            color: COLORS.textPrimary
+          }}>
             Would you classify yourself as a regular transit user?
-          </h3>
-          <p style={{ margin: '0 0 12px 0', fontSize: '14px', color: COLORS.textSecondary }}>
-            (more than 2 trips on transit per week)
-          </p>
-          <div style={{ display: 'flex', gap: '12px' }}>
+            <span style={{ 
+              display: 'block',
+              fontSize: '13px', 
+              color: COLORS.textSecondary,
+              fontWeight: '400',
+              marginTop: '4px'
+            }}>
+              (more than 2 trips on transit per week)
+            </span>
+          </label>
+          <div style={{ display: 'flex', gap: '10px' }}>
             <button 
               onClick={() => setIsRegularTransitUser(true)}
               style={{
                 flex: 1,
-                padding: '12px',
-                backgroundColor: isRegularTransitUser === true ? COLORS.primary : COLORS.bgTertiary,
-                color: isRegularTransitUser === true ? 'white' : COLORS.textBold,
-                border: '2px solid ' + (isRegularTransitUser === true ? COLORS.primary : COLORS.border),
+                padding: '11px',
+                backgroundColor: isRegularTransitUser === true ? COLORS.primary : 'transparent',
+                color: isRegularTransitUser === true ? 'white' : COLORS.textPrimary,
+                border: '1.5px solid ' + (isRegularTransitUser === true ? COLORS.primary : COLORS.border),
                 borderRadius: '6px',
                 fontSize: '14px',
                 cursor: 'pointer',
-                fontWeight: '500'
+                fontWeight: '500',
+                transition: 'all 0.2s'
               }}
             >
               Yes
@@ -1244,14 +1275,15 @@ function UserProfileModal({ isOpen, onClose, onSubmit }) {
               onClick={() => setIsRegularTransitUser(false)}
               style={{
                 flex: 1,
-                padding: '12px',
-                backgroundColor: isRegularTransitUser === false ? COLORS.primary : COLORS.bgTertiary,
-                color: isRegularTransitUser === false ? 'white' : COLORS.textBold,
-                border: '2px solid ' + (isRegularTransitUser === false ? COLORS.primary : COLORS.border),
+                padding: '11px',
+                backgroundColor: isRegularTransitUser === false ? COLORS.primary : 'transparent',
+                color: isRegularTransitUser === false ? 'white' : COLORS.textPrimary,
+                border: '1.5px solid ' + (isRegularTransitUser === false ? COLORS.primary : COLORS.border),
                 borderRadius: '6px',
                 fontSize: '14px',
                 cursor: 'pointer',
-                fontWeight: '500'
+                fontWeight: '500',
+                transition: 'all 0.2s'
               }}
             >
               No
@@ -1264,14 +1296,15 @@ function UserProfileModal({ isOpen, onClose, onSubmit }) {
           disabled={hasVehicle === null || isRegularTransitUser === null}
           style={{
             width: '100%',
-            padding: '14px',
+            padding: '13px',
             backgroundColor: (hasVehicle !== null && isRegularTransitUser !== null) ? COLORS.advance : COLORS.bgSecondary,
             color: 'white',
             border: 'none',
             borderRadius: '6px',
-            fontSize: '16px',
+            fontSize: '15px',
             fontWeight: '600',
-            cursor: (hasVehicle !== null && isRegularTransitUser !== null) ? 'pointer' : 'not-allowed'
+            cursor: (hasVehicle !== null && isRegularTransitUser !== null) ? 'pointer' : 'not-allowed',
+            opacity: (hasVehicle !== null && isRegularTransitUser !== null) ? 1 : 0.6
           }}
         >
           Continue
@@ -1354,7 +1387,7 @@ function UnaffectedRouteModal({ isOpen, onClose }) {
         <p>Your chosen route uses transit lines that already exist today.  
         To compare, please select a route that uses a new transit service (i.e. the Eglinton Crosstown LRT or Finch West LRT).
         Your trips may not be affected by these new routes.</p>
-        <button onClick={onClose} style={{ marginTop: '12px', padding: '8px 16px', backgroundColor: COLORS.primary, color: 'white', border: 'none', borderRadius: '4px' }}>
+        <button onClick={onClose} style={{ marginTop: '12px', padding: '8px 16px', backgroundColor: COLORS.primary, color: 'white', border: 'none', cursor: 'pointer', borderRadius: '4px' }}>
           Okay
         </button>
       </div>
@@ -1374,7 +1407,7 @@ function ChangedODModal({ isOpen, onClose }) {
         <h2 style={{ marginBottom: '12px', color: COLORS.danger }}>Origin/Destination Changed</h2>
         <p>It looks like your origin or destination has changed since your last search.  
         Please find a route for this trip before comparing.</p>
-        <button onClick={onClose} style={{ marginTop: '12px', padding: '8px 16px', backgroundColor: COLORS.primary, color: 'white', border: 'none', borderRadius: '4px' }}>
+        <button onClick={onClose} style={{ marginTop: '12px', padding: '8px 16px', backgroundColor: COLORS.primary, color: 'white', border: 'none', cursor: 'pointer', borderRadius: '4px' }}>
           Got it
         </button>
       </div>
