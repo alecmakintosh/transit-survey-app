@@ -1170,10 +1170,10 @@ function UserProfileModal({ isOpen, onClose, onSubmit }) {
         boxShadow: '0 10px 25px rgba(0,0,0,0.3)'
       }}>
         <h2 style={{ margin: '0 0 16px 0', fontSize: '24px', fontWeight: '600', color: COLORS.textPrimary }}>
-          Welcome to the Future Toronto Transit Mapper!
+          Two quick questions:
         </h2>
         <p style={{ marginBottom: '24px', color: COLORS.textSecondary, lineHeight: '1.5' }}>
-          These questions help me design your user experience and understand how different types of travelers use transit services.
+          These help me understand who's using the website.
         </p>
         
         <div style={{ marginBottom: '24px' }}>
@@ -1384,7 +1384,32 @@ function ChangedODModal({ isOpen, onClose }) {
 
 // FAQ Modal Component - add before the return statement
 function FAQModal({ isOpen, onClose }) {
+  const handlePrivacyClick = (e) => {
+    e.preventDefault();
+    
+    const confirmed = window.confirm(
+      "You may lose any unsaved route data if you navigate to the privacy policy. Are you sure you want to continue?"
+    );
+    
+    if (confirmed) {
+      // Get current path and open in new tab
+      const currentPath = window.location.pathname;
+      const privacyUrl = '/privacy?from=' + encodeURIComponent(currentPath);
+      window.open(privacyUrl, '_blank', 'noopener,noreferrer');
+    }
+    
+    return false;
+  };
+
+  React.useEffect(() => {
+    window.handlePrivacyClick = handlePrivacyClick;
+    return () => {
+      delete window.handlePrivacyClick;
+    };
+  }, []);
+
   if (!isOpen) return null;
+
 
   const faqs = [
     {
@@ -1433,7 +1458,8 @@ function FAQModal({ isOpen, onClose }) {
     },
     {
       question: "How is my data used and stored?",
-      answer: "All data you enter into the site is stored anonymously, and is used in research to better understand the things that matter to travelers. Read more about my privacy policy <a href='/privacy' target='_blank' rel='noopener noreferrer' style={{ color: COLORS.link }}>here</a>."
+      answer: `All data you enter into the site is stored anonymously, and is used in research to better understand the things that matter to travelers. Read more about my privacy policy <a href='/privacy' rel='noopener noreferrer' style='color: ${COLORS.link}' onclick='return window.handlePrivacyClick(event)'>here</a>.`,
+      isHTML: true
     },
     {
       question: "Who are you?",
@@ -1475,7 +1501,6 @@ function FAQModal({ isOpen, onClose }) {
       }}>
         <div style={{
           padding: '24px 32px 16px 32px',
-          //borderBottom: `1px solid ${COLORS.border}`,
         }}>
           <h2 style={{ 
             margin: '0', 
@@ -1502,21 +1527,32 @@ function FAQModal({ isOpen, onClose }) {
               }}>
                 {faq.question}
               </h3>
-              <p style={{
-                margin: '0',
-                fontSize: '14px',
-                color: COLORS.textSecondary,
-                lineHeight: '1.5'
-              }}>
-                {faq.answer}
-              </p>
+              {faq.isHTML ? (
+                <p 
+                  style={{
+                    margin: '0',
+                    fontSize: '14px',
+                    color: COLORS.textSecondary,
+                    lineHeight: '1.5'
+                  }}
+                  dangerouslySetInnerHTML={{ __html: faq.answer }}
+                />
+              ) : (
+                <p style={{
+                  margin: '0',
+                  fontSize: '14px',
+                  color: COLORS.textSecondary,
+                  lineHeight: '1.5'
+                }}>
+                  {faq.answer}
+                </p>
+              )}
             </div>
           ))}
         </div>
         
         <div style={{
           padding: '16px 32px 24px 32px',
-          //borderTop: `1px solid ${COLORS.border}`
         }}>
           <button
             onClick={onClose}
