@@ -1085,7 +1085,7 @@ function TravelModeModal({ isOpen, onClose, onModeSelect }) {
       }}>
         <h2 style={{ 
           margin: '0 0 24px 0', 
-          fontSize: '24px', 
+          fontSize: '20px', 
           fontWeight: '600', 
           color: COLORS.textPrimary,
           textAlign: 'center'
@@ -1100,11 +1100,11 @@ function TravelModeModal({ isOpen, onClose, onModeSelect }) {
               onClick={() => onModeSelect(mode.id)}
               style={{
                 padding: '16px 20px',
-                backgroundColor: COLORS.bgTertiary,
-                border: `2px solid ${COLORS.border}`,
+                backgroundColor: 'transparent',
+                border: `1.5px solid ${COLORS.border}`,
                 borderRadius: '8px',
                 cursor: 'pointer',
-                fontSize: '16px',
+                fontSize: '14px',
                 fontWeight: '500',
                 color: COLORS.textBold,
                 display: 'flex',
@@ -1183,7 +1183,7 @@ const [hasVehicle, setHasVehicle] = useState(null);
           lineHeight: '1.5',
           fontSize: '14px'
         }}>
-          These help me understand who's using the website.
+          These help me understand who is using the website.
         </p>
         
         <div style={{ marginBottom: '24px' }}>
@@ -1537,7 +1537,7 @@ function FAQModal({ isOpen, onClose }) {
         }}>
           <h2 style={{ 
             margin: '0', 
-            fontSize: '24px', 
+            fontSize: '20px', 
             fontWeight: '600', 
             color: COLORS.textPrimary,
           }}>
@@ -3882,7 +3882,7 @@ function App() {
               onMouseOver={e => e.target.style.backgroundColor = COLORS.advanceHover}
               onMouseOut={e => e.target.style.backgroundColor = COLORS.advance}
             >
-              Finish Survey
+              Try What-If Scenarios!
             </button>
           </div>
         )}

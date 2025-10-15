@@ -5,7 +5,7 @@
       "headers": [
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://vercel.live; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://unpkg.com; font-src 'self' https://cdnjs.cloudflare.com; img-src 'self' data: https: blob:; connect-src 'self' https://api.mapbox.com https://api.tomtom.com https://*.supabase.co https://api.futuretorontotransit.ca http://159.89.121.252:8081 https://vercel.live; worker-src 'self' blob:; frame-src 'self' https://vercel.live;"
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://vercel.live; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://unpkg.com; font-src 'self' https://cdnjs.cloudflare.com; img-src 'self' data: https: blob:; connect-src 'self' https://api.mapbox.com https://api.tomtom.com https://*.supabase.co https://api.futuretorontotransit.ca http://159.89.121.252:8081 https://vercel.live; worker-src 'self' blob:;"
         },
         {
           "key": "X-Content-Type-Options",
