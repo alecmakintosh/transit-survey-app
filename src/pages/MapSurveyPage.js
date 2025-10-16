@@ -1395,6 +1395,142 @@ function UnaffectedRouteModal({ isOpen, onClose }) {
   );
 }
 
+function NoNewTransitModal({ isOpen, onClose }) {
+  if (!isOpen) return null;
+  return (
+    <div style={{
+      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+      backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 3000,
+      display: 'flex', alignItems: 'center', justifyContent: 'center'
+    }}>
+      <div style={{ 
+        backgroundColor: COLORS.bgPrimary, 
+        padding: '32px', 
+        borderRadius: '12px', 
+        maxWidth: '450px',
+        boxShadow: '0 10px 25px rgba(0,0,0,0.3)'
+      }}>
+        <h2 style={{ 
+          margin: '0 0 16px 0', 
+          fontSize: '20px', 
+          fontWeight: '600', 
+          color: COLORS.textPrimary 
+        }}>
+          No New Transit Options Available
+        </h2>
+        <p style={{ 
+          marginBottom: '16px', 
+          color: COLORS.textSecondary, 
+          lineHeight: '1.5',
+          fontSize: '14px'
+        }}>
+          None of the routes found for this trip use the new Eglinton Crosstown LRT or Finch West LRT. 
+          This means the new transit lines wouldn't provide a benefit for this particular journey.
+        </p>
+        <p style={{ 
+          marginBottom: '24px', 
+          color: COLORS.textBold, 
+          fontWeight: '500',
+          fontSize: '14px'
+        }}>
+          The routes shown are what's available using today's transit network. You can still explore 
+          them, but they won't change when the new LRT lines open.
+        </p>
+        <button 
+          onClick={onClose}
+          style={{
+            width: '100%',
+            padding: '12px',
+            backgroundColor: COLORS.primary,
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            fontSize: '16px',
+            fontWeight: '600',
+            cursor: 'pointer'
+          }}
+        >
+          Got it
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function NewTransitAvailableModal({ isOpen, onClose }) {
+  if (!isOpen) return null;
+  return (
+    <div style={{
+      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+      backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 3000,
+      display: 'flex', alignItems: 'center', justifyContent: 'center'
+    }}>
+      <div style={{ 
+        backgroundColor: COLORS.bgPrimary, 
+        padding: '32px', 
+        borderRadius: '12px', 
+        maxWidth: '450px',
+        boxShadow: '0 10px 25px rgba(0,0,0,0.3)'
+      }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          marginBottom: '16px',
+          gap: '8px'
+        }}>
+          <img 
+            src="/stars.png" 
+            style={{ width: '24px', height: '24px' }}
+            alt="New"
+          />
+          <h2 style={{ 
+            margin: '0', 
+            fontSize: '20px', 
+            fontWeight: '600', 
+            color: COLORS.advance 
+          }}>
+            New Transit Options Found!
+          </h2>
+        </div>
+        <p style={{ 
+          marginBottom: '16px', 
+          color: COLORS.textSecondary, 
+          lineHeight: '1.5',
+          fontSize: '14px'
+        }}>
+          Great news! At least one of the routes found uses the new Eglinton Crosstown LRT 
+          or Finch West LRT (marked with a ✨ star).
+        </p>
+        <p style={{ 
+          marginBottom: '24px', 
+          color: COLORS.textBold, 
+          fontWeight: '500',
+          fontSize: '14px'
+        }}>
+          These routes show how the new transit lines could benefit your trip when they open. 
+          Compare them with existing options to see the difference!
+        </p>
+        <button 
+          onClick={onClose}
+          style={{
+            width: '100%',
+            padding: '12px',
+            backgroundColor: COLORS.advance,
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            fontSize: '16px',
+            fontWeight: '600',
+            cursor: 'pointer'
+          }}
+        >
+          Explore Routes
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function ChangedODModal({ isOpen, onClose }) {
   if (!isOpen) return null;
   return (
@@ -2276,6 +2412,8 @@ function App() {
   const [lastPlannedOrigin, setLastPlannedOrigin] = useState(null);
   const [lastPlannedDestination, setLastPlannedDestination] = useState(null);
   const [showUnaffectedModal, setShowUnaffectedModal] = useState(false);
+  const [showNoNewTransitModal, setShowNoNewTransitModal] = useState(false);
+  const [showNewTransitAvailableModal, setShowNewTransitAvailableModal] = useState(false);
   const [showChangedODModal, setShowChangedODModal] = useState(false);
 
   const handleBackFromCompare = () => {
@@ -2471,6 +2609,16 @@ function App() {
     ]);
     
     setIsCalculating(false);
+
+    const hasAnyNewTransit = otpRoutes.some(route => hasNewRoute(route));
+
+    if (!hasAnyNewTransit) {
+      // Show modal when NO routes use new transit
+      setShowNoNewTransitModal(true);
+    } else {
+      // Optional: Show modal when routes DO use new transit
+      setShowNewTransitAvailableModal(true);
+    }
   };
 
   const handleCalculateRoute = async () => {
@@ -3808,6 +3956,17 @@ function App() {
         isOpen={showUnaffectedModal}
         onClose={() => setShowUnaffectedModal(false)}
       />
+
+      <NoNewTransitModal
+        isOpen={showNoNewTransitModal}
+        onClose={() => setShowNoNewTransitModal(false)}
+      />
+
+      <NewTransitAvailableModal
+        isOpen={showNewTransitAvailableModal}
+        onClose={() => setShowNewTransitAvailableModal(false)}
+      />
+
       <ChangedODModal
         isOpen={showChangedODModal}
         onClose={() => setShowChangedODModal(false)}
