@@ -693,7 +693,7 @@ const fetchOTPRoute = async (fromCoords, toCoords, time, isArriveBy, dayType, us
         ${isArriveBy ? 'arriveBy: true' : ''}
         numItineraries: 15
         transferPenalty: 60
-        modeWeight: {BUS: 1.2, SUBWAY: 0.9, RAIL: 0.85, TRAM: 0.95}
+        modeWeight: {BUS: 1.1, SUBWAY: 0.9, RAIL: 0.85, TRAM: 0.95}
         searchWindow: 1200
         walkReluctance: 2.0
         maxTransfers: 5
@@ -795,7 +795,7 @@ const fetchOTPRoute = async (fromCoords, toCoords, time, isArriveBy, dayType, us
         ${isArriveBy ? 'arriveBy: true' : ''}
         numItineraries: 15
         transferPenalty: 60
-        modeWeight: {BUS: 1.2, SUBWAY: 0.9, RAIL: 0.85, TRAM: 0.95}
+        modeWeight: {BUS: 1.1, SUBWAY: 0.9, RAIL: 0.85, TRAM: 0.95}
         searchWindow: 7200
         walkReluctance: 2.0
         maxTransfers: 8
@@ -1384,9 +1384,9 @@ function UnaffectedRouteModal({ isOpen, onClose }) {
     }}>
       <div style={{ backgroundColor: COLORS.bgPrimary, padding: '24px', borderRadius: '8px', maxWidth: '400px' }}>
         <h2 style={{ marginBottom: '12px', color: COLORS.primary }}>Route Unaffected</h2>
-        <p>Your chosen route uses transit lines that already exist today.  
-        To compare, please select a route that uses a new transit service (i.e. the Eglinton Crosstown LRT or Finch West LRT).
-        Your trips may not be affected by these new routes.</p>
+        <p>Your selected route only uses transit lines that exist today.  
+        If this is your preferred route for this trip, then your trip will be unaffected by the new transit services.</p>
+        <p>Is this your preferred route for this trip?</p>
         <button onClick={onClose} style={{ marginTop: '12px', padding: '8px 16px', backgroundColor: COLORS.primary, color: 'white', border: 'none', cursor: 'pointer', borderRadius: '4px' }}>
           Okay
         </button>
@@ -1450,6 +1450,10 @@ function FAQModal({ isOpen, onClose }) {
       answer: "This is a research tool to help understand how new transit lines (like the Eglinton Crosstown LRT and Finch West LRT) might change travel patterns in Toronto. It however doubles as a public-facing tool for you to explore our hopefully soon-to-be transit network. Please also note this is a prototype tool and will have errors."
     },
     {
+      question: "Why does my data and input matter?",
+      answer: "Your data helps transportation planners and engineers understand what things are important and what things we should be prioritizing. The more information we have from tools like this, the more effectively we can work to deliver a transportation system that meet your needs."
+    },
+    {
       question: "What new routes are currently included?",
       answer: "Currently, the Eglinton Crosstown LRT and Finch West LRT, both projected to open in 2025, are included. Lines that are further from completion, such as the Ontario Line, are not included as of now."
     },
@@ -1468,6 +1472,10 @@ function FAQModal({ isOpen, onClose }) {
     {
       question: "Why can't I drag markers in compare mode?",
       answer: "Markers are locked during comparison to ensure you're comparing the same trip across different scenarios."
+    },
+    {
+      question: "When I enter my address, why can't I find my exact location?",
+      answer: `The software I'm using to find addresses is not the best; try using the "Click On Map" button to find your address. Sorry!`
     },
     {
       question: "What does 'new route' mean?",
@@ -1493,6 +1501,10 @@ function FAQModal({ isOpen, onClose }) {
       question: "How is my data used and stored?",
       answer: `All data you enter into the site is stored anonymously, and is used in research to better understand the things that matter to travelers. Read more about my privacy policy <a href='/privacy' rel='noopener noreferrer' style='color: ${COLORS.link}' onclick='return window.handlePrivacyClick(event)'>here</a>.`,
       isHTML: true
+    },
+    {
+      question: "Why are you asking for my email?",
+      answer: "A key feature of my research is that once the Eglinton Crosstown LRT and Finch West LRT open, I want to see if they meet users' expectations. I'm not a marketer, I'm just a transportation researcher, and will only use your data for research purposes."
     },
     {
       question: "Who are you?",
@@ -3046,7 +3058,7 @@ function App() {
               <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', fontWeight: '600', color: COLORS.textBold }}>
                 Route Options
               </h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', paddingBottom: currentRouteHasNewTransit ? '120px' : '80px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', paddingBottom: '16px' }}> {/*currentRouteHasNewTransit ? '120px' : '80px' }}>*/}
                 {routeOptions.map((route, index) => {
                   const walkingTime = route.legs
                     .filter(leg => leg.mode === 'WALK')
@@ -3369,7 +3381,7 @@ function App() {
                   display: 'flex', 
                   flexDirection: 'column', 
                   gap: '6px', 
-                  paddingBottom: '80px',
+                  paddingBottom: '16px',
                   //maxHeight: '400px',
                   //overflowY: 'auto'
                 }}>
@@ -3499,7 +3511,7 @@ function App() {
                 display: 'flex', 
                 flexDirection: 'column', 
                 gap: '6px', 
-                paddingBottom: '80px',
+                paddingBottom: '16px',
                 //maxHeight: '400px',
                 //overflowY: 'auto'
               }}>
@@ -3821,22 +3833,28 @@ function App() {
           flexDirection: 'column',
           minHeight: 0,
           overflowY: 'auto',
-          padding: '0 16px'
+          padding: '0 16px',
+          paddingBottom: '16px', // Just normal padding at bottom
+          marginBottom: tripHistory.length > 0 ? '120px' : '0' // Reserve space for buttons when they exist
         }}>
           {renderSidebarContent()}
         </div>
 
-        {/* Fixed bottom buttons container */}
+        {/* Fixed bottom buttons container - now truly separate */}
         {tripHistory.length > 0 && (
           <div style={{
             position: 'fixed',
-            bottom: '16px',
-            left: '16px',
+            bottom: 0,
+            left: 0,
             width: '368px',
+            backgroundColor: COLORS.bgPrimary,
+            //borderTop: `1px solid ${COLORS.borderSidebar}`,
+            padding: '16px',
             zIndex: 1001,
             display: 'flex',
             flexDirection: 'column',
-            gap: '8px'
+            gap: '8px',
+            //boxShadow: '0 -2px 10px rgba(0,0,0,0.1)' // Subtle shadow above
           }}>
             {/* Compare/Back button logic */}
             {compareMode === 'default' &&  (

@@ -29,9 +29,9 @@ const LandingPage = () => {
     }}>
       <h1>Welcome to the Future Toronto Transit Mapper!</h1>
       <p style={{ maxWidth: '600px', margin: '0 auto 1rem auto' }}>
-        Explore how the <strong>Eglinton Crosstown LRT </strong> 
-         and <strong>Finch West LRT</strong> may affect your daily travel. 
-        Search your regular trips and see new route options!
+        Explore if and how the <strong>Eglinton Crosstown LRT </strong> 
+         and <strong>Finch West LRT</strong> will affect your daily travel. 
+        Search your regular trips and see future route options!
       </p>
 
       <p style={{ maxWidth: '600px', margin: '0 auto 2rem auto' }}>
