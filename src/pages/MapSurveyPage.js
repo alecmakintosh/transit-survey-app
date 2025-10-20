@@ -1335,7 +1335,7 @@ function NoRoutesFoundModal({ isOpen, onClose }) {
         backgroundColor: COLORS.bgPrimary,
         padding: '32px',
         borderRadius: '12px',
-        width: '400px',
+        width: '460px',
         maxWidth: '90vw',
         boxShadow: '0 10px 25px rgba(0,0,0,0.3)'
       }}>
@@ -1382,10 +1382,16 @@ function UnaffectedRouteModal({ isOpen, onClose }) {
       backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 3000,
       display: 'flex', alignItems: 'center', justifyContent: 'center'
     }}>
-      <div style={{ backgroundColor: COLORS.bgPrimary, padding: '24px', borderRadius: '8px', maxWidth: '400px' }}>
+      <div style={{ backgroundColor: COLORS.bgPrimary, padding: '24px', borderRadius: '8px', maxWidth: '460px' }}>
         <h2 style={{ marginBottom: '12px', color: COLORS.primary }}>Route Unaffected</h2>
         <p>Your selected route already only uses transit lines that exist today.</p>
         <p style= {{fontWeight: '500',}}>Of all the route options, is this your preferred route for this trip?</p>
+        <p style= {{display: 'block',
+              fontSize: '13px', 
+              color: COLORS.textSecondary,
+              fontWeight: '400',
+              marginTop: '4px'}}>
+              This helps us understand which route you’d normally choose for this trip.</p>
         <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
           <button onClick={onClose} style={{ flex: 1, marginTop: '12px', padding: '8px 16px', backgroundColor: COLORS.primary, color: 'white', border: 'none', cursor: 'pointer', borderRadius: '4px' }}>
             Yes
@@ -1410,7 +1416,7 @@ function UnaffectedOneRouteModal({ isOpen, onClose }) {
       backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 3000,
       display: 'flex', alignItems: 'center', justifyContent: 'center'
     }}>
-      <div style={{ backgroundColor: COLORS.bgPrimary, padding: '24px', borderRadius: '8px', maxWidth: '400px' }}>
+      <div style={{ backgroundColor: COLORS.bgPrimary, padding: '24px', borderRadius: '8px', maxWidth: '460px' }}>
         <h2 style={{ marginBottom: '12px', color: COLORS.primary }}>Route Unaffected</h2>
         <p>Your selected route already only uses transit lines that exist today.</p>
         <button onClick={onClose} style={{ marginTop: '12px', padding: '8px 16px', backgroundColor: COLORS.primary, color: 'white', border: 'none', cursor: 'pointer', borderRadius: '4px' }}>
@@ -1445,10 +1451,16 @@ function AffectedRouteModal({ isOpen, onClose, onProceed }) {
       backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 3000,
       display: 'flex', alignItems: 'center', justifyContent: 'center'
     }}>
-      <div style={{ backgroundColor: COLORS.bgPrimary, padding: '24px', borderRadius: '8px', maxWidth: '400px' }}>
+      <div style={{ backgroundColor: COLORS.bgPrimary, padding: '24px', borderRadius: '8px', maxWidth: '460px' }}>
         <h2 style={{ marginBottom: '12px', color: COLORS.primary }}>Route Affected</h2>
         <p>Your selected route uses a new transit service.</p>
         <p style= {{fontWeight: '500',}}>Of all the route options, is this your preferred route for this trip?</p>
+        <p style= {{display: 'block',
+          fontSize: '13px', 
+          color: COLORS.textSecondary,
+          fontWeight: '400',
+          marginTop: '4px'}}>
+          This helps us understand which route you’d normally choose for this trip.</p>
         <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
           <button onClick={handleYes} style={{ flex: 1, marginTop: '12px', padding: '8px 16px', backgroundColor: COLORS.primary, color: 'white', border: 'none', cursor: 'pointer', borderRadius: '4px' }}>
             Yes
@@ -1477,7 +1489,7 @@ function NoNewTransitModal({ isOpen, onClose }) {
         backgroundColor: COLORS.bgPrimary, 
         padding: '32px', 
         borderRadius: '12px', 
-        maxWidth: '450px',
+        maxWidth: '460px',
         boxShadow: '0 10px 25px rgba(0,0,0,0.3)'
       }}>
         <h2 style={{ 
@@ -1537,7 +1549,7 @@ function NewTransitAvailableModal({ isOpen, onClose }) {
         backgroundColor: COLORS.bgPrimary, 
         padding: '32px', 
         borderRadius: '12px', 
-        maxWidth: '450px',
+        maxWidth: '460px',
         boxShadow: '0 10px 25px rgba(0,0,0,0.3)'
       }}>
         <div style={{
@@ -1606,7 +1618,7 @@ function ChangedODModal({ isOpen, onClose }) {
       backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 3000,
       display: 'flex', alignItems: 'center', justifyContent: 'center'
     }}>
-      <div style={{ backgroundColor: COLORS.bgPrimary, padding: '24px', borderRadius: '8px', maxWidth: '400px' }}>
+      <div style={{ backgroundColor: COLORS.bgPrimary, padding: '24px', borderRadius: '8px', maxWidth: '460px' }}>
         <h2 style={{ marginBottom: '12px', color: COLORS.danger }}>Origin/Destination Changed</h2>
         <p>It looks like your origin or destination has changed since your last search.  
         Please find a route for this trip before comparing.</p>
