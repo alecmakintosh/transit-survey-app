@@ -691,7 +691,7 @@ const fetchOTPRoute = async (fromCoords, toCoords, time, isArriveBy, dayType, us
         date: "${baseDate}"
         time: "${time}"
         ${isArriveBy ? 'arriveBy: true' : ''}
-        numItineraries: 15
+        numItineraries: 5
         transferPenalty: 60
         modeWeight: {BUS: 1.1, SUBWAY: 0.9, RAIL: 0.85, TRAM: 0.95}
         searchWindow: 1200
@@ -793,7 +793,7 @@ const fetchOTPRoute = async (fromCoords, toCoords, time, isArriveBy, dayType, us
         date: "${baseDate}"
         time: "${time}"
         ${isArriveBy ? 'arriveBy: true' : ''}
-        numItineraries: 15
+        numItineraries: 5
         transferPenalty: 60
         modeWeight: {BUS: 1.1, SUBWAY: 0.9, RAIL: 0.85, TRAM: 0.95}
         searchWindow: 7200
@@ -1384,12 +1384,82 @@ function UnaffectedRouteModal({ isOpen, onClose }) {
     }}>
       <div style={{ backgroundColor: COLORS.bgPrimary, padding: '24px', borderRadius: '8px', maxWidth: '400px' }}>
         <h2 style={{ marginBottom: '12px', color: COLORS.primary }}>Route Unaffected</h2>
-        <p>Your selected route only uses transit lines that exist today.  
-        If this is your preferred route for this trip, then your trip will be unaffected by the new transit services.</p>
-        <p>Is this your preferred route for this trip?</p>
+        <p>Your selected route already only uses transit lines that exist today.</p>
+        <p style= {{fontWeight: '500',}}>Of all the route options, is this your preferred route for this trip?</p>
+        <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+          <button onClick={onClose} style={{ flex: 1, marginTop: '12px', padding: '8px 16px', backgroundColor: COLORS.primary, color: 'white', border: 'none', cursor: 'pointer', borderRadius: '4px' }}>
+            Yes
+          </button>
+          <button onClick={onClose} style={{ flex: 1, marginTop: '12px', padding: '8px 16px', backgroundColor: COLORS.primary, color: 'white', border: 'none', cursor: 'pointer', borderRadius: '4px' }}>
+            No
+          </button>
+          <button onClick={onClose} style={{ flex: 1, marginTop: '12px', padding: '8px 16px', backgroundColor: COLORS.primary, color: 'white', border: 'none', cursor: 'pointer', borderRadius: '4px' }}>
+            Unsure/Just Exploring
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function UnaffectedOneRouteModal({ isOpen, onClose }) {
+  if (!isOpen) return null;
+  return (
+    <div style={{
+      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+      backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 3000,
+      display: 'flex', alignItems: 'center', justifyContent: 'center'
+    }}>
+      <div style={{ backgroundColor: COLORS.bgPrimary, padding: '24px', borderRadius: '8px', maxWidth: '400px' }}>
+        <h2 style={{ marginBottom: '12px', color: COLORS.primary }}>Route Unaffected</h2>
+        <p>Your selected route already only uses transit lines that exist today.</p>
         <button onClick={onClose} style={{ marginTop: '12px', padding: '8px 16px', backgroundColor: COLORS.primary, color: 'white', border: 'none', cursor: 'pointer', borderRadius: '4px' }}>
           Okay
         </button>
+      </div>
+    </div>
+  );
+}
+
+function AffectedRouteModal({ isOpen, onClose, onProceed }) {
+  if (!isOpen) return null;
+  
+  const handleYes = () => {
+    onClose();
+    if (onProceed) onProceed();
+  };
+  
+  const handleNo = () => {
+    onClose();
+    // Just close, don't proceed
+  };
+  
+  const handleUnsure = () => {
+    onClose();
+    if (onProceed) onProceed();
+  };
+  
+  return (
+    <div style={{
+      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+      backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 3000,
+      display: 'flex', alignItems: 'center', justifyContent: 'center'
+    }}>
+      <div style={{ backgroundColor: COLORS.bgPrimary, padding: '24px', borderRadius: '8px', maxWidth: '400px' }}>
+        <h2 style={{ marginBottom: '12px', color: COLORS.primary }}>Route Affected</h2>
+        <p>Your selected route uses a new transit service.</p>
+        <p style= {{fontWeight: '500',}}>Of all the route options, is this your preferred route for this trip?</p>
+        <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+          <button onClick={handleYes} style={{ flex: 1, marginTop: '12px', padding: '8px 16px', backgroundColor: COLORS.primary, color: 'white', border: 'none', cursor: 'pointer', borderRadius: '4px' }}>
+            Yes
+          </button>
+          <button onClick={handleNo} style={{ flex: 1, marginTop: '12px', padding: '8px 16px', backgroundColor: COLORS.primary, color: 'white', border: 'none', cursor: 'pointer', borderRadius: '4px' }}>
+            No
+          </button>
+          <button onClick={handleUnsure} style={{ flex: 1, marginTop: '12px', padding: '8px 16px', backgroundColor: COLORS.primary, color: 'white', border: 'none', cursor: 'pointer', borderRadius: '4px' }}>
+            Unsure/Just Exploring
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -1425,7 +1495,6 @@ function NoNewTransitModal({ isOpen, onClose }) {
           fontSize: '14px'
         }}>
           None of the routes found for this trip use the new Eglinton Crosstown LRT or Finch West LRT. 
-          This means the new transit lines wouldn't provide a benefit for this particular journey.
         </p>
         <p style={{ 
           marginBottom: '24px', 
@@ -1433,8 +1502,7 @@ function NoNewTransitModal({ isOpen, onClose }) {
           fontWeight: '500',
           fontSize: '14px'
         }}>
-          The routes shown are what's available using today's transit network. You can still explore 
-          them, but they won't change when the new LRT lines open.
+          The routes shown use what's available in today's transit network.
         </p>
         <button 
           onClick={onClose}
@@ -1487,9 +1555,9 @@ function NewTransitAvailableModal({ isOpen, onClose }) {
             margin: '0', 
             fontSize: '20px', 
             fontWeight: '600', 
-            color: COLORS.advance 
+            color: COLORS.primary 
           }}>
-            New Transit Options Found!
+            New Transit Options Found
           </h2>
         </div>
         <p style={{ 
@@ -1498,7 +1566,7 @@ function NewTransitAvailableModal({ isOpen, onClose }) {
           lineHeight: '1.5',
           fontSize: '14px'
         }}>
-          Great news! At least one of the routes found uses the new Eglinton Crosstown LRT 
+          At least one of the routes found uses the new Eglinton Crosstown LRT 
           or Finch West LRT (marked with a ✨ star).
         </p>
         <p style={{ 
@@ -1507,15 +1575,14 @@ function NewTransitAvailableModal({ isOpen, onClose }) {
           fontWeight: '500',
           fontSize: '14px'
         }}>
-          These routes show how the new transit lines could benefit your trip when they open. 
-          Compare them with existing options to see the difference!
+          Look through the route options and if your preferred route uses a new transit service, compare them with today's existing options to see the difference!
         </p>
         <button 
           onClick={onClose}
           style={{
             width: '100%',
             padding: '12px',
-            backgroundColor: COLORS.advance,
+            backgroundColor: COLORS.primary,
             color: 'white',
             border: 'none',
             borderRadius: '6px',
@@ -2412,6 +2479,8 @@ function App() {
   const [lastPlannedOrigin, setLastPlannedOrigin] = useState(null);
   const [lastPlannedDestination, setLastPlannedDestination] = useState(null);
   const [showUnaffectedModal, setShowUnaffectedModal] = useState(false);
+  const [showUnaffectedOneRouteModal, setShowUnaffectedOneRouteModal] = useState(false);
+  const [showAffectedModal, setShowAffectedModal] = useState(false);
   const [showNoNewTransitModal, setShowNoNewTransitModal] = useState(false);
   const [showNewTransitAvailableModal, setShowNewTransitAvailableModal] = useState(false);
   const [showChangedODModal, setShowChangedODModal] = useState(false);
@@ -2621,6 +2690,40 @@ function App() {
     }
   };
 
+  // Add this function in your App component
+  const triggerMapTransition = () => {
+    let mapContainer = document.querySelector('[style*="position: fixed"][style*="left: 400px"]');
+    
+    if (!mapContainer) {
+      mapContainer = document.querySelector('.leaflet-container')?.parentElement?.parentElement;
+    }
+    
+    if (!mapContainer) {
+      const allDivs = document.querySelectorAll('div');
+      mapContainer = Array.from(allDivs).find(div => {
+        const styles = window.getComputedStyle(div);
+        return styles.position === 'fixed' && styles.left === '400px';
+      });
+    }
+    
+    if (mapContainer) {
+      console.log('Found map container:', mapContainer);
+      mapContainer.classList.add('map-transition');
+      
+      setTimeout(() => {
+        mapContainer.classList.add('map-shrinking');
+        console.log('Added shrinking class');
+      }, 50);
+    } else {
+      console.log('Map container not found');
+    }
+
+    setTimeout(() => {
+      setCompareMode('selecting');
+      setShowTravelModeModal(true);
+    }, 300);
+  };
+
   const handleCalculateRoute = async () => {
     if (inputMode === 'text') {
       const trimmedOrigin = origin.trim();
@@ -2673,22 +2776,32 @@ function App() {
       return;
     }
 
-    // Check if route uses new transit
-    if (!hasNewRoute(routeOptions[selectedRouteIndex])) {
+    // Check if route does not use new transit and has more than one route option
+    if (!hasNewRoute(routeOptions[selectedRouteIndex]) && routeOptions.length > 1) {
       setShowUnaffectedModal(true);
       return;
     }
 
-    // Try multiple selectors to find the map container
+    // Check if route does not use new transit and only one route option
+    if (!hasNewRoute(routeOptions[selectedRouteIndex]) && routeOptions.length < 2) {
+      setShowUnaffectedOneRouteModal(true);
+      return;
+    }
+
+    // Check if route DOES use new transit and has more than one route option
+    if (hasNewRoute(routeOptions[selectedRouteIndex]) && routeOptions.length > 1) {
+      setShowAffectedModal(true);
+      return; // ADD THIS RETURN - it was missing!
+    }
+
+    // Only proceed with map transition if none of the modals need to be shown
     let mapContainer = document.querySelector('[style*="position: fixed"][style*="left: 400px"]');
     
     if (!mapContainer) {
-      // Fallback: find by content structure
       mapContainer = document.querySelector('.leaflet-container')?.parentElement?.parentElement;
     }
     
     if (!mapContainer) {
-      // Another fallback: look for the map div by its position
       const allDivs = document.querySelectorAll('div');
       mapContainer = Array.from(allDivs).find(div => {
         const styles = window.getComputedStyle(div);
@@ -3196,7 +3309,7 @@ function App() {
                 }
               }}
             >
-              {isCalculating ? 'Finding Route...' : 'Find Route'}
+              {isCalculating ? 'Finding Route...' : 'Find Transit Route'}
             </button>
           </div>
 
@@ -3955,6 +4068,17 @@ function App() {
       <UnaffectedRouteModal
         isOpen={showUnaffectedModal}
         onClose={() => setShowUnaffectedModal(false)}
+      />
+
+      <UnaffectedOneRouteModal
+        isOpen={showUnaffectedOneRouteModal}
+        onClose={() => setShowUnaffectedOneRouteModal(false)}
+      />
+
+      <AffectedRouteModal
+        isOpen={showAffectedModal}
+        onClose={() => setShowAffectedModal(false)}
+        onProceed={triggerMapTransition}
       />
 
       <NoNewTransitModal

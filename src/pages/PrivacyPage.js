@@ -60,7 +60,7 @@ const PrivacyPage = () => {
         </h1>
         
         <p style={{ color: '#666', marginBottom: '2rem' }}>
-          Last updated: {new Date().toLocaleDateString()}
+          Last updated: 10/19/2025
         </p>
 
         <section style={{ marginBottom: '2rem' }}>
@@ -82,7 +82,7 @@ const PrivacyPage = () => {
           <ul style={{ lineHeight: '1.8', color: '#333' }}>
             <li>To provide route comparison features</li>
             <li>To send you personalized follow-up surveys about your transit usage (if you provided email)</li>
-            <li>To improve transit planning through aggregated research</li>
+            <li>To improve transportation planning through aggregated research</li>
             <li>To analyze how people use current vs. future transit networks</li>
           </ul>
         </section>
@@ -116,7 +116,9 @@ const PrivacyPage = () => {
             Your Rights
           </h2>
           <ul style={{ lineHeight: '1.8', color: '#333' }}>
-            <li><strong>Access your data:</strong> email us at futuretorontotransit@gmail.com</li>
+            <li><strong>Access your data:</strong> email us at <a href="mailto:futuretorontotransit@gmail.com" style={{ color: '#0369a1' }}>
+              futuretorontotransit@gmail.com
+            </a></li>
             <li><strong>Correct your data:</strong> contact us to update any information</li>
             <li><strong>Delete your data:</strong> email us to request deletion of your information</li>
             <li><strong>Withdraw consent:</strong> stop using the service and request deletion</li>

@@ -18,10 +18,10 @@ const LandingPage = () => {
   return (
     <div style={{
       fontFamily: 'sans-serif',
-      padding: '2rem',
+      //padding: '2rem',
       textAlign: 'center',
       backgroundColor: '#fff',
-      height: '100vh',
+      minHeight: '100vh',
       display: 'flex',
       flexDirection: 'column',
       justifyContent: 'center',
