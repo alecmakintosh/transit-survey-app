@@ -7,6 +7,8 @@ import { useNavigate } from 'react-router-dom';
 import polyline from "@mapbox/polyline";
 import L from 'leaflet';
 
+import BehavioralSurvey from '../components/BehavioralSurvey';
+
 // Fix for default markers in react-leaflet
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -2497,7 +2499,77 @@ function App() {
   const [showNewTransitAvailableModal, setShowNewTransitAvailableModal] = useState(false);
   const [showChangedODModal, setShowChangedODModal] = useState(false);
 
+  // Behavioral survey state
+  const [showBehavioralSurvey, setShowBehavioralSurvey] = useState(false);
+  const [surveyCompleted, setSurveyCompleted] = useState(false);
+  const [behavioralResponses, setBehavioralResponses] = useState(null);
+
+  // Track which routes user selected for comparison
+  const [comparedCurrentRoute, setComparedCurrentRoute] = useState(null);
+  const [comparedFutureRoute, setComparedFutureRoute] = useState(null);
+
+  // Auto-trigger survey when both routes are compared and there's only 1 current route option
+  useEffect(() => {
+    if (
+      compareMode === 'comparing' &&
+      comparedCurrentRoute &&
+      comparedFutureRoute &&
+      currentRouteOptions.length === 1 &&
+      !surveyCompleted &&
+      !showBehavioralSurvey
+    ) {
+      console.log('🎯 Auto-triggering survey - only one current route option');
+      const timer = setTimeout(() => {
+        setShowBehavioralSurvey(true);
+      }, 1500);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [
+    compareMode,
+    comparedCurrentRoute,
+    comparedFutureRoute,
+    currentRouteOptions.length,
+    surveyCompleted,
+    showBehavioralSurvey
+  ]);
+
+  // Manual survey trigger - user clicks "I'm done comparing"
+  const handleComparisonComplete = () => {
+    // Show survey if they haven't completed it yet
+    if (!surveyCompleted && comparedCurrentRoute && comparedFutureRoute) {
+      setShowBehavioralSurvey(true);
+    }
+  };
+
+  // Survey completion handler
+  const handleSurveyComplete = (responses) => {
+    console.log('Behavioral survey responses:', responses);
+    
+    // Store the responses
+    setBehavioralResponses(responses);
+    
+    // Mark as completed FOR THIS COMPARISON
+    setSurveyCompleted(true);
+    setShowBehavioralSurvey(false);
+    
+    // TODO: Save to Supabase (we'll implement this in the next phase)
+    console.log('Survey completed with responses:', responses);
+  };
+
+  // Survey close handler (without completing)
+  const handleSurveyClose = () => {
+    setShowBehavioralSurvey(false);
+    // Allow them to reopen it if they change their mind
+  };
+
   const handleBackFromCompare = () => {
+    // Reset survey state for next comparison
+    setSurveyCompleted(false);
+    setComparedCurrentRoute(null);
+    setComparedFutureRoute(null);
+    setBehavioralResponses(null);
+  
     // Reset compare mode
     //setCompareMode("default");
 
@@ -2782,6 +2854,18 @@ function App() {
   // Handle compare button click
   // Replace the existing handleCompareClick function
   const handleCompareClick = () => {
+    console.log('=== handleCompareClick DEBUG ===');
+    console.log('selectedRouteIndex:', selectedRouteIndex);
+    console.log('routeOptions length:', routeOptions?.length);
+    
+    // CRITICAL: Set the compared future route when Compare button is clicked
+    if (selectedRouteIndex !== null && routeOptions && routeOptions[selectedRouteIndex]) {
+      setComparedFutureRoute(routeOptions[selectedRouteIndex]);
+      console.log('✓ Set compared future route:', routeOptions[selectedRouteIndex]);
+    } else {
+      console.log('✗ Could not set compared future route');
+    }
+
     // Check if OD changed
     if (origin !== lastPlannedOrigin || destination !== lastPlannedDestination) {
       setShowChangedODModal(true);
@@ -2849,11 +2933,14 @@ function App() {
       setIsLoadingCurrentRoutes(true);
 
       try {
-        // Pass the arriveBy parameter to TomTom
         const carRoutes = await fetchTomTomRoute(originCoords, destinationCoords, departureTime, dayType, arriveBy);
-        if (carRoutes) {
+        if (carRoutes && carRoutes.length > 0) {
           setCurrentRouteOptions(carRoutes);
           setSelectedCurrentRouteIndex(0);
+          
+          // ADD THESE TWO LINES:
+          setComparedCurrentRoute(carRoutes[0]);
+          console.log('✓ Auto-set compared current route (driving):', carRoutes[0]);
         } else {
           setCurrentRouteOptions([]);
         }
@@ -2863,12 +2950,17 @@ function App() {
       }
       setIsLoadingCurrentRoutes(false);
     } else {
+      // Transit mode
       setIsLoadingCurrentRoutes(true);
       try {
         const currentRoutes = await fetchOTPRoute(originCoords, destinationCoords, departureTime, arriveBy, dayType, true);
         if (currentRoutes && currentRoutes.length > 0) {
           setCurrentRouteOptions(currentRoutes);
           setSelectedCurrentRouteIndex(0);
+          
+          // ADD THESE TWO LINES:
+          setComparedCurrentRoute(currentRoutes[0]);
+          console.log('✓ Auto-set compared current route:', currentRoutes[0]);
         } else {
           setCurrentRouteOptions([]);
         }
@@ -2909,6 +3001,11 @@ function App() {
 
   // Handle route selection
   const handleRouteSelection = (index) => {
+    // Store which future route is being compared
+    if (routeOptions && routeOptions[index]) {
+      setComparedFutureRoute(routeOptions[index]);
+    }
+    
     setSelectedRouteIndex(index);
     setOtpTravelTime(Math.round(routeOptions[index].duration / 60));
     setTravelTime(Math.round(routeOptions[index].duration / 60));
@@ -2918,26 +3015,31 @@ function App() {
 
   // Handle current route selection
   const handleCurrentRouteSelection = (index) => {
-  console.log(`Selecting driving route ${index} out of ${currentRouteOptions.length} routes`);
-  console.log(`Previous selectedCurrentRouteIndex: ${selectedCurrentRouteIndex}`);
-  
-  // Force state update
-  setSelectedCurrentRouteIndex(prevIndex => {
-    console.log(`Updating from ${prevIndex} to ${index}`);
-    return index;
-  });
-  
-  // Optional: Force map refresh after state update
-  setTimeout(() => {
-    if (currentMapInstance && currentMapInstance.getContainer && currentMapInstance._loaded) {
-      try {
-        currentMapInstance.invalidateSize();
-      } catch (e) {
-        console.warn("Map invalidate failed:", e);
-      }
+    console.log(`Selecting route ${index} out of ${currentRouteOptions.length} routes`);
+    console.log(`Previous selectedCurrentRouteIndex: ${selectedCurrentRouteIndex}`);
+    
+    // Store the current route being compared
+    if (currentRouteOptions && currentRouteOptions[index]) {
+      setComparedCurrentRoute(currentRouteOptions[index]);
     }
-  }, 100);
-};
+    
+    // Force state update
+    setSelectedCurrentRouteIndex(prevIndex => {
+      console.log(`Updating from ${prevIndex} to ${index}`);
+      return index;
+    });
+    
+    // Optional: Force map refresh after state update
+    setTimeout(() => {
+      if (currentMapInstance && currentMapInstance.getContainer && currentMapInstance._loaded) {
+        try {
+          currentMapInstance.invalidateSize();
+        } catch (e) {
+          console.warn("Map invalidate failed:", e);
+        }
+      }
+    }, 100);
+  };
 
 
   // Check if current route uses new transit lines
@@ -4115,7 +4217,7 @@ function App() {
             Future Toronto Transit Mapper
           </h1>
           <p style={{ color: COLORS.textSecondary, marginBottom: '16px', fontSize: '14px' }}> 
-            Plan your trip and see how the Eglinton Crosstown LRT and Finch West LRT can help!
+            Plan your trip and see how the Eglinton Crosstown LRT and Finch West LRT affect you!
 
             Presently only searches within Toronto, Missisauga, Brampton, and York Region are supported.
           </p>
@@ -4181,6 +4283,76 @@ function App() {
               >
                 Back
               </button>
+            )}
+
+            {/* Finish Survey button */}
+            {compareMode === 'comparing' && (
+              <>
+                {/* Debug info - remove this after confirming it works */}
+                <div style={{
+                  padding: '8px',
+                  backgroundColor: '#f0f0f0',
+                  borderRadius: '4px',
+                  fontSize: '11px',
+                  marginBottom: '8px',
+                  fontFamily: 'monospace'
+                }}>
+                  Debug:<br/>
+                  comparedCurrent: {comparedCurrentRoute ? '✓' : '✗'}<br/>
+                  comparedFuture: {comparedFutureRoute ? '✓' : '✗'}<br/>
+                  surveyDone: {surveyCompleted ? 'yes' : 'no'}
+                </div>
+                
+                {!surveyCompleted ? (
+                  comparedCurrentRoute && comparedFutureRoute ? (
+                    <button
+                      onClick={handleComparisonComplete}
+                      style={{
+                        ...buttonStyle,
+                        backgroundColor: COLORS.primary,
+                        margin: '0',
+                        boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px'
+                      }}
+                      onMouseOver={e => e.target.style.backgroundColor = COLORS.primaryHover}
+                      onMouseOut={e => e.target.style.backgroundColor = COLORS.primary}
+                    >
+                      <i className="fas fa-check-circle"></i>
+                      Done Comparing - Continue
+                    </button>
+                  ) : (
+                    <div style={{
+                      padding: '12px',
+                      backgroundColor: '#fff3cd',
+                      borderRadius: '6px',
+                      border: '1px solid #ffc107',
+                      fontSize: '12px',
+                      color: '#856404',
+                      lineHeight: '1.4'
+                    }}>
+                      <strong>→</strong> Click a route option above to enable the survey button
+                    </div>
+                  )
+                ) : (
+                  <div style={{
+                    padding: '12px',
+                    backgroundColor: '#d4edda',
+                    borderRadius: '6px',
+                    border: '1px solid #c3e6cb',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}>
+                    <i className="fas fa-check-circle" style={{ color: '#28a745' }}></i>
+                    <span style={{ color: '#155724', fontWeight: '500', fontSize: '14px' }}>
+                      Thank you for your feedback!
+                    </span>
+                  </div>
+                )}
+              </>
             )}
             
             {/* Finish Survey button */}
@@ -4634,6 +4806,16 @@ function App() {
           </>
         )}
       </div>
+
+      {/* Behavioral Survey Modal */}
+      {showBehavioralSurvey && comparedCurrentRoute && comparedFutureRoute && (
+        <BehavioralSurvey
+          currentRoute={comparedCurrentRoute}
+          futureRoute={comparedFutureRoute}
+          onComplete={handleSurveyComplete}
+          onClose={handleSurveyClose}
+        />
+      )}
 
       {/* ADD FAQ BUTTON AND MODAL HERE - right before the closing </div> */}
       <button
