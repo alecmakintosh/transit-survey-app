@@ -1,18 +1,90 @@
 import React, { useState, useEffect } from 'react';
 
+const COLORS = {
+  primary: '#0369a1',
+  primaryHover: '#075985',
+  primaryLight: '#e0f2fe',
+  primaryLabel: 'rgba(3, 105, 161, 0.9)',
+  
+  advance: '#16a34a',
+  advanceHover: '#15803d',
+  advanceLight: '#dcfce7',
+  
+  danger: '#be123c',
+  dangerLight: '#ffe4e6',
+  
+  present: '#be123c',
+  presentLight: '#ffe4e6',
+  presentLabel: 'rgba(190, 18, 60, 0.9)',
+  
+  warning: '#ca8a04',
+  
+  textPrimary: '#18181b',
+  textSecondary: '#71717a',
+  textBold: '#3f3f46',
+  textBlack: '#09090b',
+  
+  bgPrimary: '#ffffff',
+  bgSecondary: '#71717a',
+  bgTertiary: '#f8f9fa',
+  bgPrimaryHover: '#f4f4f5',
+  bgSecondaryHover: '#52525b',
+  bgTertiaryHover: '#e4e4e7',
+  
+  border: '#d4d4d8',
+  borderHover: '#a1a1aa',
+  borderSecondary: '#d4d4d8',
+  borderSidebar: '#d4d4d8',
+  
+  // Specific UI elements
+  originMarker: '#16a34a',
+  destinationMarker: '#be123c',
+  transferMarker: '#ca8a04',
+  vehicleIcon: '#71717a',
+  comparisonBorder: '#d4d4d8',
+  bgToll: '#fef3c7',
+  textToll: '#92400e',
+  
+  //Traffic Condition Colors
+  heavyTraffic: '#be123c',
+  mediumTraffic: '#f97316',
+  lightTraffic: '#f59e0b',
+  noTraffic: '#16a34a',
+  
+  //AutoRoutes
+  autoSelected: '#be123c',
+  autoHover: '#e11d48',
+  autoLight: '#52525b',
+  
+  // Mode colors
+  WALK: '#16a34a',
+  BUS: '#18181b',
+  SUBWAY: '#18181b',
+  TRAM: '#18181b',
+  RAIL: '#7c3aed',
+  FERRY: '#0891b2'
+};
+
 const BehavioralSurvey = ({ 
   currentRoute, 
   futureRoute, 
   onComplete,
-  onClose 
+  onClose,
+  onContinueComparing,  
+  onExploreNewTrip,
+  hasMultipleCurrentRoutes = true      
+
 }) => {
-  const [step, setStep] = useState(1);
+  const initialStep = hasMultipleCurrentRoutes ? 0 : 1;
+  const [step, setStep] = useState(initialStep);
+  const [showThankYou, setShowThankYou] = useState(false);
   const [startTime] = useState(Date.now());
   const [responses, setResponses] = useState({
+    is_preferred_route: null,  // ADD THIS
     route_preference: null,
     decision_factors: [],
     decision_factors_other: '',
-    likelihood_use_future: null
+    trip_frequency: null
   });
 
   // Track which factors are selected
@@ -60,10 +132,16 @@ const BehavioralSurvey = ({
 
   const handleSubmit = () => {
     const responseDuration = Math.round((Date.now() - startTime) / 1000);
+    
+    // Save responses but don't close modal yet
     onComplete({
       ...responses,
       response_duration_seconds: responseDuration
     });
+    
+    // Show thank you screen
+    setShowThankYou(true);
+    setStep(4);
   };
 
   const canProceedFromStep2 = selectedFactors.size > 0;
@@ -121,13 +199,35 @@ const BehavioralSurvey = ({
             display: 'flex',
             alignItems: 'center',
             gap: '10px',
-            marginBottom: '10px'
+            marginBottom: '10px',
+            paddingRight: '40px'  // Space for close button
           }}>
+            {hasMultipleCurrentRoutes && (
+              <>
+                <div style={{
+                  width: '30px',
+                  height: '30px',
+                  borderRadius: '50%',
+                  backgroundColor: step >= 0 ? COLORS.primary : COLORS.border,
+                  color: 'white',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: 'bold',
+                  fontSize: '14px'
+                }}>0</div>
+                <div style={{
+                  flex: 1,
+                  height: '3px',
+                  backgroundColor: step >= 1 ? COLORS.primary : COLORS.border
+                }}></div>
+              </>
+            )}
             <div style={{
               width: '30px',
               height: '30px',
               borderRadius: '50%',
-              backgroundColor: step >= 1 ? '#1e3a5f' : '#e9ecef',
+              backgroundColor: step >= 1 ? COLORS.primary : '#e9ecef',
               color: 'white',
               display: 'flex',
               alignItems: 'center',
@@ -138,13 +238,13 @@ const BehavioralSurvey = ({
             <div style={{
               flex: 1,
               height: '3px',
-              backgroundColor: step >= 2 ? '#1e3a5f' : '#e9ecef'
+              backgroundColor: step >= 2 ? COLORS.primary : '#e9ecef'
             }}></div>
             <div style={{
               width: '30px',
               height: '30px',
               borderRadius: '50%',
-              backgroundColor: step >= 2 ? '#1e3a5f' : '#e9ecef',
+              backgroundColor: step >= 2 ? COLORS.primary : '#e9ecef',
               color: step >= 2 ? 'white' : '#6c757d',
               display: 'flex',
               alignItems: 'center',
@@ -155,13 +255,13 @@ const BehavioralSurvey = ({
             <div style={{
               flex: 1,
               height: '3px',
-              backgroundColor: step >= 3 ? '#1e3a5f' : '#e9ecef'
+              backgroundColor: step >= 3 ? COLORS.primary : '#e9ecef'
             }}></div>
             <div style={{
               width: '30px',
               height: '30px',
               borderRadius: '50%',
-              backgroundColor: step >= 3 ? '#1e3a5f' : '#e9ecef',
+              backgroundColor: step >= 3 ? COLORS.primary : '#e9ecef',
               color: step >= 3 ? 'white' : '#6c757d',
               display: 'flex',
               alignItems: 'center',
@@ -169,17 +269,131 @@ const BehavioralSurvey = ({
               fontWeight: 'bold',
               fontSize: '14px'
             }}>3</div>
+            <div style={{
+              flex: 1,
+              height: '3px',
+              backgroundColor: step >= 4 ? COLORS.primary : COLORS.border
+            }}></div>
+            <div style={{
+              width: '30px',
+              height: '30px',
+              borderRadius: '50%',
+              backgroundColor: step >= 4 ? COLORS.primary : COLORS.border,
+              color: step >= 4 ? 'white' : COLORS.textSecondary,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontWeight: 'bold',
+              fontSize: '14px'
+            }}>✓</div>
           </div>
         </div>
 
         <div style={{ padding: '30px' }}>
+          {/* Step 0: Route Preference Verification */}
+          {step === 0 && hasMultipleCurrentRoutes && (
+            <div>
+              <h3 style={{
+                marginTop: 0,
+                marginBottom: '10px',
+                color: COLORS.primary,
+                fontSize: '24px'
+              }}>
+                Before we begin...
+              </h3>
+              
+              <p style={{
+                color: COLORS.textSecondary,
+                marginBottom: '10px',
+                fontSize: '16px',
+                lineHeight: '1.5'
+              }}>
+                Of all the route options available, is the <strong>current route</strong> you selected 
+                your preferred route for this trip?
+              </p>
+              
+              <p style={{
+                fontSize: '13px',
+                color: COLORS.textSecondary,
+                fontWeight: '400',
+                marginTop: '4px',
+                marginBottom: '25px'
+              }}>
+                This helps us understand which route you'd normally choose for this trip.
+              </p>
+
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '10px'
+              }}>
+                {[
+                  { value: 'yes', label: 'Yes', description: 'This is my preferred route' },
+                  { value: 'no', label: 'No', description: "I'd prefer a different route" },
+                  { value: 'unsure', label: 'Unsure / Just Exploring', description: 'Not sure yet' }
+                ].map(option => (
+                  <button
+                    key={option.value}
+                    onClick={() => {
+                      setResponses(prev => ({ ...prev, is_preferred_route: option.value }));
+                      
+                      // Close modal if user selects "No", otherwise continue to Step 1
+                      if (option.value === 'no') {
+                        onClose();
+                      } else {
+                        setStep(1);
+                      }
+                    }}
+                    style={{
+                      padding: '16px 20px',
+                      border: `2px solid ${COLORS.border}`,
+                      borderRadius: '8px',
+                      backgroundColor: 'white',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      transition: 'all 0.2s',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '4px'
+                    }}
+                    /*
+                    onMouseOver={e => {
+                      e.target.style.backgroundColor = COLORS.bgPrimaryHover;
+                      e.target.style.borderColor = COLORS.primary;
+                    }}
+                    onMouseOut={e => {
+                      e.target.style.backgroundColor = 'white';
+                      e.target.style.borderColor = COLORS.border;
+                    }}
+                    */
+                  >
+                    <div style={{
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      color: COLORS.textPrimary,
+                      pointerEvents: 'none'  // ADD THIS!
+                    }}>
+                      {option.label}
+                    </div>
+                    <div style={{
+                      fontSize: '13px',
+                      color: COLORS.textSecondary,
+                      pointerEvents: 'none'  // ADD THIS!
+                    }}>
+                      {option.description}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           {/* Step 1: Route Preference */}
           {step === 1 && (
             <div>
               <h3 style={{
                 marginTop: 0,
                 marginBottom: '20px',
-                color: '#1e3a5f',
+                color: COLORS.primary,
                 fontSize: '24px'
               }}>
                 Which route would you choose?
@@ -191,7 +405,7 @@ const BehavioralSurvey = ({
                   route={futureRoute}
                   selected={responses.route_preference === 'future'}
                   onClick={() => handleRoutePreference('future')}
-                  accentColor="#1e3a5f"
+                  accentColor="#475569"
                   isNew={true}
                 />
 
@@ -208,7 +422,7 @@ const BehavioralSurvey = ({
                   style={{
                     padding: '15px 20px',
                     border: responses.route_preference === 'no_preference' 
-                      ? '3px solid #1e3a5f' 
+                      ? `3px solid ${COLORS.primary}` 
                       : '2px solid #dee2e6',
                     borderRadius: '8px',
                     backgroundColor: responses.route_preference === 'no_preference' 
@@ -221,7 +435,44 @@ const BehavioralSurvey = ({
                     transition: 'all 0.2s'
                   }}
                 >
-                  No preference / Would use either
+                  No preference
+                </button>
+              </div>
+                            <div style={{
+                display: 'flex',
+                gap: '12px',
+                marginTop: '30px'
+              }}>
+                <button
+                  onClick={() => {
+                    // Go back to Step 0 if it was shown, otherwise close modal
+                    if (hasMultipleCurrentRoutes) {
+                      setStep(0);
+                    } else {
+                      onClose();
+                    }
+                  }}
+                  style={{
+                    padding: '10px 20px',
+                    border: `2px solid ${COLORS.border}`,
+                    borderRadius: '6px',
+                    backgroundColor: 'white',
+                    color: COLORS.textPrimary,
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseOver={e => {
+                    e.target.style.backgroundColor = COLORS.bgPrimaryHover;
+                    e.target.style.borderColor = COLORS.borderHover;
+                  }}
+                  onMouseOut={e => {
+                    e.target.style.backgroundColor = 'white';
+                    e.target.style.borderColor = COLORS.border;
+                  }}
+                >
+                  Back
                 </button>
               </div>
             </div>
@@ -233,7 +484,7 @@ const BehavioralSurvey = ({
               <h3 style={{
                 marginTop: 0,
                 marginBottom: '10px',
-                color: '#1e3a5f',
+                color: COLORS.primary,
                 fontSize: '24px'
               }}>
                 What influenced your choice?
@@ -259,7 +510,7 @@ const BehavioralSurvey = ({
                     style={{
                       padding: '12px 16px',
                       border: selectedFactors.has(option.value) 
-                        ? '3px solid #1e3a5f' 
+                        ? `2px solid ${COLORS.primary}` 
                         : '2px solid #dee2e6',
                       borderRadius: '8px',
                       backgroundColor: selectedFactors.has(option.value) 
@@ -273,11 +524,13 @@ const BehavioralSurvey = ({
                       display: 'flex',
                       alignItems: 'center',
                       gap: '10px',
-                      textAlign: 'left'
+                      textAlign: 'left',
+                      boxSizing: 'border-box',  // ADD THIS
+                      minHeight: '48px'          // ADD THIS
                     }}
                   >
                     <i className={option.icon} style={{
-                      color: selectedFactors.has(option.value) ? '#1e3a5f' : '#6c757d',
+                      color: selectedFactors.has(option.value) ? COLORS.primary : '#6c757d',
                       fontSize: '16px',
                       minWidth: '16px'
                     }}></i>
@@ -345,7 +598,7 @@ const BehavioralSurvey = ({
                     padding: '10px 20px',
                     border: 'none',
                     borderRadius: '6px',
-                    backgroundColor: canProceedFromStep2 ? '#1e3a5f' : '#dee2e6',
+                    backgroundColor: canProceedFromStep2 ? COLORS.primary : '#dee2e6',
                     color: 'white',
                     cursor: canProceedFromStep2 ? 'pointer' : 'not-allowed',
                     fontSize: '14px',
@@ -364,7 +617,7 @@ const BehavioralSurvey = ({
               <h3 style={{
                 marginTop: 0,
                 marginBottom: '10px',
-                color: '#1e3a5f',
+                color: COLORS.primary,
                 fontSize: '24px'
               }}>
                 One last question
@@ -374,7 +627,7 @@ const BehavioralSurvey = ({
                 marginBottom: '25px',
                 fontSize: '14px'
               }}>
-                If the new LRT lines were available today, how likely would you be to use the future route option?
+                How often do you make this trip?
               </p>
 
               <div style={{
@@ -384,11 +637,11 @@ const BehavioralSurvey = ({
                 marginBottom: '30px'
               }}>
                 {[
-                  { value: 5, label: 'Very likely', color: '#10b981' },
-                  { value: 4, label: 'Somewhat likely', color: '#3b82f6' },
-                  { value: 3, label: 'Neutral', color: '#6b7280' },
-                  { value: 2, label: 'Somewhat unlikely', color: '#f59e0b' },
-                  { value: 1, label: 'Very unlikely', color: '#ef4444' }
+                  { value: 'daily', label: 'Daily', icon: 'fas fa-calendar-day' },
+                  { value: 'multiple_weekly', label: 'More than 2 times a week', icon: 'fas fa-calendar-week' },
+                  { value: 'weekly', label: 'At least once a week', icon: 'fas fa-calendar-alt' },
+                  { value: 'multiple_monthly', label: 'More than once a month', icon: 'fas fa-calendar' },
+                  { value: 'less_than_monthly', label: 'Less than once a month', icon: 'fas fa-calendar-minus' }
                 ].map(option => (
                   <button
                     key={option.value}
@@ -399,7 +652,7 @@ const BehavioralSurvey = ({
                     style={{
                       padding: '15px 20px',
                       border: responses.likelihood_use_future === option.value 
-                        ? `3px solid ${option.color}` 
+                        ? `2px solid ${option.color}` 
                         : '2px solid #dee2e6',
                       borderRadius: '8px',
                       backgroundColor: responses.likelihood_use_future === option.value 
@@ -412,7 +665,9 @@ const BehavioralSurvey = ({
                       transition: 'all 0.2s',
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: 'space-between'
+                      justifyContent: 'space-between',
+                      boxSizing: 'border-box',
+                      minHeight: '56px'  // ADD THIS to prevent resizing
                     }}
                   >
                     <span>{option.label}</span>
@@ -450,7 +705,7 @@ const BehavioralSurvey = ({
                     padding: '10px 20px',
                     border: 'none',
                     borderRadius: '6px',
-                    backgroundColor: responses.likelihood_use_future !== null ? '#10b981' : '#dee2e6',
+                    backgroundColor: responses.likelihood_use_future !== null ? COLORS.advance : '#dee2e6',
                     color: 'white',
                     cursor: responses.likelihood_use_future !== null ? 'pointer' : 'not-allowed',
                     fontSize: '14px',
@@ -458,6 +713,105 @@ const BehavioralSurvey = ({
                   }}
                 >
                   Submit
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 4: Thank You Screen */}
+          {step === 4 && showThankYou && (
+            <div style={{ textAlign: 'center' }}>
+              <div style={{
+                marginBottom: '30px'
+              }}>
+                <div style={{
+                  width: '80px',
+                  height: '80px',
+                  borderRadius: '50%',
+                  backgroundColor: COLORS.advanceLight,
+                  margin: '0 auto 20px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <i className="fas fa-check-circle" style={{
+                    fontSize: '40px',
+                    color: COLORS.advance
+                  }}></i>
+                </div>
+                
+                <h3 style={{
+                  marginTop: 0,
+                  marginBottom: '10px',
+                  color: COLORS.textPrimary,
+                  fontSize: '28px',
+                  fontWeight: '700'
+                }}>
+                  Thank You!
+                </h3>
+                
+                <p style={{
+                  color: COLORS.textSecondary,
+                  fontSize: '16px',
+                  lineHeight: '1.6',
+                  maxWidth: '400px',
+                  margin: '0 auto'
+                }}>
+                  Your feedback helps us understand how new transit infrastructure affects travel choices in Toronto.
+                </p>
+              </div>
+
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px'
+              }}>
+                <button
+                  onClick={onContinueComparing}
+                  style={{
+                    padding: '14px 24px',
+                    backgroundColor: COLORS.primary,
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '10px'
+                  }}
+                  onMouseOver={e => e.target.style.backgroundColor = COLORS.primaryHover}
+                  onMouseOut={e => e.target.style.backgroundColor = COLORS.primary}
+                >
+                  <i className="fas fa-map-marked-alt"></i>
+                  Continue Comparing This Trip
+                </button>
+
+                <button
+                  onClick={onExploreNewTrip}
+                  style={{
+                    padding: '14px 24px',
+                    backgroundColor: COLORS.advance,
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '10px'
+                  }}
+                  onMouseOver={e => e.target.style.backgroundColor = COLORS.advanceHover}
+                  onMouseOut={e => e.target.style.backgroundColor = COLORS.advance}
+                >
+                  <i className="fas fa-route"></i>
+                  Explore New Trip
                 </button>
               </div>
             </div>

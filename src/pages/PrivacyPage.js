@@ -60,7 +60,7 @@ const PrivacyPage = () => {
         </h1>
         
         <p style={{ color: '#666', marginBottom: '2rem' }}>
-          Last updated: 10/19/2025
+          Last updated: 11/29/2025
         </p>
 
         <section style={{ marginBottom: '2rem' }}>
@@ -71,7 +71,8 @@ const PrivacyPage = () => {
             <li>Email address (optional, for follow-up surveys only)</li>
             <li>Transit route searches (origin, destination, time, selected routes)</li>
             <li>Demographic information you choose to provide (age range, vehicle access, etc.)</li>
-            <li>Usage data (dates and times you use the service)</li>
+            <li>Trip data (dates and times you use the service)</li>
+            <li>Website usage data (what buttons you click, what features you use, how long you spend, etc.)</li>
           </ul>
         </section>
 
@@ -84,6 +85,7 @@ const PrivacyPage = () => {
             <li>To send you personalized follow-up surveys about your transit usage (if you provided email)</li>
             <li>To improve transportation planning through aggregated research</li>
             <li>To analyze how people use current vs. future transit networks</li>
+            <li>To understand how effective the website itself is as a tool</li>
           </ul>
         </section>
 

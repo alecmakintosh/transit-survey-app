@@ -1393,7 +1393,7 @@ function UnaffectedRouteModal({ isOpen, onClose }) {
               color: COLORS.textSecondary,
               fontWeight: '400',
               marginTop: '4px'}}>
-              This helps us understand which route you’d normally choose for this trip.</p>
+              This helps us understand which route best suits your preferences for this trip.</p>
         <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
           <button onClick={onClose} style={{ flex: 1, marginTop: '12px', padding: '8px 16px', backgroundColor: COLORS.primary, color: 'white', border: 'none', cursor: 'pointer', borderRadius: '4px' }}>
             Yes
@@ -1462,7 +1462,7 @@ function AffectedRouteModal({ isOpen, onClose, onProceed }) {
           color: COLORS.textSecondary,
           fontWeight: '400',
           marginTop: '4px'}}>
-          This helps us understand which route you’d normally choose for this trip.</p>
+          This helps us understand which route best suits your preferences for this trip.</p>
         <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
           <button onClick={handleYes} style={{ flex: 1, marginTop: '12px', padding: '8px 16px', backgroundColor: COLORS.primary, color: 'white', border: 'none', cursor: 'pointer', borderRadius: '4px' }}>
             Yes
@@ -1684,7 +1684,7 @@ function FAQModal({ isOpen, onClose }) {
     },
     {
       question: "Why aren't fares included/considered?",
-      answer: "I am looking to add consideration for fares in the future, but as of right now it is difficult to incorporate. If you're someone who uses only local transit and avoids GO Transit, I apologize as the tool is not optimized for you yet."
+      answer: "I am looking to add consideration for fares in the future, but as of right now it is difficult to incorporate. If you're someone who for example uses only local transit and avoids GO Transit, I apologize as the tool is not optimized for you yet."
     },
     {
       question: "Why can't I drag markers in compare mode?",
@@ -1719,17 +1719,19 @@ function FAQModal({ isOpen, onClose }) {
       answer: `All data you enter into the site is stored anonymously, and is used in research to better understand the things that matter to travelers. Read more about my privacy policy <a href='/privacy' rel='noopener noreferrer' style='color: ${COLORS.link}' onclick='return window.handlePrivacyClick(event)'>here</a>.`,
       isHTML: true
     },
+    /*
     {
       question: "Why are you asking for my email?",
       answer: "A key feature of my research is that once the Eglinton Crosstown LRT and Finch West LRT open, I want to see if they meet users' expectations. I'm not a marketer, I'm just a transportation researcher, and will only use your data for research purposes."
     },
+    */
     {
       question: "Who are you?",
       answer: "I'm Alec Mak, a transportation consultant working in Toronto. I'm a recent civil engineering graduate from the University of Toronto, looking to keep my research skills sharp."
     },
     {
       question: "Do you know when the Eglinton Crosstown LRT will open?",
-      answer: "Despite my profession, I have no information about the Eglinton Crosstown LRT's projected opening date. Full disclosure: I interned at Metrolinx in 2024, but was not privy to that information."
+      answer: "I have no information about the Eglinton Crosstown LRT's projected opening date."
     },
     {
       question: "How can I contact you?",
@@ -2503,12 +2505,14 @@ function App() {
   const [showBehavioralSurvey, setShowBehavioralSurvey] = useState(false);
   const [surveyCompleted, setSurveyCompleted] = useState(false);
   const [behavioralResponses, setBehavioralResponses] = useState(null);
+  const [hasAutoTriggered, setHasAutoTriggered] = useState(false);
 
   // Track which routes user selected for comparison
   const [comparedCurrentRoute, setComparedCurrentRoute] = useState(null);
   const [comparedFutureRoute, setComparedFutureRoute] = useState(null);
 
   // Auto-trigger survey when both routes are compared and there's only 1 current route option
+  /*
   useEffect(() => {
     if (
       compareMode === 'comparing' &&
@@ -2533,11 +2537,21 @@ function App() {
     surveyCompleted,
     showBehavioralSurvey
   ]);
+  */
 
   // Manual survey trigger - user clicks "I'm done comparing"
   const handleComparisonComplete = () => {
+    // If routes haven't been explicitly selected, auto-select the first option
+    if (!comparedFutureRoute && routeOptions && routeOptions[selectedRouteIndex]) {
+      setComparedFutureRoute(routeOptions[selectedRouteIndex]);
+    }
+    
+    if (!comparedCurrentRoute && currentRouteOptions && currentRouteOptions[selectedCurrentRouteIndex || 0]) {
+      setComparedCurrentRoute(currentRouteOptions[selectedCurrentRouteIndex || 0]);
+    }
+    
     // Show survey if they haven't completed it yet
-    if (!surveyCompleted && comparedCurrentRoute && comparedFutureRoute) {
+    if (!surveyCompleted) {
       setShowBehavioralSurvey(true);
     }
   };
@@ -2551,7 +2565,7 @@ function App() {
     
     // Mark as completed FOR THIS COMPARISON
     setSurveyCompleted(true);
-    setShowBehavioralSurvey(false);
+    //setShowBehavioralSurvey(false);
     
     // TODO: Save to Supabase (we'll implement this in the next phase)
     console.log('Survey completed with responses:', responses);
@@ -2567,7 +2581,7 @@ function App() {
     // Reset survey state for next comparison
     setSurveyCompleted(false);
     setComparedCurrentRoute(null);
-    setComparedFutureRoute(null);
+    //setComparedFutureRoute(null);
     setBehavioralResponses(null);
   
     // Reset compare mode
@@ -2939,7 +2953,7 @@ function App() {
           setSelectedCurrentRouteIndex(0);
           
           // ADD THESE TWO LINES:
-          setComparedCurrentRoute(carRoutes[0]);
+          //setComparedCurrentRoute(carRoutes[0]);
           console.log('✓ Auto-set compared current route (driving):', carRoutes[0]);
         } else {
           setCurrentRouteOptions([]);
@@ -2959,7 +2973,7 @@ function App() {
           setSelectedCurrentRouteIndex(0);
           
           // ADD THESE TWO LINES:
-          setComparedCurrentRoute(currentRoutes[0]);
+          //setComparedCurrentRoute(currentRoutes[0]);
           console.log('✓ Auto-set compared current route:', currentRoutes[0]);
         } else {
           setCurrentRouteOptions([]);
@@ -4268,7 +4282,72 @@ function App() {
                 Compare Selected Route To Today
               </button>
             )}
-            
+
+            {/* Finish Survey button */}
+            {compareMode === 'comparing' && (
+              <>
+                {!surveyCompleted ? (
+                  <button 
+                    onClick={handleComparisonComplete}
+                    disabled={currentRouteOptions.length === 0 || routeOptions.length === 0}
+                    style={{
+                      ...buttonStyle,  // ADD THIS LINE!
+                      backgroundColor: (currentRouteOptions.length === 0 || routeOptions.length === 0) 
+                        ? COLORS.bgSecondary 
+                        : COLORS.primary,
+                      cursor: (currentRouteOptions.length === 0 || routeOptions.length === 0) 
+                        ? 'not-allowed' 
+                        : 'pointer',
+                      margin: '0'  // Changed from marginBottom to margin for consistency
+                    }}
+                    onMouseOver={e => {
+                      if (!(currentRouteOptions.length === 0 || routeOptions.length === 0)) {
+                        e.target.style.backgroundColor = COLORS.primaryHover;
+                      }
+                    }}
+                    onMouseOut={e => {
+                      if (!(currentRouteOptions.length === 0 || routeOptions.length === 0)) {
+                        e.target.style.backgroundColor = COLORS.primary;
+                      }
+                    }}
+                  >
+                    Continue Comparing
+                  </button>
+                ) : (
+                  <div>
+                    <button
+                      onClick={() => {
+                        // Return to default map (same as "Explore New Trip")
+                        setCompareMode('default');
+                        setCurrentRouteOptions([]);
+                        setSelectedCurrentRouteIndex(0);
+                        setSurveyCompleted(false);
+                        setComparedCurrentRoute(null);
+                        setComparedFutureRoute(null);
+                        setBehavioralResponses(null);
+                        setSelectedTravelMode(null);
+                        setHasAutoTriggered(false);
+                      }}
+                      style={{
+                        ...buttonStyle,
+                        backgroundColor: COLORS.advance,
+                        margin: '0',
+                        boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px'
+                      }}
+                      onMouseOver={e => e.target.style.backgroundColor = COLORS.advanceHover}
+                      onMouseOut={e => e.target.style.backgroundColor = COLORS.advance}
+                    >
+                      Explore New Trip
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+
             {compareMode !== 'default' && (
               <button
                 onClick={handleBackFromCompare}
@@ -4284,91 +4363,23 @@ function App() {
                 Back
               </button>
             )}
-
-            {/* Finish Survey button */}
-            {compareMode === 'comparing' && (
-              <>
-                {/* Debug info - remove this after confirming it works */}
-                <div style={{
-                  padding: '8px',
-                  backgroundColor: '#f0f0f0',
-                  borderRadius: '4px',
-                  fontSize: '11px',
-                  marginBottom: '8px',
-                  fontFamily: 'monospace'
-                }}>
-                  Debug:<br/>
-                  comparedCurrent: {comparedCurrentRoute ? '✓' : '✗'}<br/>
-                  comparedFuture: {comparedFutureRoute ? '✓' : '✗'}<br/>
-                  surveyDone: {surveyCompleted ? 'yes' : 'no'}
-                </div>
-                
-                {!surveyCompleted ? (
-                  comparedCurrentRoute && comparedFutureRoute ? (
-                    <button
-                      onClick={handleComparisonComplete}
-                      style={{
-                        ...buttonStyle,
-                        backgroundColor: COLORS.primary,
-                        margin: '0',
-                        boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '8px'
-                      }}
-                      onMouseOver={e => e.target.style.backgroundColor = COLORS.primaryHover}
-                      onMouseOut={e => e.target.style.backgroundColor = COLORS.primary}
-                    >
-                      <i className="fas fa-check-circle"></i>
-                      Done Comparing - Continue
-                    </button>
-                  ) : (
-                    <div style={{
-                      padding: '12px',
-                      backgroundColor: '#fff3cd',
-                      borderRadius: '6px',
-                      border: '1px solid #ffc107',
-                      fontSize: '12px',
-                      color: '#856404',
-                      lineHeight: '1.4'
-                    }}>
-                      <strong>→</strong> Click a route option above to enable the survey button
-                    </div>
-                  )
-                ) : (
-                  <div style={{
-                    padding: '12px',
-                    backgroundColor: '#d4edda',
-                    borderRadius: '6px',
-                    border: '1px solid #c3e6cb',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px'
-                  }}>
-                    <i className="fas fa-check-circle" style={{ color: '#28a745' }}></i>
-                    <span style={{ color: '#155724', fontWeight: '500', fontSize: '14px' }}>
-                      Thank you for your feedback!
-                    </span>
-                  </div>
-                )}
-              </>
-            )}
             
-            {/* Finish Survey button */}
-            <button
-              onClick={() => navigate('/exit')}
-              style={{
-                ...buttonStyle,
-                backgroundColor: COLORS.advance,
-                margin: '0',
-                boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
-              }}
-              onMouseOver={e => e.target.style.backgroundColor = COLORS.advanceHover}
-              onMouseOut={e => e.target.style.backgroundColor = COLORS.advance}
-            >
-              Try What-If Scenarios!
-            </button>
+            {/* What-If Scenarios - only show in default mode */}
+            {compareMode === 'default' && (
+              <button
+                onClick={() => navigate('/exit')}
+                style={{
+                  ...buttonStyle,
+                  backgroundColor: COLORS.advance,
+                  margin: '0',
+                  boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
+                }}
+                onMouseOver={e => e.target.style.backgroundColor = COLORS.advanceHover}
+                onMouseOut={e => e.target.style.backgroundColor = COLORS.advance}
+              >
+                Try What-If Scenarios!
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -4814,6 +4825,25 @@ function App() {
           futureRoute={comparedFutureRoute}
           onComplete={handleSurveyComplete}
           onClose={handleSurveyClose}
+          onContinueComparing={() => {
+            // Just close the modal, stay in comparison view
+            setShowBehavioralSurvey(false);
+          }}
+          onExploreNewTrip={() => {
+            // Close modal and return to default map
+            setShowBehavioralSurvey(false);
+            setTimeout(() => {
+              setCompareMode('default');
+              setCurrentRouteOptions([]);
+              setSelectedCurrentRouteIndex(0);
+              setSurveyCompleted(false);
+              setComparedCurrentRoute(null);
+              setComparedFutureRoute(null);
+              setBehavioralResponses(null);
+              setSelectedTravelMode(null);
+              setHasAutoTriggered(false);
+            }, 300);
+          }}
         />
       )}
 
