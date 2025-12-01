@@ -58,6 +58,8 @@ const LandingPage = () => {
       >
         Try It Now
       </button>
+      onMouseOver={e => e.target.style.backgroundColor = '#0369a1'}
+      onMouseOut={e => e.target.style.backgroundColor = '#075985'}
     </div>
   );
 };
