@@ -429,7 +429,7 @@ const BehavioralSurvey = ({
                   onMouseOver={e => e.target.style.backgroundColor = COLORS.primaryHover}
                   onMouseOut={e => e.target.style.backgroundColor = COLORS.primary}
                 >
-                  Unsure
+                  Unsure / Just Exploring
                 </button>
 
                 {/* NO - Grey (exits/closes) */}
@@ -602,7 +602,7 @@ const BehavioralSurvey = ({
                 marginBottom: '25px',
                 fontSize: '14px'
               }}>
-                Select all that apply
+                Select all that apply.
               </p>
               
               <div style={{
@@ -819,17 +819,6 @@ const BehavioralSurvey = ({
                     }}>
                       {option.label}
                     </span>
-                    {responses.trip_frequency === option.value && (
-                      <i 
-                        className="fas fa-check-circle" 
-                        style={{ 
-                          color: COLORS.primary,
-                          fontSize: '16px',
-                          marginLeft: 'auto',
-                          pointerEvents: 'none'
-                        }}
-                      ></i>
-                    )}
                   </button>
                 ))}
               </div>
@@ -862,23 +851,23 @@ const BehavioralSurvey = ({
                   disabled={responses.trip_frequency === null}
                   style={{
                     padding: '12px 24px',
-                    backgroundColor: canProceedFromStep2 ? COLORS.advance : COLORS.bgSecondary,
+                    backgroundColor: !responses.trip_frequency === null ? COLORS.advance : COLORS.bgSecondary,
                     color: 'white',
                     border: 'none',
                     borderRadius: '8px',
-                    cursor: canProceedFromStep2 ? 'pointer' : 'not-allowed',
+                    cursor: !responses.trip_frequency === null ? 'pointer' : 'not-allowed',
                     fontSize: '14px',
                     fontWeight: '600',
-                    opacity: canProceedFromStep2 ? 1 : 0.6,
+                    opacity: !responses.trip_frequency === null ? 1 : 0.6,
                     transition: 'background-color 0.2s'
                   }}
                   onMouseOver={e => {
-                    if (canProceedFromStep2) {
+                    if (!responses.trip_frequency === null) {
                       e.target.style.backgroundColor = COLORS.advanceHover;
                     }
                   }}
                   onMouseOut={e => {
-                    if (canProceedFromStep2) {
+                    if (!responses.trip_frequency === null) {
                       e.target.style.backgroundColor = COLORS.advance;
                     }
                   }}
