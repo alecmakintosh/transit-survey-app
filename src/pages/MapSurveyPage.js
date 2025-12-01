@@ -1053,6 +1053,8 @@ const loadPreprocessedData = async () => {
 
 // Travel Mode Selection Modal Component
 function TravelModeModal({ isOpen, onClose, onModeSelect }) {
+  const [hoveredMode, setHoveredMode] = useState(null);
+  
   if (!isOpen) return null;
 
   const travelModes = [
@@ -1081,7 +1083,7 @@ function TravelModeModal({ isOpen, onClose, onModeSelect }) {
         padding: '32px',
         borderRadius: '12px',
         width: '100%',
-        maxWidth: '500px',
+        maxWidth: '580px',
         boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
         border: `1px solid ${COLORS.border}`
       }}>
@@ -1095,39 +1097,43 @@ function TravelModeModal({ isOpen, onClose, onModeSelect }) {
           How do you usually make this trip?
         </h2>
         
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: '1fr 1fr',
+          gap: '16px'
+        }}>
           {travelModes.map(mode => (
             <button
               key={mode.id}
               onClick={() => onModeSelect(mode.id)}
               style={{
-                padding: '16px 20px',
-                backgroundColor: 'transparent',
-                border: `1.5px solid ${COLORS.border}`,
+                padding: '24px 20px',
+                backgroundColor: hoveredMode === mode.id ? COLORS.primaryHover : COLORS.primary,
+                border: 'none',
                 borderRadius: '8px',
                 cursor: 'pointer',
                 fontSize: '14px',
                 fontWeight: '500',
-                color: COLORS.textBold,
+                color: 'white',
                 display: 'flex',
+                flexDirection: 'column',
                 alignItems: 'center',
+                justifyContent: 'center',
                 gap: '12px',
                 transition: 'all 0.2s',
-                textAlign: 'left'
+                textAlign: 'center',
+                minHeight: '120px'
               }}
-              /*
-              onMouseOver={e => {
-                e.target.style.backgroundColor = COLORS.bgTertiaryHover;
-                e.target.style.borderColor = COLORS.primary;
-              }}
-              onMouseOut={e => {
-                e.target.style.backgroundColor = COLORS.bgTertiary;
-                e.target.style.borderColor = COLORS.border;
-              }}
-              */
+              onMouseEnter={() => setHoveredMode(mode.id)}
+              onMouseLeave={() => setHoveredMode(null)}
             >
-              <i className={mode.icon} style={{ fontSize: '20px', color: COLORS.textSecondary, width: '24px' }}></i>
-              {mode.label}
+              <i className={mode.icon} style={{ 
+                fontSize: '36px', 
+                color: 'white',
+                transition: 'all 0.2s',
+                transform: hoveredMode === mode.id ? 'scale(1.1)' : 'scale(1)'
+              }}></i>
+              <span style={{ lineHeight: '1.3' }}>{mode.label}</span>
             </button>
           ))}
         </div>
@@ -1138,7 +1144,7 @@ function TravelModeModal({ isOpen, onClose, onModeSelect }) {
 
 // User Profile Modal Component
 function UserProfileModal({ isOpen, onClose, onSubmit }) {
-const [hasVehicle, setHasVehicle] = useState(null);
+  const [hasVehicle, setHasVehicle] = useState(null);
   const [isRegularTransitUser, setIsRegularTransitUser] = useState(null);
 
   const handleSubmit = () => {
@@ -1157,60 +1163,94 @@ const [hasVehicle, setHasVehicle] = useState(null);
       left: 0,
       right: 0,
       bottom: 0,
-      backgroundColor: 'rgba(0,0,0,0.6)',
+      backgroundColor: 'rgba(0, 0, 0, 0.6)',
       zIndex: 3000,
       display: 'flex',
       alignItems: 'center',
-      justifyContent: 'center'
+      justifyContent: 'center',
+      padding: '20px'
     }}>
       <div style={{
         backgroundColor: COLORS.bgPrimary,
-        padding: '32px',
+        padding: '40px',
         borderRadius: '12px',
-        width: '460px',
+        width: '600px',
         maxWidth: '90vw',
         boxShadow: '0 10px 25px rgba(0,0,0,0.3)'
       }}>
+        {/* Visual Icon */}
+        <div style={{
+          width: '80px',
+          height: '80px',
+          margin: '0 auto 24px auto',
+          borderRadius: '50%',
+          backgroundColor: 'rgba(3, 105, 161, 0.1)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <div style={{
+            width: '56px',
+            height: '56px',
+            borderRadius: '50%',
+            backgroundColor: COLORS.primary,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            <i className="fas fa-user" style={{ 
+              fontSize: '24px', 
+              color: 'white' 
+            }}></i>
+          </div>
+        </div>
+
+        {/* Title */}
         <h2 style={{ 
           margin: '0 0 8px 0', 
-          fontSize: '20px', 
-          fontWeight: '600', 
-          color: COLORS.textPrimary 
+          fontSize: '24px', 
+          fontWeight: '700', 
+          color: COLORS.textBlack,
+          textAlign: 'center'
         }}>
           Two quick questions:
         </h2>
+
+        {/* Subtitle */}
         <p style={{ 
-          marginBottom: '28px', 
+          margin: '0 0 32px 0', 
           color: COLORS.textSecondary, 
           lineHeight: '1.5',
-          fontSize: '14px'
+          fontSize: '14px',
+          textAlign: 'center'
         }}>
           These help me understand who is using the website.
         </p>
         
+        {/* Question 1 */}
         <div style={{ marginBottom: '24px' }}>
           <label style={{ 
             display: 'block',
-            margin: '0 0 10px 0', 
+            margin: '0 0 12px 0', 
             fontSize: '15px', 
-            fontWeight: '500',
-            color: COLORS.textPrimary
+            fontWeight: '600',
+            color: COLORS.textBold
           }}>
             Do you own or have regular access to a motor vehicle (car, motorcycle)?
           </label>
-          <div style={{ display: 'flex', gap: '10px' }}>
+          <div style={{ display: 'flex', gap: '12px' }}>
             <button 
               onClick={() => setHasVehicle(true)}
               style={{
                 flex: 1,
-                padding: '11px',
-                backgroundColor: hasVehicle === true ? COLORS.primary : 'transparent',
-                color: hasVehicle === true ? 'white' : COLORS.textPrimary,
-                border: '1.5px solid ' + (hasVehicle === true ? COLORS.primary : COLORS.border),
+                padding: '12px',
+                backgroundColor: hasVehicle === true ? COLORS.primaryLight : COLORS.bgPrimary,
+                color: hasVehicle === true ? COLORS.primary : COLORS.textBold,
+                border: `2px solid ${hasVehicle === true ? COLORS.primary : COLORS.border}`,
                 borderRadius: '6px',
                 fontSize: '14px',
                 cursor: 'pointer',
-                fontWeight: '500',
+                fontWeight: hasVehicle === true ? '600' : '500',
                 transition: 'all 0.2s'
               }}
             >
@@ -1220,14 +1260,14 @@ const [hasVehicle, setHasVehicle] = useState(null);
               onClick={() => setHasVehicle(false)}
               style={{
                 flex: 1,
-                padding: '11px',
-                backgroundColor: hasVehicle === false ? COLORS.primary : 'transparent',
-                color: hasVehicle === false ? 'white' : COLORS.textPrimary,
-                border: '1.5px solid ' + (hasVehicle === false ? COLORS.primary : COLORS.border),
+                padding: '12px',
+                backgroundColor: hasVehicle === false ? COLORS.primaryLight : COLORS.bgPrimary,
+                color: hasVehicle === false ? COLORS.primary : COLORS.textBold,
+                border: `2px solid ${hasVehicle === false ? COLORS.primary : COLORS.border}`,
                 borderRadius: '6px',
                 fontSize: '14px',
                 cursor: 'pointer',
-                fontWeight: '500',
+                fontWeight: hasVehicle === false ? '600' : '500',
                 transition: 'all 0.2s'
               }}
             >
@@ -1236,38 +1276,39 @@ const [hasVehicle, setHasVehicle] = useState(null);
           </div>
         </div>
 
-        <div style={{ marginBottom: '28px' }}>
+        {/* Question 2 */}
+        <div style={{ marginBottom: '32px' }}>
           <label style={{ 
             display: 'block',
-            margin: '0 0 10px 0', 
+            margin: '0 0 4px 0', 
             fontSize: '15px', 
-            fontWeight: '500',
-            color: COLORS.textPrimary
+            fontWeight: '600',
+            color: COLORS.textBold
           }}>
             Would you classify yourself as a regular transit user?
-            <span style={{ 
-              display: 'block',
-              fontSize: '13px', 
-              color: COLORS.textSecondary,
-              fontWeight: '400',
-              marginTop: '4px'
-            }}>
-              (more than 2 trips on transit per week)
-            </span>
           </label>
-          <div style={{ display: 'flex', gap: '10px' }}>
+          <span style={{ 
+            display: 'block',
+            fontSize: '13px', 
+            color: COLORS.textSecondary,
+            fontWeight: '400',
+            marginBottom: '12px'
+          }}>
+            (more than 2 trips on transit per week)
+          </span>
+          <div style={{ display: 'flex', gap: '12px' }}>
             <button 
               onClick={() => setIsRegularTransitUser(true)}
               style={{
                 flex: 1,
-                padding: '11px',
-                backgroundColor: isRegularTransitUser === true ? COLORS.primary : 'transparent',
-                color: isRegularTransitUser === true ? 'white' : COLORS.textPrimary,
-                border: '1.5px solid ' + (isRegularTransitUser === true ? COLORS.primary : COLORS.border),
+                padding: '12px',
+                backgroundColor: isRegularTransitUser === true ? COLORS.primaryLight : COLORS.bgPrimary,
+                color: isRegularTransitUser === true ? COLORS.primary : COLORS.textBold,
+                border: `2px solid ${isRegularTransitUser === true ? COLORS.primary : COLORS.border}`,
                 borderRadius: '6px',
                 fontSize: '14px',
                 cursor: 'pointer',
-                fontWeight: '500',
+                fontWeight: isRegularTransitUser === true ? '600' : '500',
                 transition: 'all 0.2s'
               }}
             >
@@ -1277,14 +1318,14 @@ const [hasVehicle, setHasVehicle] = useState(null);
               onClick={() => setIsRegularTransitUser(false)}
               style={{
                 flex: 1,
-                padding: '11px',
-                backgroundColor: isRegularTransitUser === false ? COLORS.primary : 'transparent',
-                color: isRegularTransitUser === false ? 'white' : COLORS.textPrimary,
-                border: '1.5px solid ' + (isRegularTransitUser === false ? COLORS.primary : COLORS.border),
+                padding: '12px',
+                backgroundColor: isRegularTransitUser === false ? COLORS.primaryLight : COLORS.bgPrimary,
+                color: isRegularTransitUser === false ? COLORS.primary : COLORS.textBold,
+                border: `2px solid ${isRegularTransitUser === false ? COLORS.primary : COLORS.border}`,
                 borderRadius: '6px',
                 fontSize: '14px',
                 cursor: 'pointer',
-                fontWeight: '500',
+                fontWeight: isRegularTransitUser === false ? '600' : '500',
                 transition: 'all 0.2s'
               }}
             >
@@ -1293,20 +1334,32 @@ const [hasVehicle, setHasVehicle] = useState(null);
           </div>
         </div>
 
+        {/* Action Button */}
         <button
           onClick={handleSubmit}
           disabled={hasVehicle === null || isRegularTransitUser === null}
           style={{
             width: '100%',
-            padding: '13px',
+            padding: '14px',
             backgroundColor: (hasVehicle !== null && isRegularTransitUser !== null) ? COLORS.advance : COLORS.bgSecondary,
             color: 'white',
             border: 'none',
-            borderRadius: '6px',
-            fontSize: '15px',
+            borderRadius: '8px',
+            fontSize: '16px',
             fontWeight: '600',
             cursor: (hasVehicle !== null && isRegularTransitUser !== null) ? 'pointer' : 'not-allowed',
-            opacity: (hasVehicle !== null && isRegularTransitUser !== null) ? 1 : 0.6
+            opacity: (hasVehicle !== null && isRegularTransitUser !== null) ? 1 : 0.6,
+            transition: 'background-color 0.2s'
+          }}
+          onMouseOver={e => {
+            if (hasVehicle !== null && isRegularTransitUser !== null) {
+              e.target.style.backgroundColor = COLORS.advanceHover;
+            }
+          }}
+          onMouseOut={e => {
+            if (hasVehicle !== null && isRegularTransitUser !== null) {
+              e.target.style.backgroundColor = COLORS.advance;
+            }
           }}
         >
           Continue
@@ -1327,11 +1380,12 @@ function NoRoutesFoundModal({ isOpen, onClose }) {
       left: 0,
       right: 0,
       bottom: 0,
-      backgroundColor: 'rgba(0,0,0,0.5)',
+      backgroundColor: 'rgba(0, 0, 0, 0.6)',
       zIndex: 2000,
       display: 'flex',
       alignItems: 'center',
-      justifyContent: 'center'
+      justifyContent: 'center',
+      padding: '20px'
     }}>
       <div style={{
         backgroundColor: COLORS.bgPrimary,
@@ -1339,22 +1393,82 @@ function NoRoutesFoundModal({ isOpen, onClose }) {
         borderRadius: '12px',
         width: '460px',
         maxWidth: '90vw',
-        boxShadow: '0 10px 25px rgba(0,0,0,0.3)'
+        boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
+        textAlign: 'center'
       }}>
-        <h2 style={{ margin: '0 0 16px 0', fontSize: '20px', fontWeight: '600', color: COLORS.danger }}>
+        {/* Visual Icon */}
+        <div style={{
+          width: '80px',
+          height: '80px',
+          margin: '0 auto 24px auto',
+          borderRadius: '50%',
+          backgroundColor: 'rgba(190, 18, 60, 0.1)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <div style={{
+            width: '56px',
+            height: '56px',
+            borderRadius: '50%',
+            backgroundColor: COLORS.danger,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            <i className="fas fa-exclamation" style={{ 
+              fontSize: '28px', 
+              color: 'white' 
+            }}></i>
+          </div>
+        </div>
+
+        {/* Title */}
+        <h2 style={{ 
+          margin: '0 0 16px 0', 
+          fontSize: '20px', 
+          fontWeight: '600', 
+          color: COLORS.textPrimary 
+        }}>
           No Routes Found
         </h2>
-        <p style={{ marginBottom: '20px', color: COLORS.textSecondary, lineHeight: '1.5' }}>
+
+        {/* Body Text */}
+        <p style={{ 
+          marginBottom: '16px', 
+          color: COLORS.textSecondary, 
+          lineHeight: '1.5',
+          fontSize: '14px'
+        }}>
           No transit routes could be found for this trip. This might be because:
         </p>
-        <ul style={{ marginBottom: '24px', color: COLORS.textSecondary, paddingLeft: '20px' }}>
+
+        {/* Bullet List */}
+        <ul style={{ 
+          marginBottom: '16px', 
+          color: COLORS.textSecondary, 
+          paddingLeft: '20px',
+          textAlign: 'left',
+          fontSize: '14px',
+          lineHeight: '1.5'
+        }}>
           <li>Locations may be outside of the mappable area (presently only trips within Toronto, Mississauga, Brampton and York Region are supported),</li>
           <li>The locations are not well-connected by public transit,</li>
           <li>Issues with the route finding on our end.</li>
         </ul>
-        <p style={{ marginBottom: '24px', color: COLORS.textBold, fontWeight: '500' }}>
+
+        {/* Bold Helper Text */}
+        <p style={{ 
+          marginBottom: '24px', 
+          color: COLORS.textBold, 
+          fontWeight: '500',
+          fontSize: '14px',
+          lineHeight: '1.5'
+        }}>
           Try adjusting your departure time (add or subtract 5 minutes) or moving your origin and destination closer to a main road.
         </p>
+
+        {/* Action Button */}
         <button 
           onClick={onClose}
           style={{
@@ -1365,9 +1479,12 @@ function NoRoutesFoundModal({ isOpen, onClose }) {
             border: 'none',
             borderRadius: '6px',
             fontSize: '16px',
+            fontWeight: '600',
             cursor: 'pointer',
-            fontWeight: '500'
+            transition: 'background-color 0.2s'
           }}
+          onMouseOver={e => e.target.style.backgroundColor = COLORS.primaryHover}
+          onMouseOut={e => e.target.style.backgroundColor = COLORS.primary}
         >
           Okay
         </button>
@@ -1378,30 +1495,183 @@ function NoRoutesFoundModal({ isOpen, onClose }) {
 
 function UnaffectedRouteModal({ isOpen, onClose }) {
   if (!isOpen) return null;
+
   return (
     <div style={{
-      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-      backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 3000,
-      display: 'flex', alignItems: 'center', justifyContent: 'center'
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.6)',
+      zIndex: 3000,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '20px'
     }}>
-      <div style={{ backgroundColor: COLORS.bgPrimary, padding: '24px', borderRadius: '8px', maxWidth: '460px' }}>
-        <h2 style={{ marginBottom: '12px', color: COLORS.primary }}>Route Unaffected</h2>
-        <p>Your selected route already only uses transit lines that exist today.</p>
-        <p style= {{fontWeight: '500',}}>Of all the route options, is this your preferred route for this trip?</p>
-        <p style= {{display: 'block',
-              fontSize: '13px', 
-              color: COLORS.textSecondary,
-              fontWeight: '400',
-              marginTop: '4px'}}>
-              This helps us understand which route best suits your preferences for this trip.</p>
-        <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
-          <button onClick={onClose} style={{ flex: 1, marginTop: '12px', padding: '8px 16px', backgroundColor: COLORS.primary, color: 'white', border: 'none', cursor: 'pointer', borderRadius: '4px' }}>
+      <div style={{
+        backgroundColor: COLORS.bgPrimary,
+        padding: '40px',
+        borderRadius: '12px',
+        width: '600px',
+        maxWidth: '90vw',
+        boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
+        position: 'relative'
+      }}>
+        {/* Close button */}
+        <button
+          onClick={onClose}
+          style={{
+            position: 'absolute',
+            top: '20px',
+            right: '20px',
+            background: 'none',
+            border: 'none',
+            fontSize: '28px',
+            cursor: 'pointer',
+            color: COLORS.textSecondary,
+            padding: '0',
+            lineHeight: 1,
+            width: '32px',
+            height: '32px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+          aria-label="Close"
+        >
+          ×
+        </button>
+
+        {/* Visual Icon */}
+        <div style={{
+          width: '80px',
+          height: '80px',
+          margin: '0 auto 24px auto',
+          borderRadius: '50%',
+          backgroundColor: 'rgba(3, 105, 161, 0.1)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <div style={{
+            width: '56px',
+            height: '56px',
+            borderRadius: '50%',
+            backgroundColor: COLORS.primary,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            <i className="fas fa-check" style={{ 
+              fontSize: '28px', 
+              color: 'white' 
+            }}></i>
+          </div>
+        </div>
+
+        {/* Title */}
+        <h2 style={{ 
+          margin: '0 0 16px 0', 
+          fontSize: '24px', 
+          fontWeight: '700', 
+          color: COLORS.textBlack,
+          textAlign: 'center'
+        }}>
+          Route Unaffected
+        </h2>
+
+        {/* Body Text */}
+        <p style={{ 
+          margin: '0 0 24px 0', 
+          color: COLORS.textSecondary, 
+          lineHeight: '1.5',
+          fontSize: '14px',
+          textAlign: 'center'
+        }}>
+          Your selected route already only uses transit lines that exist today.
+        </p>
+
+        {/* Question Text */}
+        <p style={{ 
+          margin: '0 0 8px 0', 
+          fontWeight: '600',
+          fontSize: '15px',
+          color: COLORS.textBold,
+          textAlign: 'center'
+        }}>
+          Of all the route options, is this your preferred route for this trip?
+        </p>
+
+        {/* Helper Text */}
+        <p style={{ 
+          margin: '0 0 24px 0',
+          fontSize: '13px', 
+          color: COLORS.textSecondary,
+          fontWeight: '400',
+          textAlign: 'center'
+        }}>
+          This helps us understand which route best suits your preferences for this trip.
+        </p>
+
+        {/* ACTION BUTTONS (horizontal layout, solid color with hover) */}
+        <div style={{ display: 'flex', gap: '12px' }}>
+          <button 
+            onClick={onClose} 
+            style={{ 
+              flex: 1, 
+              padding: '12px', 
+              backgroundColor: COLORS.primary,
+              color: 'white',
+              border: 'none',
+              cursor: 'pointer', 
+              borderRadius: '8px',
+              fontSize: '14px',
+              fontWeight: '600',
+              transition: 'background-color 0.2s'
+            }}
+            onMouseOver={e => e.target.style.backgroundColor = COLORS.primaryHover}
+            onMouseOut={e => e.target.style.backgroundColor = COLORS.primary}
+          >
             Yes
           </button>
-          <button onClick={onClose} style={{ flex: 1, marginTop: '12px', padding: '8px 16px', backgroundColor: COLORS.primary, color: 'white', border: 'none', cursor: 'pointer', borderRadius: '4px' }}>
+          <button 
+            onClick={onClose} 
+            style={{ 
+              flex: 1, 
+              padding: '12px', 
+              backgroundColor: COLORS.bgSecondary,
+              color: 'white',
+              border: 'none',
+              cursor: 'pointer', 
+              borderRadius: '8px',
+              fontSize: '14px',
+              fontWeight: '600',
+              transition: 'background-color 0.2s'
+            }}
+            onMouseOver={e => e.target.style.backgroundColor = COLORS.bgSecondaryHover}
+            onMouseOut={e => e.target.style.backgroundColor = COLORS.bgSecondary}
+          >
             No
           </button>
-          <button onClick={onClose} style={{ flex: 1, marginTop: '12px', padding: '8px 16px', backgroundColor: COLORS.primary, color: 'white', border: 'none', cursor: 'pointer', borderRadius: '4px' }}>
+          <button 
+            onClick={onClose} 
+            style={{ 
+              flex: 1, 
+              padding: '12px', 
+              backgroundColor: COLORS.bgSecondary,
+              color: 'white',
+              border: 'none',
+              cursor: 'pointer', 
+              borderRadius: '8px',
+              fontSize: '14px',
+              fontWeight: '600',
+              transition: 'background-color 0.2s'
+            }}
+            onMouseOver={e => e.target.style.backgroundColor = COLORS.bgSecondaryHover}
+            onMouseOut={e => e.target.style.backgroundColor = COLORS.bgSecondary}
+          >
             Unsure/Just Exploring
           </button>
         </div>
@@ -1412,16 +1682,95 @@ function UnaffectedRouteModal({ isOpen, onClose }) {
 
 function UnaffectedOneRouteModal({ isOpen, onClose }) {
   if (!isOpen) return null;
+
   return (
     <div style={{
-      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-      backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 3000,
-      display: 'flex', alignItems: 'center', justifyContent: 'center'
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.6)',
+      zIndex: 3000,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '20px'
     }}>
-      <div style={{ backgroundColor: COLORS.bgPrimary, padding: '24px', borderRadius: '8px', maxWidth: '460px' }}>
-        <h2 style={{ marginBottom: '12px', color: COLORS.primary }}>Route Unaffected</h2>
-        <p>Your selected route already only uses transit lines that exist today.</p>
-        <button onClick={onClose} style={{ marginTop: '12px', padding: '8px 16px', backgroundColor: COLORS.primary, color: 'white', border: 'none', cursor: 'pointer', borderRadius: '4px' }}>
+      <div style={{ 
+        backgroundColor: COLORS.bgPrimary, 
+        padding: '32px', 
+        borderRadius: '12px', 
+        width: '460px',
+        maxWidth: '90vw',
+        boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
+        textAlign: 'center'
+      }}>
+        {/* Visual Icon */}
+        <div style={{
+          width: '80px',
+          height: '80px',
+          margin: '0 auto 24px auto',
+          borderRadius: '50%',
+          backgroundColor: 'rgba(3, 105, 161, 0.1)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <div style={{
+            width: '56px',
+            height: '56px',
+            borderRadius: '50%',
+            backgroundColor: COLORS.primary,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            <i className="fas fa-check" style={{ 
+              fontSize: '28px', 
+              color: 'white' 
+            }}></i>
+          </div>
+        </div>
+
+        {/* Title */}
+        <h2 style={{ 
+          margin: '0 0 16px 0', 
+          fontSize: '20px', 
+          fontWeight: '600', 
+          color: COLORS.textPrimary 
+        }}>
+          Route Unaffected
+        </h2>
+
+        {/* Body Text */}
+        <p style={{ 
+          marginBottom: '24px', 
+          color: COLORS.textSecondary, 
+          lineHeight: '1.5',
+          fontSize: '14px'
+        }}>
+          Your selected route already only uses transit lines that exist today.
+        </p>
+
+        {/* Action Button */}
+        <button 
+          onClick={onClose}
+          style={{
+            width: '100%',
+            padding: '12px',
+            backgroundColor: COLORS.primary,
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            fontSize: '16px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            transition: 'background-color 0.2s'
+          }}
+          onMouseOver={e => e.target.style.backgroundColor = COLORS.primaryHover}
+          onMouseOut={e => e.target.style.backgroundColor = COLORS.primary}
+        >
           Okay
         </button>
       </div>
@@ -1449,28 +1798,181 @@ function AffectedRouteModal({ isOpen, onClose, onProceed }) {
   
   return (
     <div style={{
-      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-      backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 3000,
-      display: 'flex', alignItems: 'center', justifyContent: 'center'
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.6)',
+      zIndex: 3000,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '20px'
     }}>
-      <div style={{ backgroundColor: COLORS.bgPrimary, padding: '24px', borderRadius: '8px', maxWidth: '460px' }}>
-        <h2 style={{ marginBottom: '12px', color: COLORS.primary }}>Route Affected</h2>
-        <p>Your selected route uses a new transit service.</p>
-        <p style= {{fontWeight: '500',}}>Of all the route options, is this your preferred route for this trip?</p>
-        <p style= {{display: 'block',
+      <div style={{
+        backgroundColor: COLORS.bgPrimary,
+        padding: '40px',
+        borderRadius: '12px',
+        width: '600px',
+        maxWidth: '90vw',
+        boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
+        position: 'relative'
+      }}>
+        {/* Close button */}
+        <button
+          onClick={onClose}
+          style={{
+            position: 'absolute',
+            top: '20px',
+            right: '20px',
+            background: 'none',
+            border: 'none',
+            fontSize: '28px',
+            cursor: 'pointer',
+            color: COLORS.textSecondary,
+            padding: '0',
+            lineHeight: 1,
+            width: '32px',
+            height: '32px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+          aria-label="Close"
+        >
+          ×
+        </button>
+
+        {/* Visual Icon with stars.png */}
+        <div style={{
+          width: '80px',
+          height: '80px',
+          margin: '0 auto 24px auto',
+          borderRadius: '50%',
+          backgroundColor: 'rgba(22, 163, 74, 0.1)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <div style={{
+            width: '56px',
+            height: '56px',
+            borderRadius: '50%',
+            backgroundColor: COLORS.advance,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            <img 
+              src="/stars.png" 
+              style={{ width: '32px', height: '32px' }}
+              alt="New transit"
+            />
+          </div>
+        </div>
+
+        {/* Title */}
+        <h2 style={{ 
+          margin: '0 0 16px 0', 
+          fontSize: '24px', 
+          fontWeight: '700', 
+          color: COLORS.textBlack,
+          textAlign: 'center'
+        }}>
+          Route Affected
+        </h2>
+
+        {/* Body Text */}
+        <p style={{ 
+          margin: '0 0 24px 0', 
+          color: COLORS.textSecondary, 
+          lineHeight: '1.5',
+          fontSize: '14px',
+          textAlign: 'center'
+        }}>
+          Your selected route uses a new transit service.
+        </p>
+
+        {/* Question Text */}
+        <p style={{ 
+          margin: '0 0 8px 0', 
+          fontWeight: '600',
+          fontSize: '15px',
+          color: COLORS.textBold,
+          textAlign: 'center'
+        }}>
+          Of all the route options, is this your preferred route for this trip?
+        </p>
+
+        {/* Helper Text */}
+        <p style={{ 
+          margin: '0 0 24px 0',
           fontSize: '13px', 
           color: COLORS.textSecondary,
           fontWeight: '400',
-          marginTop: '4px'}}>
-          This helps us understand which route best suits your preferences for this trip.</p>
-        <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
-          <button onClick={handleYes} style={{ flex: 1, marginTop: '12px', padding: '8px 16px', backgroundColor: COLORS.primary, color: 'white', border: 'none', cursor: 'pointer', borderRadius: '4px' }}>
+          textAlign: 'center'
+        }}>
+          This helps us understand which route best suits your preferences for this trip.
+        </p>
+
+        {/* ACTION BUTTONS (horizontal layout, solid color with hover) */}
+        <div style={{ display: 'flex', gap: '12px' }}>
+          <button 
+            onClick={handleYes} 
+            style={{ 
+              flex: 1, 
+              padding: '12px', 
+              backgroundColor: COLORS.primary,
+              color: 'white',
+              border: 'none',
+              cursor: 'pointer', 
+              borderRadius: '8px',
+              fontSize: '14px',
+              fontWeight: '600',
+              transition: 'background-color 0.2s'
+            }}
+            onMouseOver={e => e.target.style.backgroundColor = COLORS.primaryHover}
+            onMouseOut={e => e.target.style.backgroundColor = COLORS.primary}
+          >
             Yes
           </button>
-          <button onClick={handleNo} style={{ flex: 1, marginTop: '12px', padding: '8px 16px', backgroundColor: COLORS.primary, color: 'white', border: 'none', cursor: 'pointer', borderRadius: '4px' }}>
+          <button 
+            onClick={handleNo} 
+            style={{ 
+              flex: 1, 
+              padding: '12px', 
+              backgroundColor: COLORS.bgSecondary,
+              color: 'white',
+              border: 'none',
+              cursor: 'pointer', 
+              borderRadius: '8px',
+              fontSize: '14px',
+              fontWeight: '600',
+              transition: 'background-color 0.2s'
+            }}
+            onMouseOver={e => e.target.style.backgroundColor = COLORS.bgSecondaryHover}
+            onMouseOut={e => e.target.style.backgroundColor = COLORS.bgSecondary}
+          >
             No
           </button>
-          <button onClick={handleUnsure} style={{ flex: 1, marginTop: '12px', padding: '8px 16px', backgroundColor: COLORS.primary, color: 'white', border: 'none', cursor: 'pointer', borderRadius: '4px' }}>
+          <button 
+            onClick={handleUnsure} 
+            style={{ 
+              flex: 1, 
+              padding: '12px', 
+              backgroundColor: COLORS.bgSecondary,
+              color: 'white',
+              border: 'none',
+              cursor: 'pointer', 
+              borderRadius: '8px',
+              fontSize: '14px',
+              fontWeight: '600',
+              transition: 'background-color 0.2s'
+            }}
+            onMouseOver={e => e.target.style.backgroundColor = COLORS.bgSecondaryHover}
+            onMouseOut={e => e.target.style.backgroundColor = COLORS.bgSecondary}
+          >
             Unsure/Just Exploring
           </button>
         </div>
@@ -1481,19 +1983,58 @@ function AffectedRouteModal({ isOpen, onClose, onProceed }) {
 
 function NoNewTransitModal({ isOpen, onClose }) {
   if (!isOpen) return null;
+
   return (
     <div style={{
-      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-      backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 3000,
-      display: 'flex', alignItems: 'center', justifyContent: 'center'
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.6)',
+      zIndex: 3000,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '20px'
     }}>
       <div style={{ 
         backgroundColor: COLORS.bgPrimary, 
         padding: '32px', 
         borderRadius: '12px', 
-        maxWidth: '460px',
-        boxShadow: '0 10px 25px rgba(0,0,0,0.3)'
+        width: '460px',
+        maxWidth: '90vw',
+        boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
+        textAlign: 'center'
       }}>
+        {/* Visual Icon */}
+        <div style={{
+          width: '80px',
+          height: '80px',
+          margin: '0 auto 24px auto',
+          borderRadius: '50%',
+          backgroundColor: 'rgba(113, 113, 122, 0.1)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <div style={{
+            width: '56px',
+            height: '56px',
+            borderRadius: '50%',
+            backgroundColor: COLORS.textSecondary,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            <i className="fas fa-info" style={{ 
+              fontSize: '28px', 
+              color: 'white' 
+            }}></i>
+          </div>
+        </div>
+
+        {/* Title */}
         <h2 style={{ 
           margin: '0 0 16px 0', 
           fontSize: '20px', 
@@ -1502,22 +2043,29 @@ function NoNewTransitModal({ isOpen, onClose }) {
         }}>
           No New Transit Options Available
         </h2>
+
+        {/* Body Text */}
         <p style={{ 
           marginBottom: '16px', 
           color: COLORS.textSecondary, 
           lineHeight: '1.5',
           fontSize: '14px'
         }}>
-          None of the routes found for this trip use the new Eglinton Crosstown LRT or Finch West LRT. 
+          None of the routes found for this trip use the new Eglinton Crosstown LRT or Finch West LRT.
         </p>
+
+        {/* Bold Helper Text */}
         <p style={{ 
           marginBottom: '24px', 
           color: COLORS.textBold, 
           fontWeight: '500',
-          fontSize: '14px'
+          fontSize: '14px',
+          lineHeight: '1.5'
         }}>
           The routes shown use what's available in today's transit network.
         </p>
+
+        {/* Action Button */}
         <button 
           onClick={onClose}
           style={{
@@ -1529,8 +2077,11 @@ function NoNewTransitModal({ isOpen, onClose }) {
             borderRadius: '6px',
             fontSize: '16px',
             fontWeight: '600',
-            cursor: 'pointer'
+            cursor: 'pointer',
+            transition: 'background-color 0.2s'
           }}
+          onMouseOver={e => e.target.style.backgroundColor = COLORS.primaryHover}
+          onMouseOut={e => e.target.style.backgroundColor = COLORS.primary}
         >
           Okay
         </button>
@@ -1541,56 +2092,91 @@ function NoNewTransitModal({ isOpen, onClose }) {
 
 function NewTransitAvailableModal({ isOpen, onClose }) {
   if (!isOpen) return null;
+
   return (
     <div style={{
-      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-      backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 3000,
-      display: 'flex', alignItems: 'center', justifyContent: 'center'
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.6)',
+      zIndex: 3000,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '20px'
     }}>
       <div style={{ 
         backgroundColor: COLORS.bgPrimary, 
         padding: '32px', 
         borderRadius: '12px', 
-        maxWidth: '460px',
-        boxShadow: '0 10px 25px rgba(0,0,0,0.3)'
+        width: '460px',
+        maxWidth: '90vw',
+        boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
+        textAlign: 'center'
       }}>
+        {/* Visual Icon with stars.png */}
         <div style={{
+          width: '80px',
+          height: '80px',
+          margin: '0 auto 24px auto',
+          borderRadius: '50%',
+          backgroundColor: 'rgba(22, 163, 74, 0.1)',
           display: 'flex',
           alignItems: 'center',
-          marginBottom: '16px',
-          gap: '8px'
+          justifyContent: 'center'
         }}>
-          <img 
-            src="/stars.png" 
-            style={{ width: '24px', height: '24px' }}
-            alt="New"
-          />
-          <h2 style={{ 
-            margin: '0', 
-            fontSize: '20px', 
-            fontWeight: '600', 
-            color: COLORS.primary 
+          <div style={{
+            width: '56px',
+            height: '56px',
+            borderRadius: '50%',
+            backgroundColor: COLORS.advance,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            position: 'relative'
           }}>
-            New Transit Options Found
-          </h2>
+            <img 
+              src="/stars.png" 
+              style={{ width: '32px', height: '32px' }}
+              alt="New transit"
+            />
+          </div>
         </div>
+
+        {/* Title */}
+        <h2 style={{ 
+          margin: '0 0 16px 0', 
+          fontSize: '20px', 
+          fontWeight: '600', 
+          color: COLORS.textPrimary 
+        }}>
+          New Transit Options Found
+        </h2>
+
+        {/* Body Text */}
         <p style={{ 
           marginBottom: '16px', 
           color: COLORS.textSecondary, 
           lineHeight: '1.5',
           fontSize: '14px'
         }}>
-          At least one of the routes found uses the new Eglinton Crosstown LRT 
-          or Finch West LRT (marked with a ✨ star).
+          At least one of the routes found uses the new Eglinton Crosstown LRT or Finch West LRT (marked with a ✨ star).
         </p>
+
+        {/* Bold Helper Text */}
         <p style={{ 
           marginBottom: '24px', 
           color: COLORS.textBold, 
           fontWeight: '500',
-          fontSize: '14px'
+          fontSize: '14px',
+          lineHeight: '1.5'
         }}>
           Look through the route options and if your preferred route uses a new transit service, compare them with today's existing options to see the difference!
         </p>
+
+        {/* Action Button */}
         <button 
           onClick={onClose}
           style={{
@@ -1602,8 +2188,11 @@ function NewTransitAvailableModal({ isOpen, onClose }) {
             borderRadius: '6px',
             fontSize: '16px',
             fontWeight: '600',
-            cursor: 'pointer'
+            cursor: 'pointer',
+            transition: 'background-color 0.2s'
           }}
+          onMouseOver={e => e.target.style.backgroundColor = COLORS.primaryHover}
+          onMouseOut={e => e.target.style.backgroundColor = COLORS.primary}
         >
           Explore Routes
         </button>
@@ -1614,17 +2203,95 @@ function NewTransitAvailableModal({ isOpen, onClose }) {
 
 function ChangedODModal({ isOpen, onClose }) {
   if (!isOpen) return null;
+
   return (
     <div style={{
-      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-      backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 3000,
-      display: 'flex', alignItems: 'center', justifyContent: 'center'
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.6)',
+      zIndex: 3000,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '20px'
     }}>
-      <div style={{ backgroundColor: COLORS.bgPrimary, padding: '24px', borderRadius: '8px', maxWidth: '460px' }}>
-        <h2 style={{ marginBottom: '12px', color: COLORS.danger }}>Origin/Destination Changed</h2>
-        <p>It looks like your origin or destination has changed since your last search.  
-        Please find a route for this trip before comparing.</p>
-        <button onClick={onClose} style={{ marginTop: '12px', padding: '8px 16px', backgroundColor: COLORS.primary, color: 'white', border: 'none', cursor: 'pointer', borderRadius: '4px' }}>
+      <div style={{ 
+        backgroundColor: COLORS.bgPrimary, 
+        padding: '32px', 
+        borderRadius: '12px', 
+        width: '460px',
+        maxWidth: '90vw',
+        boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
+        textAlign: 'center'
+      }}>
+        {/* Visual Icon */}
+        <div style={{
+          width: '80px',
+          height: '80px',
+          margin: '0 auto 24px auto',
+          borderRadius: '50%',
+          backgroundColor: 'rgba(202, 138, 4, 0.1)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <div style={{
+            width: '56px',
+            height: '56px',
+            borderRadius: '50%',
+            backgroundColor: COLORS.warning,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            <i className="fas fa-map-marker-alt" style={{ 
+              fontSize: '28px', 
+              color: 'white' 
+            }}></i>
+          </div>
+        </div>
+
+        {/* Title */}
+        <h2 style={{ 
+          margin: '0 0 16px 0', 
+          fontSize: '20px', 
+          fontWeight: '600', 
+          color: COLORS.textPrimary 
+        }}>
+          Origin/Destination Changed
+        </h2>
+
+        {/* Body Text */}
+        <p style={{ 
+          marginBottom: '24px', 
+          color: COLORS.textSecondary, 
+          lineHeight: '1.5',
+          fontSize: '14px'
+        }}>
+          It looks like your origin or destination has changed since your last search. Please generate a route for this trip before comparing.
+        </p>
+
+        {/* Action Button */}
+        <button 
+          onClick={onClose}
+          style={{
+            width: '100%',
+            padding: '12px',
+            backgroundColor: COLORS.primary,
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            fontSize: '16px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            transition: 'background-color 0.2s'
+          }}
+          onMouseOver={e => e.target.style.backgroundColor = COLORS.primaryHover}
+          onMouseOut={e => e.target.style.backgroundColor = COLORS.primary}
+        >
           Okay
         </button>
       </div>
@@ -1676,7 +2343,7 @@ function FAQModal({ isOpen, onClose }) {
     },
     {
       question: "How accurate are the route predictions and travel times?",
-      answer: "The future routes are determined use my best estimates at travel times, and also do not encapsulate all expected changes to the bus network. Current transit routes use the same basic data used by platforms such as Google Maps today. Current auto routes use data provided by TomTom, a well-regarded transportation data company."
+      answer: "The future routes are determined use my best estimates at travel times, and also do not encapsulate all expected changes to the bus network. Current transit routes use the same basic data used by platforms such as Google Maps today, so use the same level of uncertainty you would apply to Google Maps. Current auto routes use data provided by TomTom, a well-regarded transportation data company."
     },
     {
       question: "Why are expected bus changes not incorporated?",

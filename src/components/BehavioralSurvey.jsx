@@ -178,10 +178,13 @@ const BehavioralSurvey = ({
         borderRadius: '12px',
         maxWidth: '600px',
         width: '100%',
+        minHeight: '650px',        // ADD THIS LINE - prevents resize jarring
         maxHeight: '90vh',
         overflow: 'auto',
         boxShadow: '0 10px 40px rgba(0,0,0,0.3)',
-        position: 'relative'
+        position: 'relative',
+        display: 'flex',           // ADD THIS LINE
+        flexDirection: 'column'    // ADD THIS LINE
       }}>
         {/* Close button */}
         <button
@@ -305,98 +308,166 @@ const BehavioralSurvey = ({
         <div style={{ padding: '30px' }}>
           {/* Step 0: Route Preference Verification */}
           {step === 0 && hasMultipleCurrentRoutes && (
-            <div>
-              <h3 style={{
-                marginTop: 0,
-                marginBottom: '10px',
-                color: COLORS.primary,
-                fontSize: '24px'
+            <div style={{ padding: '40px' }}>
+              {/* Visual Icon - Blue checkmark for verification */}
+              <div style={{
+                width: '80px',
+                height: '80px',
+                margin: '0 auto 24px auto',
+                borderRadius: '50%',
+                backgroundColor: 'rgba(3, 105, 161, 0.1)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <div style={{
+                  width: '56px',
+                  height: '56px',
+                  borderRadius: '50%',
+                  backgroundColor: COLORS.primary,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <i className="fas fa-check" style={{ 
+                    fontSize: '28px', 
+                    color: 'white' 
+                  }}></i>
+                </div>
+              </div>
+
+              {/* Title */}
+              <h3 style={{ 
+                margin: '0 0 16px 0', 
+                fontSize: '24px', 
+                fontWeight: '700', 
+                color: COLORS.textBlack,
+                textAlign: 'center'
               }}>
                 Before we begin...
               </h3>
-              
-              <p style={{
-                color: COLORS.textSecondary,
-                marginBottom: '10px',
-                fontSize: '16px',
+
+              {/* Question Text */}
+              <p style={{ 
+                margin: '0 0 8px 0', 
+                fontWeight: '600',
+                fontSize: '15px',
+                color: COLORS.textBold,
+                textAlign: 'center',
                 lineHeight: '1.5'
               }}>
-                Of all the current route options available, is the route you selected 
-                your <strong>preferred current route</strong> for this trip?
+                Of all the current route options available, is the route you selected your <strong>preferred current route</strong> for this trip?
               </p>
-              
-              <p style={{
-                fontSize: '13px',
+
+              {/* Helper Text */}
+              <p style={{ 
+                margin: '0 0 28px 0',
+                fontSize: '13px', 
                 color: COLORS.textSecondary,
                 fontWeight: '400',
-                marginTop: '4px',
-                marginBottom: '25px'
+                textAlign: 'center'
               }}>
                 This helps us understand which route you'd normally choose for this trip.
               </p>
 
-              <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '10px'
+              {/* ACTION BUTTONS (solid color with hover) - arranged vertically for better readability */}
+              <div style={{ 
+                display: 'flex', 
+                flexDirection: 'column', 
+                gap: '12px' 
               }}>
-                {[
-                  { value: 'yes', label: 'Yes', description: 'This is my preferred route' },
-                  { value: 'no', label: 'No', description: "I'd prefer a different route" },
-                  { value: 'unsure', label: 'Unsure / Just Exploring', description: 'Not sure yet' }
-                ].map(option => (
-                  <button
-                    key={option.value}
-                    onClick={() => {
-                      setResponses(prev => ({ ...prev, is_preferred_route: option.value }));
-                      
-                      // Close modal if user selects "No", otherwise continue to Step 1
-                      if (option.value === 'no') {
-                        onClose();
-                      } else {
-                        setStep(1);
-                      }
-                    }}
-                    style={{
-                      padding: '16px 20px',
-                      border: `2px solid ${COLORS.border}`,
-                      borderRadius: '8px',
-                      backgroundColor: 'white',
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                      transition: 'all 0.2s',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '4px'
-                    }}
-                    /*
-                    onMouseOver={e => {
-                      e.target.style.backgroundColor = COLORS.bgPrimaryHover;
-                      e.target.style.borderColor = COLORS.primary;
-                    }}
-                    onMouseOut={e => {
-                      e.target.style.backgroundColor = 'white';
-                      e.target.style.borderColor = COLORS.border;
-                    }}
-                    */
-                  >
-                    <div style={{
-                      fontSize: '16px',
-                      fontWeight: '600',
-                      color: COLORS.textPrimary,
-                      pointerEvents: 'none'  // ADD THIS!
-                    }}>
-                      {option.label}
-                    </div>
-                    <div style={{
-                      fontSize: '13px',
-                      color: COLORS.textSecondary,
-                      pointerEvents: 'none'  // ADD THIS!
-                    }}>
-                      {option.description}
-                    </div>
-                  </button>
-                ))}
+                <button 
+                  onClick={() => {
+                    setResponses(prev => ({ ...prev, is_preferred_route: 'yes' }));
+                    setStep(1);
+                  }}
+                  style={{ 
+                    padding: '16px 20px', 
+                    backgroundColor: COLORS.primary,
+                    color: 'white',
+                    border: 'none',
+                    cursor: 'pointer', 
+                    borderRadius: '8px',
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    textAlign: 'left',
+                    transition: 'background-color 0.2s',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px'
+                  }}
+                  onMouseOver={e => e.target.style.backgroundColor = COLORS.primaryHover}
+                  onMouseOut={e => e.target.style.backgroundColor = COLORS.primary}
+                >
+                  <div style={{ fontSize: '16px', fontWeight: '600' }}>
+                    Yes
+                  </div>
+                  <div style={{ fontSize: '13px', opacity: 0.9 }}>
+                    This is my preferred route
+                  </div>
+                </button>
+
+                <button 
+                  onClick={() => {
+                    setResponses(prev => ({ ...prev, is_preferred_route: 'no' }));
+                    onClose();
+                  }}
+                  style={{ 
+                    padding: '16px 20px', 
+                    backgroundColor: COLORS.bgSecondary,
+                    color: 'white',
+                    border: 'none',
+                    cursor: 'pointer', 
+                    borderRadius: '8px',
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    textAlign: 'left',
+                    transition: 'background-color 0.2s',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px'
+                  }}
+                  onMouseOver={e => e.target.style.backgroundColor = COLORS.bgSecondaryHover}
+                  onMouseOut={e => e.target.style.backgroundColor = COLORS.bgSecondary}
+                >
+                  <div style={{ fontSize: '16px', fontWeight: '600' }}>
+                    No
+                  </div>
+                  <div style={{ fontSize: '13px', opacity: 0.9 }}>
+                    I'd prefer a different route
+                  </div>
+                </button>
+
+                <button 
+                  onClick={() => {
+                    setResponses(prev => ({ ...prev, is_preferred_route: 'unsure' }));
+                    setStep(1);
+                  }}
+                  style={{ 
+                    padding: '16px 20px', 
+                    backgroundColor: COLORS.bgSecondary,
+                    color: 'white',
+                    border: 'none',
+                    cursor: 'pointer', 
+                    borderRadius: '8px',
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    textAlign: 'left',
+                    transition: 'background-color 0.2s',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px'
+                  }}
+                  onMouseOver={e => e.target.style.backgroundColor = COLORS.bgSecondaryHover}
+                  onMouseOut={e => e.target.style.backgroundColor = COLORS.bgSecondary}
+                >
+                  <div style={{ fontSize: '16px', fontWeight: '600' }}>
+                    Unsure / Just Exploring
+                  </div>
+                  <div style={{ fontSize: '13px', opacity: 0.9 }}>
+                    Not sure yet
+                  </div>
+                </button>
               </div>
             </div>
           )}
@@ -675,7 +746,7 @@ const BehavioralSurvey = ({
                   { value: 'daily', label: 'At least daily', icon: 'fas fa-calendar-day' },
                   { value: 'multiple_weekly', label: 'More than 2 times a week', icon: 'fas fa-calendar-week' },
                   { value: 'weekly', label: 'At least once a week', icon: 'fas fa-calendar-alt' },
-                  { value: 'multiple_monthly', label: 'More than once a month', icon: 'fas fa-calendar' },
+                  { value: 'multiple_monthly', label: 'At least once a month', icon: 'fas fa-calendar' },
                   { value: 'less_than_monthly', label: 'Less than once a month', icon: 'fas fa-calendar-minus' }
                 ].map(option => (
                   <button
@@ -701,6 +772,7 @@ const BehavioralSurvey = ({
                       gap: '10px',
                       outline: 'none'
                     }}
+                    /*
                     onMouseOver={e => {
                       if (responses.trip_frequency !== option.value) {
                         e.target.style.backgroundColor = '#f8f9fa';
@@ -711,6 +783,7 @@ const BehavioralSurvey = ({
                         e.target.style.backgroundColor = 'white';
                       }
                     }}
+                    */
                   >
                     <i 
                       className={option.icon} 
