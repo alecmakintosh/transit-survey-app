@@ -851,14 +851,14 @@ const BehavioralSurvey = ({
                   disabled={responses.trip_frequency === null}
                   style={{
                     padding: '12px 24px',
-                    backgroundColor: !responses.trip_frequency === null ? COLORS.advance : COLORS.bgSecondary,
+                    backgroundColor: (!responses.trip_frequency === null) ? COLORS.advance : COLORS.bgSecondary,
                     color: 'white',
                     border: 'none',
                     borderRadius: '8px',
-                    cursor: !responses.trip_frequency === null ? 'pointer' : 'not-allowed',
+                    cursor: (!responses.trip_frequency === null) ? 'pointer' : 'not-allowed',
                     fontSize: '14px',
                     fontWeight: '600',
-                    opacity: !responses.trip_frequency === null ? 1 : 0.6,
+                    opacity: (!responses.trip_frequency === null) ? 1 : 0.6,
                     transition: 'background-color 0.2s'
                   }}
                   onMouseOver={e => {
