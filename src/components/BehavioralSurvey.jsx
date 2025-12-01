@@ -65,6 +65,17 @@ const COLORS = {
   FERRY: '#0891b2'
 };
 
+  // Helper function to format time
+  const formatTime = (timestamp) => {
+    const date = new Date(timestamp);
+    const hours = date.getHours();
+    const minutes = date.getMinutes();
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    const displayHours = hours % 12 || 12;
+    const displayMinutes = minutes.toString().padStart(2, '0');
+    return `${displayHours}:${displayMinutes} ${ampm}`;
+  };
+
 const BehavioralSurvey = ({ 
   currentRoute, 
   futureRoute, 
@@ -72,7 +83,8 @@ const BehavioralSurvey = ({
   onClose,
   onContinueComparing,  
   onExploreNewTrip,
-  hasMultipleCurrentRoutes = true      
+  hasMultipleCurrentRoutes = true,
+  isComparingWithAuto = false      
 
 }) => {
   const initialStep = hasMultipleCurrentRoutes ? 0 : 1;
@@ -104,7 +116,7 @@ const BehavioralSurvey = ({
 
   const handleRoutePreference = (preference) => {
     setResponses(prev => ({ ...prev, route_preference: preference }));
-    setStep(2);
+    //setStep(2);
   };
 
   const toggleFactor = (factor) => {
@@ -144,6 +156,7 @@ const BehavioralSurvey = ({
     setStep(4);
   };
 
+  const canProceedFromStep1 = responses.route_preference !== null;
   const canProceedFromStep2 = selectedFactors.size > 0;
 
   return (
@@ -228,7 +241,7 @@ const BehavioralSurvey = ({
               height: '30px',
               borderRadius: '50%',
               backgroundColor: step >= 1 ? COLORS.primary : '#e9ecef',
-              color: 'white',
+              color: step >= 1 ? 'white' : '#6c757d',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -238,7 +251,7 @@ const BehavioralSurvey = ({
             <div style={{
               flex: 1,
               height: '3px',
-              backgroundColor: step >= 2 ? COLORS.primary : '#e9ecef'
+              backgroundColor: step >= 2 ? COLORS.primary : COLORS.border
             }}></div>
             <div style={{
               width: '30px',
@@ -255,7 +268,7 @@ const BehavioralSurvey = ({
             <div style={{
               flex: 1,
               height: '3px',
-              backgroundColor: step >= 3 ? COLORS.primary : '#e9ecef'
+              backgroundColor: step >= 3 ? COLORS.primary : COLORS.border
             }}></div>
             <div style={{
               width: '30px',
@@ -278,8 +291,8 @@ const BehavioralSurvey = ({
               width: '30px',
               height: '30px',
               borderRadius: '50%',
-              backgroundColor: step >= 4 ? COLORS.primary : COLORS.border,
-              color: step >= 4 ? 'white' : COLORS.textSecondary,
+              backgroundColor: step >= 4 ? COLORS.primary : '#e9ecef',
+              color: step >= 4 ? 'white' : '#6c757d',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -308,8 +321,8 @@ const BehavioralSurvey = ({
                 fontSize: '16px',
                 lineHeight: '1.5'
               }}>
-                Of all the route options available, is the <strong>current route</strong> you selected 
-                your preferred route for this trip?
+                Of all the current route options available, is the route you selected 
+                your <strong>preferred current route</strong> for this trip?
               </p>
               
               <p style={{
@@ -387,6 +400,7 @@ const BehavioralSurvey = ({
               </div>
             </div>
           )}
+
           {/* Step 1: Route Preference */}
           {step === 1 && (
             <div>
@@ -396,52 +410,64 @@ const BehavioralSurvey = ({
                 color: COLORS.primary,
                 fontSize: '24px'
               }}>
-                Which route would you choose?
+                {isComparingWithAuto 
+                  ? "Would you take transit or drive?" 
+                  : "Which route would you choose?"}
               </h3>
               
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
                 <RouteOptionCard
-                  title="Future Transit Network (with new LRT lines)"
+                  title={isComparingWithAuto 
+                    ? "Future Transit Network (with new LRT lines)" 
+                    : "Future Transit Network (with new LRT lines)"}
                   route={futureRoute}
                   selected={responses.route_preference === 'future'}
                   onClick={() => handleRoutePreference('future')}
-                  accentColor="#475569"
+                  accentColor={COLORS.primary}
                   isNew={true}
                 />
 
                 <RouteOptionCard
-                  title="Current Transit Network"
+                  title={isComparingWithAuto 
+                    ? "Drive" 
+                    : "Current Transit Network"}
                   route={currentRoute}
                   selected={responses.route_preference === 'current'}
                   onClick={() => handleRoutePreference('current')}
-                  accentColor="#475569"
+                  accentColor={COLORS.primary}
                 />
                 
                 <button
                   onClick={() => handleRoutePreference('no_preference')}
                   style={{
-                    padding: '15px 20px',
+                    padding: '16px',
                     border: responses.route_preference === 'no_preference' 
-                      ? `3px solid ${COLORS.primary}` 
-                      : '2px solid #dee2e6',
-                    borderRadius: '8px',
+                      ? `2px solid ${COLORS.primary}` 
+                      : `2px solid ${COLORS.border}`,
+                    borderRadius: '6px',
                     backgroundColor: responses.route_preference === 'no_preference' 
-                      ? '#f8f9fa' 
-                      : 'white',
+                      ? COLORS.primaryLight 
+                      : COLORS.bgPrimary,
                     cursor: 'pointer',
-                    fontSize: '16px',
-                    fontWeight: '500',
-                    color: '#495057',
-                    transition: 'all 0.2s'
+                    textAlign: 'left',
+                    transition: 'all 0.2s',
+                    boxShadow: responses.route_preference === 'no_preference' ? '0 2px 6px rgba(0,123,255,0.15)' : '0 1px 2px rgba(0,0,0,0.05)',
+                    width: '100%'
                   }}
                 >
-                  No preference
+                  <div style={{
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    color: responses.route_preference === 'no_preference' ? COLORS.primary : COLORS.textBold
+                  }}>
+                    No preference
+                  </div>
                 </button>
               </div>
-                            <div style={{
+              <div style={{
                 display: 'flex',
-                gap: '12px',
-                marginTop: '30px'
+                gap: '10px',
+                justifyContent: 'flex-end'
               }}>
                 <button
                   onClick={() => {
@@ -454,25 +480,32 @@ const BehavioralSurvey = ({
                   }}
                   style={{
                     padding: '10px 20px',
-                    border: `2px solid ${COLORS.border}`,
+                    border: '2px solid #dee2e6',
                     borderRadius: '6px',
                     backgroundColor: 'white',
-                    color: COLORS.textPrimary,
                     cursor: 'pointer',
                     fontSize: '14px',
-                    fontWeight: '600',
-                    transition: 'all 0.2s'
-                  }}
-                  onMouseOver={e => {
-                    e.target.style.backgroundColor = COLORS.bgPrimaryHover;
-                    e.target.style.borderColor = COLORS.borderHover;
-                  }}
-                  onMouseOut={e => {
-                    e.target.style.backgroundColor = 'white';
-                    e.target.style.borderColor = COLORS.border;
+                    fontWeight: '500',
+                    color: '#495057'
                   }}
                 >
                   Back
+                </button>
+                <button
+                  onClick={() => setStep(2)}
+                  disabled={!canProceedFromStep1}
+                  style={{
+                    padding: '10px 20px',
+                    border: 'none',
+                    borderRadius: '6px',
+                    backgroundColor: canProceedFromStep1 ? COLORS.primary : '#dee2e6',
+                    color: 'white',
+                    cursor: canProceedFromStep1 ? 'pointer' : 'not-allowed',
+                    fontSize: '14px',
+                    fontWeight: '500'
+                  }}
+                >
+                  Continue
                 </button>
               </div>
             </div>
@@ -487,7 +520,9 @@ const BehavioralSurvey = ({
                 color: COLORS.primary,
                 fontSize: '24px'
               }}>
-                What influenced your choice?
+                {isComparingWithAuto 
+                  ? "What influenced your decision between driving and transit?" 
+                  : "What influenced your choice?"}
               </h3>
               <p style={{
                 color: '#6c757d',
@@ -500,7 +535,7 @@ const BehavioralSurvey = ({
               <div style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
-                gap: '12px',
+                gap: '10px',
                 marginBottom: '20px'
               }}>
                 {decisionFactorOptions.map(option => (
@@ -634,10 +669,10 @@ const BehavioralSurvey = ({
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '10px',
-                marginBottom: '30px'
+                marginBottom: '20px'
               }}>
                 {[
-                  { value: 'daily', label: 'Daily', icon: 'fas fa-calendar-day' },
+                  { value: 'daily', label: 'At least daily', icon: 'fas fa-calendar-day' },
                   { value: 'multiple_weekly', label: 'More than 2 times a week', icon: 'fas fa-calendar-week' },
                   { value: 'weekly', label: 'At least once a week', icon: 'fas fa-calendar-alt' },
                   { value: 'multiple_monthly', label: 'More than once a month', icon: 'fas fa-calendar' },
@@ -647,32 +682,63 @@ const BehavioralSurvey = ({
                     key={option.value}
                     onClick={() => setResponses(prev => ({
                       ...prev,
-                      likelihood_use_future: option.value
+                      trip_frequency: option.value
                     }))}
                     style={{
-                      padding: '15px 20px',
-                      border: responses.likelihood_use_future === option.value 
-                        ? `2px solid ${option.color}` 
+                      padding: '14px 16px',
+                      border: responses.trip_frequency === option.value 
+                        ? `2px solid ${COLORS.primary}` 
                         : '2px solid #dee2e6',
                       borderRadius: '8px',
-                      backgroundColor: responses.likelihood_use_future === option.value 
-                        ? `${option.color}15` 
+                      backgroundColor: responses.trip_frequency === option.value 
+                        ? COLORS.primaryLight 
                         : 'white',
                       cursor: 'pointer',
-                      fontSize: '16px',
-                      fontWeight: '500',
-                      color: '#495057',
+                      textAlign: 'left',
                       transition: 'all 0.2s',
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: 'space-between',
-                      boxSizing: 'border-box',
-                      minHeight: '56px'  // ADD THIS to prevent resizing
+                      gap: '10px',
+                      outline: 'none'
+                    }}
+                    onMouseOver={e => {
+                      if (responses.trip_frequency !== option.value) {
+                        e.target.style.backgroundColor = '#f8f9fa';
+                      }
+                    }}
+                    onMouseOut={e => {
+                      if (responses.trip_frequency !== option.value) {
+                        e.target.style.backgroundColor = 'white';
+                      }
                     }}
                   >
-                    <span>{option.label}</span>
-                    {responses.likelihood_use_future === option.value && (
-                      <i className="fas fa-check-circle" style={{ color: option.color }}></i>
+                    <i 
+                      className={option.icon} 
+                      style={{ 
+                        color: responses.trip_frequency === option.value ? COLORS.primary : '#6c757d',
+                        fontSize: '18px',
+                        minWidth: '18px',
+                        pointerEvents: 'none'
+                      }}
+                    ></i>
+                    <span style={{
+                      fontSize: '14px',
+                      //fontWeight: '600',
+                      color: responses.trip_frequency === option.value ? COLORS.textBold : "#495057",
+                      pointerEvents: 'none'
+                    }}>
+                      {option.label}
+                    </span>
+                    {responses.trip_frequency === option.value && (
+                      <i 
+                        className="fas fa-check-circle" 
+                        style={{ 
+                          color: COLORS.primary,
+                          fontSize: '16px',
+                          marginLeft: 'auto',
+                          pointerEvents: 'none'
+                        }}
+                      ></i>
                     )}
                   </button>
                 ))}
@@ -700,16 +766,16 @@ const BehavioralSurvey = ({
                 </button>
                 <button
                   onClick={handleSubmit}
-                  disabled={responses.likelihood_use_future === null}
+                  disabled={responses.trip_frequency === null}
                   style={{
                     padding: '10px 20px',
                     border: 'none',
                     borderRadius: '6px',
-                    backgroundColor: responses.likelihood_use_future !== null ? COLORS.advance : '#dee2e6',
+                    backgroundColor: responses.trip_frequency !== null ? COLORS.advance : '#dee2e6',
                     color: 'white',
-                    cursor: responses.likelihood_use_future !== null ? 'pointer' : 'not-allowed',
+                    cursor: responses.trip_frequency !== null ? 'pointer' : 'not-allowed',
                     fontSize: '14px',
-                    fontWeight: '600'
+                    //fontWeight: '600'
                   }}
                 >
                   Submit
@@ -823,123 +889,191 @@ const BehavioralSurvey = ({
 };
 
 // Helper component for route option cards
+// Helper component for route option cards
 const RouteOptionCard = ({ title, route, selected, onClick, accentColor, isNew }) => {
   if (!route) return null;
 
   const totalDuration = Math.round(route.duration / 60);
   const transitLegs = route.legs.filter(leg => leg.mode !== 'WALK');
   const transfers = transitLegs.length > 1 ? transitLegs.length - 1 : 0;
-  const walkingDistance = route.legs
-    .filter(leg => leg.mode === 'WALK')
-    .reduce((sum, leg) => sum + (leg.distance || 0), 0);
+  
+  // Calculate walking time in minutes (matching sidebar)
+  const walkingTime = Math.round(
+    route.legs
+      .filter(leg => leg.mode === 'WALK')
+      .reduce((sum, leg) => sum + (leg.duration || 0), 0) / 60
+  );
+
+  // Helper to get route color
+  const getRouteColor = (leg) => {
+    if (leg.route && leg.route.color) {
+      return `#${leg.route.color}`;
+    }
+    const modeColors = {
+      WALK: '#28a745',
+      BUS: '#000000',
+      SUBWAY: '#000000',
+      TRAM: '#000000',
+      RAIL: '#6f42c1',
+      FERRY: '#17a2b8'
+    };
+    return modeColors[leg.mode] || '#6c757d';
+  };
+
+  // Helper to get mode icon
+  const getModeIcon = (leg) => {
+    const modeIcons = {
+      WALK: 'fas fa-walking',
+      BUS: 'fas fa-bus',
+      SUBWAY: 'fas fa-subway',
+      TRAM: 'fas fa-tram',
+      RAIL: 'fas fa-train',
+      FERRY: 'fas fa-ship'
+    };
+    return modeIcons[leg.mode] || 'fas fa-bus';
+  };
 
   return (
     <button
       onClick={onClick}
       style={{
-        padding: '20px',
-        border: selected ? `3px solid ${accentColor}` : '2px solid #dee2e6',
-        borderRadius: '8px',
-        backgroundColor: selected ? '#f8f9fa' : 'white',
+        padding: '16px',
+        backgroundColor: selected ? COLORS.primaryLight : COLORS.bgPrimary,
+        color: COLORS.textBlack,
+        border: `2px solid ${selected ? COLORS.primary : COLORS.border}`,
+        borderRadius: '6px',
         cursor: 'pointer',
+        fontSize: '12px',
         textAlign: 'left',
         transition: 'all 0.2s',
-        position: 'relative'
+        boxShadow: selected ? '0 2px 6px rgba(0,123,255,0.15)' : '0 1px 2px rgba(0,0,0,0.05)',
+        width: '100%'
       }}
     >
+      {/* Title section (not in sidebar) */}
       <div style={{
+        fontSize: '14px',
+        fontWeight: '600',
+        color: selected ? COLORS.primary : COLORS.textBold,
+        marginBottom: '8px',
         display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'flex-start',
-        marginBottom: '15px'
+        alignItems: 'center',
+        gap: '6px'
       }}>
-        <div>
-          <h4 style={{
-            margin: 0,
-            color: accentColor,
-            fontSize: '16px',
-            fontWeight: '600',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
-          }}>
-            {title}
-            {isNew && (
-              <img 
-                src="/stars.png" 
-                alt="New" 
-                style={{ width: '16px', height: '16px' }}
-              />
-            )}
-          </h4>
-        </div>
-        {selected && (
-          <i className="fas fa-check-circle" style={{
-            color: accentColor,
-            fontSize: '20px'
-          }}></i>
+        {title}
+        {isNew && (
+          <img 
+            src="/stars.png" 
+            alt="New" 
+            style={{ width: '14px', height: '14px' }}
+          />
         )}
       </div>
 
-      <div style={{
-        display: 'flex',
-        gap: '20px',
-        flexWrap: 'wrap'
+      {/* Duration section - matches sidebar exactly */}
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center',
+        marginBottom: '10px'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <i className="fas fa-clock" style={{ color: '#6c757d', fontSize: '14px' }}></i>
-          <span style={{ fontSize: '14px', color: '#495057', fontWeight: '500' }}>
-            {totalDuration} min
-          </span>
+        <div style={{ 
+          fontSize: '20px', 
+          fontWeight: '700',
+          color: selected ? COLORS.primary : COLORS.advance
+        }}>
+          {totalDuration} min
         </div>
-
-        {transfers > 0 && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <i className="fas fa-exchange-alt" style={{ color: '#6c757d', fontSize: '14px' }}></i>
-            <span style={{ fontSize: '14px', color: '#495057', fontWeight: '500' }}>
-              {transfers} transfer{transfers !== 1 ? 's' : ''}
-            </span>
+        <div style={{ 
+          fontSize: '16px', 
+          fontWeight: '600',
+          color: COLORS.textBold,
+          textAlign: 'right'
+        }}>
+          <div>{formatTime(route.startTime)}</div>
+          <div style={{ fontSize: '12px', color: COLORS.textSecondary }}>
+            to {formatTime(route.endTime)}
           </div>
-        )}
-
-        {walkingDistance > 0 && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <i className="fas fa-walking" style={{ color: '#6c757d', fontSize: '14px' }}></i>
-            <span style={{ fontSize: '14px', color: '#495057', fontWeight: '500' }}>
-              {Math.round(walkingDistance)}m walk
-            </span>
-          </div>
-        )}
+        </div>
       </div>
 
-      {/* Route pills preview */}
-      <div style={{
-        marginTop: '12px',
-        display: 'flex',
-        gap: '6px',
-        flexWrap: 'wrap'
+      {/* Stats section - matches sidebar exactly */}
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center',
+        marginBottom: '10px',
+        fontSize: '12px',
+        color: COLORS.textSecondary
       }}>
-        {transitLegs.map((leg, idx) => {
-          const legColor = leg.route?.color ? `#${leg.route.color}` : '#000';
-          const textColor = leg.route?.textColor ? `#${leg.route.textColor}` : '#fff';
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {walkingTime > 0 && (
+            <span style={{ display: 'flex', alignItems: 'center', gap: '2px', fontWeight: '500' }}>
+              <i className="fas fa-walking" style={{ fontSize: '10px' }}></i>
+              {walkingTime}min walk
+            </span>
+          )}
+          {transfers > 0 && (
+            <span style={{ display: 'flex', alignItems: 'center', gap: '2px', fontWeight: '500' }}>
+              <i className="fas fa-exchange-alt" style={{ fontSize: '10px' }}></i>
+              {transfers} transfer{transfers > 1 ? 's' : ''}
+            </span>
+          )}
+        </div>
+      </div>
+      
+      {/* Route pills - matches sidebar exactly */}
+      <div style={{ 
+        display: 'flex', 
+        flexWrap: 'wrap', 
+        alignItems: 'center',
+        minHeight: '20px'
+      }}>
+        {route.legs.map((leg, legIndex) => {
+          const legColor = getRouteColor(leg);
+          const duration = Math.round(leg.duration / 60);
+          const iconClass = getModeIcon(leg);
+          
+          let displayText = '';
+          if (leg.mode === 'WALK') {
+            displayText = `${duration}min`;
+          } else if (leg.route && leg.route.shortName) {
+            displayText = leg.route.shortName;
+          } else {
+            displayText = leg.mode.toLowerCase();
+          }
+
+          const textColor = leg.route?.textColor ? `#${leg.route.textColor}` : (leg.mode === 'WALK' ? '#000' : '#fff');
           
           return (
-            <div
-              key={idx}
-              style={{
-                backgroundColor: legColor,
-                color: textColor,
-                padding: '4px 10px',
-                borderRadius: '12px',
-                fontSize: '12px',
-                fontWeight: '600',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px'
-              }}
-            >
-              {leg.route?.shortName || leg.mode}
-            </div>
+            <React.Fragment key={legIndex}>
+              <div
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  backgroundColor: legColor,
+                  color: textColor,
+                  padding: '2px 6px',
+                  borderRadius: '8px',
+                  fontSize: '10px',
+                  fontWeight: '600',
+                  margin: '1px',
+                  minWidth: '24px',
+                  justifyContent: 'center',
+                  position: 'relative'
+                }}
+              >
+                <i className={iconClass} style={{ marginRight: '2px', fontSize: '8px' }}></i>
+                {displayText}
+              </div>
+              {legIndex < route.legs.length - 1 && (
+                <span style={{ 
+                  margin: '0 2px', 
+                  color: COLORS.textSecondary,
+                  fontSize: '10px'
+                }}>→</span>
+              )}
+            </React.Fragment>
           );
         })}
       </div>

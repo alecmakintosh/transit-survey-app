@@ -1532,7 +1532,7 @@ function NoNewTransitModal({ isOpen, onClose }) {
             cursor: 'pointer'
           }}
         >
-          Got it
+          Okay
         </button>
       </div>
     </div>
@@ -1625,7 +1625,7 @@ function ChangedODModal({ isOpen, onClose }) {
         <p>It looks like your origin or destination has changed since your last search.  
         Please find a route for this trip before comparing.</p>
         <button onClick={onClose} style={{ marginTop: '12px', padding: '8px 16px', backgroundColor: COLORS.primary, color: 'white', border: 'none', cursor: 'pointer', borderRadius: '4px' }}>
-          Got it
+          Okay
         </button>
       </div>
     </div>
@@ -1664,7 +1664,7 @@ function FAQModal({ isOpen, onClose }) {
   const faqs = [
     {
       question: "What is this?",
-      answer: "This is a research tool to help understand how new transit lines (like the Eglinton Crosstown LRT and Finch West LRT) might change travel patterns in Toronto. It however doubles as a public-facing tool for you to explore our hopefully soon-to-be transit network. Please also note this is a prototype tool and will have errors."
+      answer: "This is a research tool to help understand how new transit lines (like the Eglinton Crosstown LRT and Finch West LRT) might change travel patterns in Toronto. It however doubles as a public-facing tool for you to explore our soon-to-be transit network. Please also note this is a prototype tool and will have errors."
     },
     {
       question: "Why does my data and input matter?",
@@ -1672,7 +1672,7 @@ function FAQModal({ isOpen, onClose }) {
     },
     {
       question: "What new routes are currently included?",
-      answer: "Currently, the Eglinton Crosstown LRT and Finch West LRT, both projected to open in 2025, are included. Lines that are further from completion, such as the Ontario Line, are not included as of now."
+      answer: "Currently the Eglinton Crosstown LRT and Finch West LRT are included. Lines that are further from completion, such as the Ontario Line, are not included as of now."
     },
     {
       question: "How accurate are the route predictions and travel times?",
@@ -1700,7 +1700,7 @@ function FAQModal({ isOpen, onClose }) {
     },
     {
       question: "How is travel time calculated?",
-      answer: "Travel times include walking, waiting, and transit time."
+      answer: "Travel times include walking, waiting, and in-vehicle travel time."
     },
     {
       question: "Can I save my routes?",
@@ -1727,7 +1727,7 @@ function FAQModal({ isOpen, onClose }) {
     */
     {
       question: "Who are you?",
-      answer: "I'm Alec Mak, a transportation consultant working in Toronto. I'm a recent civil engineering graduate from the University of Toronto, looking to keep my research skills sharp."
+      answer: `I'm Alec Mak, a transportation consultant working in Toronto (i.e. not employed at Metrolinx and not an official source). I'm a recent civil engineering graduate from the University of Toronto, looking to keep my research skills sharp.`
     },
     {
       question: "Do you know when the Eglinton Crosstown LRT will open?",
@@ -1735,7 +1735,7 @@ function FAQModal({ isOpen, onClose }) {
     },
     {
       question: "How can I contact you?",
-      answer: "If you have any questions, concerns or comments, please reach out to me at futuretorontotransit@gmail.com."
+      answer: "If you have any questions, concerns or comments, please reach out to me at futuretorontotransit@gmail.com! I would love to hear from you!"
     },
   ];
 
@@ -4825,6 +4825,8 @@ function App() {
           futureRoute={comparedFutureRoute}
           onComplete={handleSurveyComplete}
           onClose={handleSurveyClose}
+          hasMultipleCurrentRoutes={currentRouteOptions.length > 1}
+          isComparingWithAuto={selectedTravelMode === 'vehicle'}  
           onContinueComparing={() => {
             // Just close the modal, stay in comparison view
             setShowBehavioralSurvey(false);
