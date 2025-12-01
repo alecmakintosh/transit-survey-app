@@ -55,11 +55,11 @@ const LandingPage = () => {
           borderRadius: '8px',
           cursor: 'pointer'
         }}
+        onMouseOver={e => e.target.style.backgroundColor = COLORS.primaryHover}
+        onMouseOut={e => e.target.style.backgroundColor = COLORS.primary}
       >
         Try It Now
       </button>
-      onMouseOver={e => e.target.style.backgroundColor = '#0369a1'}
-      onMouseOut={e => e.target.style.backgroundColor = '#075985'}
     </div>
   );
 };
