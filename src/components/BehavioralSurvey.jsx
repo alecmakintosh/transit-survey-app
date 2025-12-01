@@ -305,11 +305,23 @@ const BehavioralSurvey = ({
           </div>
         </div>
 
-        <div style={{ padding: '30px' }}>
+        <div style={{ 
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          padding: '30px 40px'                  // Adjust padding as needed
+         }}>
           {/* Step 0: Route Preference Verification */}
           {step === 0 && hasMultipleCurrentRoutes && (
-            <div style={{ padding: '40px' }}>
-              {/* Visual Icon - Blue checkmark for verification */}
+            <div style={{ 
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              padding: '40px'
+            }}>
+              {/* Visual Icon */}
               <div style={{
                 width: '80px',
                 height: '80px',
@@ -370,103 +382,78 @@ const BehavioralSurvey = ({
                 This helps us understand which route you'd normally choose for this trip.
               </p>
 
-              {/* ACTION BUTTONS (solid color with hover) - arranged vertically for better readability */}
-              <div style={{ 
-                display: 'flex', 
-                flexDirection: 'column', 
-                gap: '12px' 
-              }}>
+              {/* ACTION BUTTONS - Horizontal layout matching Affected/Unaffected */}
+              <div style={{ display: 'flex', gap: '12px' }}>
+                {/* YES - Primary blue (advances) */}
                 <button 
                   onClick={() => {
                     setResponses(prev => ({ ...prev, is_preferred_route: 'yes' }));
                     setStep(1);
                   }}
                   style={{ 
-                    padding: '16px 20px', 
+                    flex: 1, 
+                    padding: '12px', 
                     backgroundColor: COLORS.primary,
                     color: 'white',
                     border: 'none',
                     cursor: 'pointer', 
                     borderRadius: '8px',
-                    fontSize: '16px',
+                    fontSize: '14px',
                     fontWeight: '600',
-                    textAlign: 'left',
-                    transition: 'background-color 0.2s',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '4px'
+                    transition: 'background-color 0.2s'
                   }}
                   onMouseOver={e => e.target.style.backgroundColor = COLORS.primaryHover}
                   onMouseOut={e => e.target.style.backgroundColor = COLORS.primary}
                 >
-                  <div style={{ fontSize: '16px', fontWeight: '600' }}>
-                    Yes
-                  </div>
-                  <div style={{ fontSize: '13px', opacity: 0.9 }}>
-                    This is my preferred route
-                  </div>
+                  Yes
                 </button>
 
-                <button 
-                  onClick={() => {
-                    setResponses(prev => ({ ...prev, is_preferred_route: 'no' }));
-                    onClose();
-                  }}
-                  style={{ 
-                    padding: '16px 20px', 
-                    backgroundColor: COLORS.bgSecondary,
-                    color: 'white',
-                    border: 'none',
-                    cursor: 'pointer', 
-                    borderRadius: '8px',
-                    fontSize: '16px',
-                    fontWeight: '600',
-                    textAlign: 'left',
-                    transition: 'background-color 0.2s',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '4px'
-                  }}
-                  onMouseOver={e => e.target.style.backgroundColor = COLORS.bgSecondaryHover}
-                  onMouseOut={e => e.target.style.backgroundColor = COLORS.bgSecondary}
-                >
-                  <div style={{ fontSize: '16px', fontWeight: '600' }}>
-                    No
-                  </div>
-                  <div style={{ fontSize: '13px', opacity: 0.9 }}>
-                    I'd prefer a different route
-                  </div>
-                </button>
-
+                {/* UNSURE - Primary blue (advances) - MIDDLE POSITION */}
                 <button 
                   onClick={() => {
                     setResponses(prev => ({ ...prev, is_preferred_route: 'unsure' }));
                     setStep(1);
                   }}
                   style={{ 
-                    padding: '16px 20px', 
+                    flex: 1, 
+                    padding: '12px', 
+                    backgroundColor: COLORS.primary,
+                    color: 'white',
+                    border: 'none',
+                    cursor: 'pointer', 
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    transition: 'background-color 0.2s'
+                  }}
+                  onMouseOver={e => e.target.style.backgroundColor = COLORS.primaryHover}
+                  onMouseOut={e => e.target.style.backgroundColor = COLORS.primary}
+                >
+                  Unsure
+                </button>
+
+                {/* NO - Grey (exits/closes) */}
+                <button 
+                  onClick={() => {
+                    setResponses(prev => ({ ...prev, is_preferred_route: 'no' }));
+                    onClose();
+                  }}
+                  style={{ 
+                    flex: 1, 
+                    padding: '12px', 
                     backgroundColor: COLORS.bgSecondary,
                     color: 'white',
                     border: 'none',
                     cursor: 'pointer', 
                     borderRadius: '8px',
-                    fontSize: '16px',
+                    fontSize: '14px',
                     fontWeight: '600',
-                    textAlign: 'left',
-                    transition: 'background-color 0.2s',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '4px'
+                    transition: 'background-color 0.2s'
                   }}
                   onMouseOver={e => e.target.style.backgroundColor = COLORS.bgSecondaryHover}
                   onMouseOut={e => e.target.style.backgroundColor = COLORS.bgSecondary}
                 >
-                  <div style={{ fontSize: '16px', fontWeight: '600' }}>
-                    Unsure / Just Exploring
-                  </div>
-                  <div style={{ fontSize: '13px', opacity: 0.9 }}>
-                    Not sure yet
-                  </div>
+                  No
                 </button>
               </div>
             </div>
@@ -550,15 +537,18 @@ const BehavioralSurvey = ({
                     }
                   }}
                   style={{
-                    padding: '10px 20px',
-                    border: '2px solid #dee2e6',
-                    borderRadius: '6px',
-                    backgroundColor: 'white',
+                    padding: '12px 24px',
+                    backgroundColor: COLORS.bgSecondary,
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
                     cursor: 'pointer',
                     fontSize: '14px',
-                    fontWeight: '500',
-                    color: '#495057'
+                    fontWeight: '600',
+                    transition: 'background-color 0.2s'
                   }}
+                  onMouseOver={e => e.target.style.backgroundColor = COLORS.bgSecondaryHover}
+                  onMouseOut={e => e.target.style.backgroundColor = COLORS.bgSecondary}
                 >
                   Back
                 </button>
@@ -566,14 +556,26 @@ const BehavioralSurvey = ({
                   onClick={() => setStep(2)}
                   disabled={!canProceedFromStep1}
                   style={{
-                    padding: '10px 20px',
-                    border: 'none',
-                    borderRadius: '6px',
-                    backgroundColor: canProceedFromStep1 ? COLORS.primary : '#dee2e6',
+                    padding: '12px 24px',
+                    backgroundColor: canProceedFromStep1 ? COLORS.primary : COLORS.bgSecondary,
                     color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
                     cursor: canProceedFromStep1 ? 'pointer' : 'not-allowed',
                     fontSize: '14px',
-                    fontWeight: '500'
+                    fontWeight: '600',
+                    opacity: canProceedFromStep1 ? 1 : 0.6,
+                    transition: 'background-color 0.2s'
+                  }}
+                  onMouseOver={e => {
+                    if (canProceedFromStep1) {
+                      e.target.style.backgroundColor = COLORS.primaryHover;
+                    }
+                  }}
+                  onMouseOut={e => {
+                    if (canProceedFromStep1) {
+                      e.target.style.backgroundColor = COLORS.primary;
+                    }
                   }}
                 >
                   Continue
@@ -685,15 +687,18 @@ const BehavioralSurvey = ({
                 <button
                   onClick={() => setStep(1)}
                   style={{
-                    padding: '10px 20px',
-                    border: '2px solid #dee2e6',
-                    borderRadius: '6px',
-                    backgroundColor: 'white',
+                    padding: '12px 24px',
+                    backgroundColor: COLORS.bgSecondary,
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
                     cursor: 'pointer',
                     fontSize: '14px',
-                    fontWeight: '500',
-                    color: '#495057'
+                    fontWeight: '600',
+                    transition: 'background-color 0.2s'
                   }}
+                  onMouseOver={e => e.target.style.backgroundColor = COLORS.bgSecondaryHover}
+                  onMouseOut={e => e.target.style.backgroundColor = COLORS.bgSecondary}
                 >
                   Back
                 </button>
@@ -701,14 +706,26 @@ const BehavioralSurvey = ({
                   onClick={() => setStep(3)}
                   disabled={!canProceedFromStep2}
                   style={{
-                    padding: '10px 20px',
-                    border: 'none',
-                    borderRadius: '6px',
-                    backgroundColor: canProceedFromStep2 ? COLORS.primary : '#dee2e6',
+                    padding: '12px 24px',
+                    backgroundColor: canProceedFromStep2 ? COLORS.primary : COLORS.bgSecondary,
                     color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
                     cursor: canProceedFromStep2 ? 'pointer' : 'not-allowed',
                     fontSize: '14px',
-                    fontWeight: '500'
+                    fontWeight: '600',
+                    opacity: canProceedFromStep2 ? 1 : 0.6,
+                    transition: 'background-color 0.2s'
+                  }}
+                  onMouseOver={e => {
+                    if (canProceedFromStep2) {
+                      e.target.style.backgroundColor = COLORS.primaryHover;
+                    }
+                  }}
+                  onMouseOut={e => {
+                    if (canProceedFromStep2) {
+                      e.target.style.backgroundColor = COLORS.primary;
+                    }
                   }}
                 >
                   Continue
@@ -717,7 +734,7 @@ const BehavioralSurvey = ({
             </div>
           )}
 
-          {/* Step 3: Likelihood to Use Future Route */}
+          {/* Step 3: Frequency of trip */}
           {step === 3 && (
             <div>
               <h3 style={{
@@ -825,15 +842,18 @@ const BehavioralSurvey = ({
                 <button
                   onClick={() => setStep(2)}
                   style={{
-                    padding: '10px 20px',
-                    border: '2px solid #dee2e6',
-                    borderRadius: '6px',
-                    backgroundColor: 'white',
+                    padding: '12px 24px',
+                    backgroundColor: COLORS.bgSecondary,
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
                     cursor: 'pointer',
                     fontSize: '14px',
-                    fontWeight: '500',
-                    color: '#495057'
+                    fontWeight: '600',
+                    transition: 'background-color 0.2s'
                   }}
+                  onMouseOver={e => e.target.style.backgroundColor = COLORS.bgSecondaryHover}
+                  onMouseOut={e => e.target.style.backgroundColor = COLORS.bgSecondary}
                 >
                   Back
                 </button>
@@ -841,14 +861,26 @@ const BehavioralSurvey = ({
                   onClick={handleSubmit}
                   disabled={responses.trip_frequency === null}
                   style={{
-                    padding: '10px 20px',
-                    border: 'none',
-                    borderRadius: '6px',
-                    backgroundColor: responses.trip_frequency !== null ? COLORS.advance : '#dee2e6',
+                    padding: '12px 24px',
+                    backgroundColor: canProceedFromStep2 ? COLORS.advance : COLORS.bgSecondary,
                     color: 'white',
-                    cursor: responses.trip_frequency !== null ? 'pointer' : 'not-allowed',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: canProceedFromStep2 ? 'pointer' : 'not-allowed',
                     fontSize: '14px',
-                    //fontWeight: '600'
+                    fontWeight: '600',
+                    opacity: canProceedFromStep2 ? 1 : 0.6,
+                    transition: 'background-color 0.2s'
+                  }}
+                  onMouseOver={e => {
+                    if (canProceedFromStep2) {
+                      e.target.style.backgroundColor = COLORS.advanceHover;
+                    }
+                  }}
+                  onMouseOut={e => {
+                    if (canProceedFromStep2) {
+                      e.target.style.backgroundColor = COLORS.advance;
+                    }
                   }}
                 >
                   Submit

@@ -1615,7 +1615,7 @@ function UnaffectedRouteModal({ isOpen, onClose }) {
           This helps us understand which route best suits your preferences for this trip.
         </p>
 
-        {/* ACTION BUTTONS (horizontal layout, solid color with hover) */}
+        {/* ACTION BUTTONS - Yes (blue) | Unsure (blue) | No (grey) */}
         <div style={{ display: 'flex', gap: '12px' }}>
           <button 
             onClick={onClose} 
@@ -1641,7 +1641,7 @@ function UnaffectedRouteModal({ isOpen, onClose }) {
             style={{ 
               flex: 1, 
               padding: '12px', 
-              backgroundColor: COLORS.bgSecondary,
+              backgroundColor: COLORS.primary,
               color: 'white',
               border: 'none',
               cursor: 'pointer', 
@@ -1650,10 +1650,10 @@ function UnaffectedRouteModal({ isOpen, onClose }) {
               fontWeight: '600',
               transition: 'background-color 0.2s'
             }}
-            onMouseOver={e => e.target.style.backgroundColor = COLORS.bgSecondaryHover}
-            onMouseOut={e => e.target.style.backgroundColor = COLORS.bgSecondary}
+            onMouseOver={e => e.target.style.backgroundColor = COLORS.primaryHover}
+            onMouseOut={e => e.target.style.backgroundColor = COLORS.primary}
           >
-            No
+            Unsure / Just Exploring
           </button>
           <button 
             onClick={onClose} 
@@ -1672,7 +1672,7 @@ function UnaffectedRouteModal({ isOpen, onClose }) {
             onMouseOver={e => e.target.style.backgroundColor = COLORS.bgSecondaryHover}
             onMouseOut={e => e.target.style.backgroundColor = COLORS.bgSecondary}
           >
-            Unsure/Just Exploring
+            No
           </button>
         </div>
       </div>
@@ -1916,7 +1916,7 @@ function AffectedRouteModal({ isOpen, onClose, onProceed }) {
           This helps us understand which route best suits your preferences for this trip.
         </p>
 
-        {/* ACTION BUTTONS (horizontal layout, solid color with hover) */}
+        {/* ACTION BUTTONS - Yes (blue) | Unsure (blue) | No (grey) */}
         <div style={{ display: 'flex', gap: '12px' }}>
           <button 
             onClick={handleYes} 
@@ -1938,6 +1938,25 @@ function AffectedRouteModal({ isOpen, onClose, onProceed }) {
             Yes
           </button>
           <button 
+            onClick={handleUnsure} 
+            style={{ 
+              flex: 1, 
+              padding: '12px', 
+              backgroundColor: COLORS.primary,
+              color: 'white',
+              border: 'none',
+              cursor: 'pointer', 
+              borderRadius: '8px',
+              fontSize: '14px',
+              fontWeight: '600',
+              transition: 'background-color 0.2s'
+            }}
+            onMouseOver={e => e.target.style.backgroundColor = COLORS.primaryHover}
+            onMouseOut={e => e.target.style.backgroundColor = COLORS.primary}
+          >
+            Unsure / Just Exploring
+          </button>
+          <button 
             onClick={handleNo} 
             style={{ 
               flex: 1, 
@@ -1955,25 +1974,6 @@ function AffectedRouteModal({ isOpen, onClose, onProceed }) {
             onMouseOut={e => e.target.style.backgroundColor = COLORS.bgSecondary}
           >
             No
-          </button>
-          <button 
-            onClick={handleUnsure} 
-            style={{ 
-              flex: 1, 
-              padding: '12px', 
-              backgroundColor: COLORS.bgSecondary,
-              color: 'white',
-              border: 'none',
-              cursor: 'pointer', 
-              borderRadius: '8px',
-              fontSize: '14px',
-              fontWeight: '600',
-              transition: 'background-color 0.2s'
-            }}
-            onMouseOver={e => e.target.style.backgroundColor = COLORS.bgSecondaryHover}
-            onMouseOut={e => e.target.style.backgroundColor = COLORS.bgSecondary}
-          >
-            Unsure/Just Exploring
           </button>
         </div>
       </div>
@@ -2271,7 +2271,7 @@ function ChangedODModal({ isOpen, onClose }) {
           lineHeight: '1.5',
           fontSize: '14px'
         }}>
-          It looks like your origin or destination has changed since your last search. Please generate a route for this trip before comparing.
+          It looks like your origin or destination has changed since your last search. Please find a route for this trip before comparing.
         </p>
 
         {/* Action Button */}
