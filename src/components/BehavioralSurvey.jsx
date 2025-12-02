@@ -222,7 +222,7 @@ const BehavioralSurvey = ({
         borderRadius: '12px',
         maxWidth: '600px',
         width: '100%',
-        minHeight: '650px',        // ADD THIS LINE - prevents resize jarring
+        minHeight: '700px',        // ADD THIS LINE - prevents resize jarring
         maxHeight: '90vh',
         overflow: 'auto',
         boxShadow: '0 10px 40px rgba(0,0,0,0.3)',
@@ -529,15 +529,6 @@ const BehavioralSurvey = ({
               }}>
                 {isComparingWithAuto ? (
                   <>
-                    {/* Auto Route Card */}
-                    <AutoRouteOptionCard
-                      title="Current (Driving)"
-                      route={currentRoute}
-                      selected={responses.route_preference === 'current'}
-                      onClick={() => handleRoutePreference('current')}
-                      accentColor={COLORS.present}
-                    />
-                    
                     {/* Transit Route Card */}
                     <RouteOptionCard
                       title="Future (Transit)"
@@ -547,17 +538,18 @@ const BehavioralSurvey = ({
                       accentColor={COLORS.primary}
                       isNew={true}
                     />
-                  </>
-                ) : (
-                  <>
-                    <RouteOptionCard
-                      title="Current Route"
+
+                    {/* Auto Route Card */}
+                    <AutoRouteOptionCard
+                      title="Current (Driving)"
                       route={currentRoute}
                       selected={responses.route_preference === 'current'}
                       onClick={() => handleRoutePreference('current')}
                       accentColor={COLORS.present}
                     />
-                    
+                  </>
+                ) : (
+                  <>
                     <RouteOptionCard
                       title="Future Route"
                       route={futureRoute}
@@ -565,6 +557,14 @@ const BehavioralSurvey = ({
                       onClick={() => handleRoutePreference('future')}
                       accentColor={COLORS.primary}
                       isNew={true}
+                    />
+
+                    <RouteOptionCard
+                      title="Current Route"
+                      route={currentRoute}
+                      selected={responses.route_preference === 'current'}
+                      onClick={() => handleRoutePreference('current')}
+                      accentColor={COLORS.present}
                     />
                   </>
                 )}
@@ -1304,9 +1304,9 @@ const AutoRouteOptionCard = ({ title, route, selected, onClick, accentColor }) =
       onClick={onClick}
       style={{
         padding: '16px',
-        backgroundColor: selected ? COLORS.presentLight : COLORS.bgPrimary,
+        backgroundColor: selected ? COLORS.primaryLight : COLORS.bgPrimary,
         color: COLORS.textBlack,
-        border: `2px solid ${selected ? COLORS.present : COLORS.border}`,
+        border: `2px solid ${selected ? COLORS.primary : COLORS.border}`,
         borderRadius: '6px',
         cursor: 'pointer',
         fontSize: '12px',
@@ -1321,7 +1321,7 @@ const AutoRouteOptionCard = ({ title, route, selected, onClick, accentColor }) =
       <div style={{
         fontSize: '14px',
         fontWeight: '600',
-        color: selected ? COLORS.present : COLORS.textBold,
+        color: selected ? COLORS.primary : COLORS.textBold,
         marginBottom: '8px'
       }}>
         {title}
