@@ -4690,6 +4690,7 @@ function App() {
               style={{
                 ...buttonStyle,
                 backgroundColor: !readyToCalculate || isCalculating ? COLORS.bgSecondary : COLORS.primary,
+                opacity: !readyToCalculate || isCalculating ? 0.6 : 1,
                 cursor: !readyToCalculate || isCalculating ? 'not-allowed' : 'pointer',
                 marginBottom: '0'
               }}
