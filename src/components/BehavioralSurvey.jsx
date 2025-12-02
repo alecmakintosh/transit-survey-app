@@ -140,6 +140,39 @@ const BehavioralSurvey = ({
     { value: 'other', label: 'Other', icon: 'fas fa-ellipsis-h' }
   ];
 
+  // ============================================================================
+  // CONFIGURATION: Maximum number of factors users can select in Step 2
+  // ============================================================================
+  // Change these numbers to set different maximums for each scenario
+  const MAX_FACTORS_CONFIG = {
+    // Transit vs Transit comparison (comparing current and future transit routes)
+    transitVsTransit: 3,
+    
+    // Transit vs Auto comparison - when user chose TRANSIT (future transit over current auto)
+    transitVsAutoTransitChosen: 3,
+    
+    // Transit vs Auto comparison - when user chose AUTO (current auto over future transit)
+    transitVsAutoAutoChosen: 3
+  };
+  // ============================================================================
+
+  // Get the appropriate maximum based on current scenario
+  const getMaxFactors = () => {
+    if (!isComparingWithAuto) {
+      // Transit vs Transit comparison
+      return MAX_FACTORS_CONFIG.transitVsTransit;
+    } else {
+      // Transit vs Auto comparison
+      if (responses.route_preference === 'future') {
+        // User chose transit over auto
+        return MAX_FACTORS_CONFIG.transitVsAutoTransitChosen;
+      } else {
+        // User chose auto over transit
+        return MAX_FACTORS_CONFIG.transitVsAutoAutoChosen;
+      }
+    }
+  };
+
   // Select which factors to show based on comparison type and user's Step 1 choice
   const getDecisionFactorOptions = () => {
     if (!isComparingWithAuto) {
@@ -172,7 +205,7 @@ const BehavioralSurvey = ({
       }
     } else {
       // Add factor only if less than 3 are selected
-      if (newSelectedFactors.size < 3) {
+      if (newSelectedFactors.size < getMaxFactors()) {
         newSelectedFactors.add(factor);
         if (factor === 'other') {
           setShowOtherInput(true);
@@ -254,7 +287,7 @@ const BehavioralSurvey = ({
         {/* Progress indicator */}
         <div style={{
           padding: '20px 30px',
-          borderBottom: '1px solid #e9ecef'
+          //borderBottom: '1px solid #e9ecef'
         }}>
           <div style={{
             display: 'flex',
@@ -681,10 +714,10 @@ const BehavioralSurvey = ({
                 marginBottom: '20px',
                 fontSize: '14px'
               }}>
-                <strong>Select up to 3 factors</strong> that were most important in your decision.
+                <strong>Select up to {getMaxFactors()} factor{getMaxFactors() !== 1 ? 's' : ''}</strong> that {getMaxFactors() === 1 ? 'was' : 'were'} most important in your decision.
               </p>
               
-              {selectedFactors.size === 3 && (
+              {selectedFactors.size === getMaxFactors() && (
                 <div style={{
                   padding: '10px 14px',
                   backgroundColor: COLORS.advanceLight,
@@ -698,7 +731,7 @@ const BehavioralSurvey = ({
                   gap: '8px'
                 }}>
                   <i className="fas fa-info-circle"></i>
-                  You've selected 3 factors (maximum reached).
+                  You've selected {getMaxFactors()} factor{getMaxFactors() !== 1 ? 's' : ''} (maximum reached)
                 </div>
               )}
               
@@ -712,7 +745,7 @@ const BehavioralSurvey = ({
                   <button
                     key={option.value}
                     onClick={() => toggleFactor(option.value)}
-                    disabled={!selectedFactors.has(option.value) && selectedFactors.size >= 3}
+                    disabled={!selectedFactors.has(option.value) && selectedFactors.size >= getMaxFactors()}
                     style={{
                       padding: '12px 16px',
                       border: selectedFactors.has(option.value) 
