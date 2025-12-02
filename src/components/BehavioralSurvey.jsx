@@ -149,10 +149,10 @@ const BehavioralSurvey = ({
     transitVsTransit: 3,
     
     // Transit vs Auto comparison - when user chose TRANSIT (future transit over current auto)
-    transitVsAutoTransitChosen: 3,
+    transitVsAutoTransitChosen: 2,
     
     // Transit vs Auto comparison - when user chose AUTO (current auto over future transit)
-    transitVsAutoAutoChosen: 3
+    transitVsAutoAutoChosen: 2
   };
   // ============================================================================
 
