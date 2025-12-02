@@ -3761,6 +3761,7 @@ function App() {
   const [showThanksUnaffectedModal, setShowThanksUnaffectedModal] = useState(false);
   const [showThanksAffectedModal, setShowThanksAffectedModal] = useState(false);
 
+  const [hasInteractedWithInitialModal, setHasInteractedWithInitialModal] = useState(false);
 
   // Auto-trigger survey when both routes are compared and there's only 1 current route option
   /*
@@ -3980,6 +3981,7 @@ function App() {
     if (otpRoutes && otpRoutes.length > 0) {
       setRouteOptions(otpRoutes);
       setSelectedRouteIndex(0);
+      setHasInteractedWithInitialModal(false);  // ADD THIS LINE
       setOtpTravelTime(Math.round(otpRoutes[0].duration / 60));
       finalTravelTime = Math.round(otpRoutes[0].duration / 60);
     } else {
@@ -5388,6 +5390,11 @@ function App() {
     return () => window.removeEventListener("resize", resizeMaps);
   }, [compareMode, mapInstance, currentMapInstance]);
 
+const isRouteReadyToCompare = routeOptions.length > 0 && 
+                              selectedRouteIndex !== null && 
+                              selectedRouteIndex < routeOptions.length //&&
+                              //hasInteractedWithInitialModal;
+
   return (
     <div style={{ margin: 0, padding: 0, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
       {/* Include Font Awesome CSS */}
@@ -5461,21 +5468,40 @@ function App() {
       <UnaffectedRouteModal 
         isOpen={showUnaffectedModal}
         onClose={() => setShowUnaffectedModal(false)}
-        onYes={() => setShowThanksUnaffectedModal(true)}
-        onUnsure={() => setShowThanksUnaffectedModal(true)}
-        onNo={() => setShowThanksUnaffectedModal(true)}
+        onYes={() => {
+          setShowThanksUnaffectedModal(true);
+          setHasInteractedWithInitialModal(true);
+        }}
+        onUnsure={() => {
+          setShowThanksUnaffectedModal(true);
+          setHasInteractedWithInitialModal(true);
+        }}
+        onNo={() => {
+          setShowThanksUnaffectedModal(true);
+          setHasInteractedWithInitialModal(true);
+        }}
       />
 
-      <UnaffectedOneRouteModal
+      <UnaffectedOneRouteModal 
         isOpen={showUnaffectedOneRouteModal}
         onClose={() => setShowUnaffectedOneRouteModal(false)}
+        onProceed={() => {
+          triggerMapTransition();
+          setHasInteractedWithInitialModal(true);  // ADD
+        }}
       />
 
       <AffectedRouteModal 
         isOpen={showAffectedModal}
         onClose={() => setShowAffectedModal(false)}
-        onProceed={triggerMapTransition}
-        onNo={() => setShowChoosePreferredModal(true)}
+        onProceed={() => {
+          triggerMapTransition();
+          setHasInteractedWithInitialModal(true);  // ADD
+        }}
+        onNo={() => {
+          setShowChoosePreferredModal(true);
+          setHasInteractedWithInitialModal(true);  // ADD
+        }}
       />
 
       <NoNewTransitModal
@@ -5537,16 +5563,28 @@ function App() {
             //boxShadow: '0 -2px 10px rgba(0,0,0,0.1)' // Subtle shadow above
           }}>
             {/* Compare/Back button logic */}
-            {compareMode === 'default' &&  (
+            {compareMode === 'default' && (
               <button
                 onClick={handleCompareClick}
+                disabled={!isRouteReadyToCompare}
                 style={{
                   ...buttonStyle,
                   margin: '0',
-                  boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
+                  boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+                  backgroundColor: isRouteReadyToCompare ? COLORS.primary : COLORS.bgSecondary,
+                  cursor: isRouteReadyToCompare ? 'pointer' : 'not-allowed',
+                  opacity: isRouteReadyToCompare ? 1 : 0.6
                 }}
-                onMouseOver={e => e.target.style.backgroundColor = COLORS.primaryHover}
-                onMouseOut={e => e.target.style.backgroundColor = COLORS.primary}
+                onMouseOver={e => {
+                  if (isRouteReadyToCompare) {
+                    e.target.style.backgroundColor = COLORS.primaryHover;
+                  }
+                }}
+                onMouseOut={e => {
+                  if (isRouteReadyToCompare) {
+                    e.target.style.backgroundColor = COLORS.primary;
+                  }
+                }}
               >
                 Compare Selected Route To Today
               </button>
@@ -5638,14 +5676,25 @@ function App() {
               <button
                 //onClick={() => navigate('/exit')}
                 onClick={() => setShowWhatIfComingSoonModal(true)}
+                disabled={!isRouteReadyToCompare}
                 style={{
                   ...buttonStyle,
-                  backgroundColor: COLORS.advance,
+                  backgroundColor: isRouteReadyToCompare ? COLORS.advance : COLORS.bgSecondary,
                   margin: '0',
-                  boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
+                  boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+                  cursor: isRouteReadyToCompare ? 'pointer' : 'not-allowed',
+                  opacity: isRouteReadyToCompare ? 1 : 0.6
                 }}
-                onMouseOver={e => e.target.style.backgroundColor = COLORS.advanceHover}
-                onMouseOut={e => e.target.style.backgroundColor = COLORS.advance}
+                onMouseOver={e => {
+                  if (isRouteReadyToCompare) {
+                    e.target.style.backgroundColor = COLORS.advanceHover;
+                  }
+                }}
+                onMouseOut={e => {
+                  if (isRouteReadyToCompare) {
+                    e.target.style.backgroundColor = COLORS.advance;
+                  }
+                }}
               >
                 Try What-If Scenarios!
               </button>

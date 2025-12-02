@@ -114,6 +114,46 @@ const BehavioralSurvey = ({
     { value: 'other', label: 'Other', icon: 'fas fa-ellipsis-h' }
   ];
 
+  // Decision factors that change based on whether user selected transit or auto in Step 1
+  // WHEN USER SELECTED TRANSIT ROUTE (comparing future transit vs current auto)
+  const decisionFactorsTransitSelected = [
+    // CUSTOMIZE: Add/remove/modify factors for when user prefers transit over auto
+    { value: 'travel_time', label: 'Total travel time', icon: 'fas fa-clock' },
+    { value: 'cost_savings', label: 'Cost savings', icon: 'fas fa-dollar-sign' },
+    { value: 'avoid_traffic', label: 'Avoiding traffic/parking', icon: 'fas fa-car' },
+    { value: 'environmental', label: 'Environmental benefits', icon: 'fas fa-leaf' },
+    { value: 'reliability', label: 'Reliability/consistency', icon: 'fas fa-check-circle' },
+    { value: 'comfort', label: 'Comfort (can relax/work)', icon: 'fas fa-couch' },
+    // { value: 'other', label: 'Other', icon: 'fas fa-ellipsis-h' }
+  ];
+
+  // WHEN USER SELECTED AUTO ROUTE (comparing current auto vs future transit)
+  const decisionFactorsAutoSelected = [
+    // CUSTOMIZE: Add/remove/modify factors for when user prefers auto over transit
+    { value: 'travel_time', label: 'Total travel time', icon: 'fas fa-clock' },
+    { value: 'flexibility', label: 'Flexibility/convenience', icon: 'fas fa-random' },
+    { value: 'comfort', label: 'Comfort/privacy', icon: 'fas fa-car' },
+    { value: 'carrying_items', label: 'Need to carry items', icon: 'fas fa-shopping-bag' },
+    { value: 'weather', label: 'Weather protection', icon: 'fas fa-cloud-rain' },
+    { value: 'trip_chaining', label: 'Multiple stops needed', icon: 'fas fa-map-marked-alt' },
+    // { value: 'other', label: 'Other', icon: 'fas fa-ellipsis-h' }
+  ];
+
+  // Select which factors to show based on comparison type and user's Step 1 choice
+  const getDecisionFactorOptions = () => {
+    if (!isComparingWithAuto) {
+      // Transit vs Transit comparison - use original factors
+      return decisionFactorOptions;
+    } else {
+      // Transit vs Auto comparison - use appropriate factors based on Step 1 selection
+      if (responses.route_preference === 'future') {
+        return decisionFactorsTransitSelected;
+      } else {
+        return decisionFactorsAutoSelected;
+      }
+    }
+  };
+
   const handleRoutePreference = (preference) => {
     setResponses(prev => ({ ...prev, route_preference: preference }));
     //setStep(2);
@@ -123,15 +163,19 @@ const BehavioralSurvey = ({
     const newSelectedFactors = new Set(selectedFactors);
     
     if (newSelectedFactors.has(factor)) {
+      // Remove factor if already selected
       newSelectedFactors.delete(factor);
       if (factor === 'other') {
         setShowOtherInput(false);
         setResponses(prev => ({ ...prev, decision_factors_other: '' }));
       }
     } else {
-      newSelectedFactors.add(factor);
-      if (factor === 'other') {
-        setShowOtherInput(true);
+      // Add factor only if less than 3 are selected
+      if (newSelectedFactors.size < 3) {
+        newSelectedFactors.add(factor);
+        if (factor === 'other') {
+          setShowOtherInput(true);
+        }
       }
     }
     
@@ -476,27 +520,54 @@ const BehavioralSurvey = ({
                   : "Which route would you choose?"}
               </h3>
               
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
-                <RouteOptionCard
-                  title={isComparingWithAuto 
-                    ? "Future Transit Network (with new LRT lines)" 
-                    : "Future Transit Network (with new LRT lines)"}
-                  route={futureRoute}
-                  selected={responses.route_preference === 'future'}
-                  onClick={() => handleRoutePreference('future')}
-                  accentColor={COLORS.primary}
-                  isNew={true}
-                />
-
-                <RouteOptionCard
-                  title={isComparingWithAuto 
-                    ? "Drive" 
-                    : "Current Transit Network"}
-                  route={currentRoute}
-                  selected={responses.route_preference === 'current'}
-                  onClick={() => handleRoutePreference('current')}
-                  accentColor={COLORS.primary}
-                />
+              <div style={{ 
+                display: 'flex', 
+                flexDirection: 'column', 
+                gap: '12px',
+                flex: 1,
+                marginBottom: '10px'
+              }}>
+                {isComparingWithAuto ? (
+                  <>
+                    {/* Auto Route Card */}
+                    <AutoRouteOptionCard
+                      title="Current (Driving)"
+                      route={currentRoute}
+                      selected={responses.route_preference === 'current'}
+                      onClick={() => handleRoutePreference('current')}
+                      accentColor={COLORS.present}
+                    />
+                    
+                    {/* Transit Route Card */}
+                    <RouteOptionCard
+                      title="Future (Transit)"
+                      route={futureRoute}
+                      selected={responses.route_preference === 'future'}
+                      onClick={() => handleRoutePreference('future')}
+                      accentColor={COLORS.primary}
+                      isNew={true}
+                    />
+                  </>
+                ) : (
+                  <>
+                    <RouteOptionCard
+                      title="Current Route"
+                      route={currentRoute}
+                      selected={responses.route_preference === 'current'}
+                      onClick={() => handleRoutePreference('current')}
+                      accentColor={COLORS.present}
+                    />
+                    
+                    <RouteOptionCard
+                      title="Future Route"
+                      route={futureRoute}
+                      selected={responses.route_preference === 'future'}
+                      onClick={() => handleRoutePreference('future')}
+                      accentColor={COLORS.primary}
+                      isNew={true}
+                    />
+                  </>
+                )}
                 
                 <button
                   onClick={() => handleRoutePreference('no_preference')}
@@ -597,16 +668,38 @@ const BehavioralSurvey = ({
                 fontSize: '24px'
               }}>
                 {isComparingWithAuto 
-                  ? "What influenced your decision between driving and transit?" 
-                  : "What influenced your choice?"}
+                  ? (responses.route_preference === 'future'
+                      ? "Why did you choose transit over driving?" 
+                      : "Why did you choose driving over transit?")
+                  : (responses.route_preference === 'future'
+                      ? "Why did you prefer the future transit route?"
+                      : "Why did you prefer the current transit route?")}
               </h3>
               <p style={{
                 color: '#6c757d',
-                marginBottom: '25px',
+                marginBottom: '20px',
                 fontSize: '14px'
               }}>
-                Select all that apply.
+                <strong>Select up to 3 factors</strong> that were most important in your decision.
               </p>
+              
+              {selectedFactors.size === 3 && (
+                <div style={{
+                  padding: '10px 14px',
+                  backgroundColor: COLORS.advanceLight,
+                  border: `1px solid ${COLORS.advance}`,
+                  borderRadius: '6px',
+                  fontSize: '13px',
+                  color: COLORS.advance,
+                  marginBottom: '20px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}>
+                  <i className="fas fa-info-circle"></i>
+                  You've selected 3 factors (maximum reached)
+                </div>
+              )}
               
               <div style={{
                 display: 'grid',
@@ -614,10 +707,11 @@ const BehavioralSurvey = ({
                 gap: '10px',
                 marginBottom: '20px'
               }}>
-                {decisionFactorOptions.map(option => (
+                {getDecisionFactorOptions().map(option => (
                   <button
                     key={option.value}
                     onClick={() => toggleFactor(option.value)}
+                    disabled={!selectedFactors.has(option.value) && selectedFactors.size >= 3}
                     style={{
                       padding: '12px 16px',
                       border: selectedFactors.has(option.value) 
@@ -854,23 +948,23 @@ const BehavioralSurvey = ({
                   disabled={responses.trip_frequency === null}
                   style={{
                     padding: '12px 24px',
-                    backgroundColor: (!responses.trip_frequency === null) ? COLORS.advance : COLORS.bgSecondary,
+                    backgroundColor: (responses.trip_frequency !== null) ? COLORS.advance : COLORS.bgSecondary,
                     color: 'white',
                     border: 'none',
                     borderRadius: '8px',
-                    cursor: (!responses.trip_frequency === null) ? 'pointer' : 'not-allowed',
+                    cursor: (responses.trip_frequency !== null) ? 'pointer' : 'not-allowed',
                     fontSize: '14px',
                     fontWeight: '600',
-                    opacity: (!responses.trip_frequency === null) ? 1 : 0.6,
+                    opacity: (!responses.trip_frequency !== null) ? 1 : 0.6,
                     transition: 'background-color 0.2s'
                   }}
                   onMouseOver={e => {
-                    if (!responses.trip_frequency === null) {
+                    if (responses.trip_frequency !== null) {
                       e.target.style.backgroundColor = COLORS.advanceHover;
                     }
                   }}
                   onMouseOut={e => {
-                    if (!responses.trip_frequency === null) {
+                    if (responses.trip_frequency !== null) {
                       e.target.style.backgroundColor = COLORS.advance;
                     }
                   }}
@@ -985,7 +1079,6 @@ const BehavioralSurvey = ({
   );
 };
 
-// Helper component for route option cards
 // Helper component for route option cards
 const RouteOptionCard = ({ title, route, selected, onClick, accentColor, isNew }) => {
   if (!route) return null;
@@ -1173,6 +1266,204 @@ const RouteOptionCard = ({ title, route, selected, onClick, accentColor, isNew }
             </React.Fragment>
           );
         })}
+      </div>
+    </button>
+  );
+};
+
+// Helper component for auto route option cards (matching MapSurveyPage format exactly)
+const AutoRouteOptionCard = ({ title, route, selected, onClick, accentColor }) => {
+  if (!route) return null;
+
+  // Calculate traffic impact
+  const trafficRatio = route.delay / route.duration;
+  let trafficColor = COLORS.noTraffic; // Green for light traffic
+  
+  if (trafficRatio > 0.3) {
+    trafficColor = COLORS.heavyTraffic; // Red for heavy traffic
+  } else if (trafficRatio > 0.15) {
+    trafficColor = COLORS.mediumTraffic; // Orange for moderate traffic
+  } else if (trafficRatio > 0.05) {
+    trafficColor = COLORS.lightTraffic; // Yellow for light-moderate traffic
+  }
+
+  const majorRoads = route.majorRoads || [];
+  const arrival = new Date(route.arrivalTime).toLocaleTimeString([], { 
+    hour: 'numeric', 
+    minute: '2-digit',
+    hour12: true 
+  });
+  const departure = new Date(route.departureTime).toLocaleTimeString([], { 
+    hour: 'numeric', 
+    minute: '2-digit',
+    hour12: true 
+  });
+
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        padding: '16px',
+        backgroundColor: selected ? COLORS.presentLight : COLORS.bgPrimary,
+        color: COLORS.textBlack,
+        border: `2px solid ${selected ? COLORS.present : COLORS.border}`,
+        borderRadius: '6px',
+        cursor: 'pointer',
+        fontSize: '12px',
+        textAlign: 'left',
+        transition: 'all 0.2s',
+        boxShadow: selected ? '0 2px 6px rgba(220,53,69,0.15)' : '0 1px 2px rgba(0,0,0,0.05)',
+        minHeight: '120px',
+        width: '100%'
+      }}
+    >
+      {/* Title section */}
+      <div style={{
+        fontSize: '14px',
+        fontWeight: '600',
+        color: selected ? COLORS.present : COLORS.textBold,
+        marginBottom: '8px'
+      }}>
+        {title}
+      </div>
+
+      {/* Duration section */}
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center',
+        marginBottom: '10px'
+      }}>
+        <div style={{ 
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
+        }}>
+          {/* Traffic indicator dot */}
+          <div style={{
+            width: '12px',
+            height: '12px',
+            borderRadius: '50%',
+            backgroundColor: trafficColor,
+            flexShrink: 0
+          }}></div>
+          <div style={{ 
+            fontSize: '20px',
+            fontWeight: '700',
+            color: selected ? COLORS.present : COLORS.advance
+          }}>
+            {Math.round(route.duration / 60)} min
+          </div>
+        </div>
+        <div style={{ 
+          fontSize: '16px',
+          fontWeight: '600',
+          color: COLORS.textBold,
+          textAlign: 'right'
+        }}>
+          <div>{departure}</div>
+          <div style={{ fontSize: '12px', color: COLORS.textSecondary }}>to {arrival}</div>
+        </div>
+      </div>
+
+      {/* Second row - stats */}
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center',
+        marginBottom: '10px',
+        fontSize: '12px',
+        color: COLORS.textSecondary
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: '2px', fontWeight: '500' }}>
+            <i className="fas fa-road" style={{ fontSize: '10px' }}></i>
+            {Math.round(route.distance / 1000)} km
+          </span>
+          {route.delay > 0 && (
+            <span style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '2px', 
+              fontWeight: '500',
+              color: trafficColor
+            }}>
+              <i className="fas fa-clock" style={{ fontSize: '10px' }}></i>
+              +{Math.round(route.delay / 60)}min delay
+            </span>
+          )}
+        </div>
+        {route.hasTollRoad && (
+          <span style={{ 
+            backgroundColor: COLORS.bgToll,
+            color: COLORS.textToll,
+            padding: '2px 6px',
+            borderRadius: '10px',
+            fontSize: '10px',
+            fontWeight: '600'
+          }}>
+            <i className="fas fa-dollar-sign" style={{ fontSize: '8px', marginRight: '2px' }}></i>
+            Tolls
+          </span>
+        )}
+      </div>
+      
+      {/* Third row - roads display */}
+      <div style={{ 
+        display: 'flex', 
+        flexWrap: 'wrap', 
+        alignItems: 'center',
+        minHeight: '20px'
+      }}>
+        {majorRoads.length > 0 ? (
+          <>
+            <span style={{ 
+              fontSize: '10px', 
+              color: COLORS.textSecondary, 
+              marginRight: '4px',
+              fontWeight: '500'
+            }}>
+              via
+            </span>
+            {majorRoads.map((road, roadIndex) => (
+              <React.Fragment key={roadIndex}>
+                <div
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    backgroundColor: COLORS.bgSecondary,
+                    color: 'white',
+                    padding: '2px 6px',
+                    borderRadius: '8px',
+                    fontSize: '10px',
+                    fontWeight: '600',
+                    margin: '1px',
+                    minWidth: '24px',
+                    justifyContent: 'center'
+                  }}
+                >
+                  <i className="fas fa-road" style={{ marginRight: '2px', fontSize: '8px' }}></i>
+                  {typeof road === 'object' ? road.text || road.name || 'Unknown Road' : road}
+                </div>
+                {roadIndex < majorRoads.length - 1 && (
+                  <span style={{ 
+                    margin: '0 2px', 
+                    color: COLORS.textSecondary,
+                    fontSize: '10px'
+                  }}>→</span>
+                )}
+              </React.Fragment>
+            ))}
+          </>
+        ) : (
+          <span style={{ 
+            fontSize: '10px', 
+            color: COLORS.textSecondary,
+            fontStyle: 'italic'
+          }}>
+            Direct route
+          </span>
+        )}
       </div>
     </button>
   );
