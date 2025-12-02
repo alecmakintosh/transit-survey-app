@@ -6,6 +6,13 @@ import { v4 as uuidv4 } from 'uuid';
 import { useNavigate } from 'react-router-dom'; 
 import polyline from "@mapbox/polyline";
 import L from 'leaflet';
+import { initializeSession, endSession, trackPageView } from '../services/SessionManager';
+import { getUserProfile } from '../services/UserProfileService';
+import { createUserProfile } from '../services/UserProfileService';
+import { linkUserProfile } from '../services/SessionManager';
+import { createJourney, saveRouteOptions } from '../services/JourneyService';
+import { saveRoutePreference, saveBehavioralResponse } from '../services/PreferenceService';
+import { updateJourneyCompletion } from '../services/JourneyService';
 
 import BehavioralSurvey from '../components/BehavioralSurvey';
 
@@ -3763,6 +3770,42 @@ function App() {
 
   const [hasInteractedWithInitialModal, setHasInteractedWithInitialModal] = useState(false);
 
+  const [currentJourneyId, setCurrentJourneyId] = useState(null);
+
+
+  useEffect(() => {
+    const initSession = async () => {
+      try {
+        const session = await initializeSession();
+        setSessionId(session.session_id);
+        
+        await trackPageView(session.session_id, '/map');
+        
+        // Check if returning user
+        if (session.user_profile_id) {
+          const profile = await getUserProfile(session.session_id);
+          if (profile) {
+            setUserProfile({
+              hasVehicle: profile.has_vehicle,
+              isRegularTransitUser: profile.is_regular_transit_user
+            });
+            setShowUserProfileModal(false);
+            console.log('Returning user - profile loaded');
+          }
+        }
+      } catch (error) {
+        console.error('Session init error:', error);
+      }
+    };
+    
+    initSession();
+    
+    // Cleanup on unmount
+    return () => {
+      if (sessionId) endSession(sessionId);
+    };
+  }, []);  // Empty dependency array - runs once on mount
+
   // Auto-trigger survey when both routes are compared and there's only 1 current route option
   /*
   useEffect(() => {
@@ -3809,26 +3852,71 @@ function App() {
   };
 
   // Survey completion handler
-  const handleSurveyComplete = (responses) => {
+  const handleSurveyComplete = async (responses) => {  // ← Added 'async'
     console.log('Behavioral survey responses:', responses);
     setSurveyCompleted(true);
     setBehavioralResponses(responses);
+    
+    // NEW: Save to database
+    if (currentJourneyId && sessionId) {
+      try {
+        // Determine current travel mode
+        let currentTravelMode = selectedTravelMode === 'vehicle' ? 'drive_alone' : 'transit';
+        
+        // Determine overall preference
+        let overallPreference = 'no_preference';
+        if (responses.route_preference === 'future') {
+          overallPreference = 'prefer_future';
+        } else if (responses.route_preference === 'current') {
+          overallPreference = 'prefer_current';
+        }
+        
+        // Determine if they would switch
+        let wouldSwitchTo = 'unsure';
+        if (overallPreference === 'prefer_future' && currentTravelMode === 'drive_alone') {
+          wouldSwitchTo = 'would_use_new_transit';
+        } else if (overallPreference === 'prefer_future' && currentTravelMode === 'transit') {
+          wouldSwitchTo = 'already_use_transit';
+        } else if (overallPreference === 'prefer_current') {
+          wouldSwitchTo = 'stay_with_current_mode';
+        }
+        
+        // Save route preference
+        await saveRoutePreference(currentJourneyId, sessionId, {
+          currentRouteIndex: selectedCurrentRouteIndex,
+          futureRouteIndex: selectedRouteIndex,
+          overallPreference: overallPreference,
+          currentTravelMode: currentTravelMode,
+          wouldSwitchTo: wouldSwitchTo
+        });
+        
+        // Save behavioral survey
+        await saveBehavioralResponse(currentJourneyId, {
+          decision_factors: responses.decision_factors || [],
+          decision_factors_other: responses.decision_factors_other || null,
+          likelihood_use_future: responses.likelihood_use_future || null,
+          response_duration_seconds: responses.response_duration_seconds || null
+        });
+        
+        // Mark journey complete
+        await updateJourneyCompletion(currentJourneyId, {
+          comparison_completed: true,
+          survey_completed: true
+        });
+        
+        console.log('✓ All survey data saved to database');
+        
+      } catch (error) {
+        console.error('Error saving survey data:', error);
+      }
+    }
+    
     setShowBehavioralSurvey(false);
     
-    // ADD: Show thanks modal after survey completes (if route was affected)
+    // Show thanks modal
     if (comparedFutureRoute && hasNewRoute(comparedFutureRoute)) {
       setTimeout(() => setShowThanksAffectedModal(true), 500);
     }
-    
-    // Store the responses
-    setBehavioralResponses(responses);
-    
-    // Mark as completed FOR THIS COMPARISON
-    setSurveyCompleted(true);
-    //setShowBehavioralSurvey(false);
-    
-    // TODO: Save to Supabase (we'll implement this in the next phase)
-    console.log('Survey completed with responses:', responses);
   };
 
   // Survey close handler (without completing)
@@ -3921,8 +4009,31 @@ function App() {
 
   // Handle user profile submission
   const handleUserProfileSubmit = async (profileData) => {
+    console.log('User profile submitted:', profileData);
+    
+    // Set in local state (keep existing behavior)
     setUserProfile(profileData);
-    console.log('User profile data:', profileData);
+    
+    // NEW: Save to database
+    if (sessionId) {
+      try {
+        const profile = await createUserProfile(sessionId, {
+          has_vehicle: profileData.hasVehicle,
+          is_regular_transit_user: profileData.isRegularTransitUser,
+          consent_for_research: true
+        });
+        
+        if (profile) {
+          await linkUserProfile(sessionId, profile.id);
+          console.log('Profile saved to database');
+        }
+      } catch (error) {
+        console.error('Error saving profile:', error);
+        // Continue anyway - don't block user
+      }
+    }
+    
+    setShowUserProfileModal(false);
   };
 
   // Handle setting origin via map click
@@ -3977,13 +4088,41 @@ function App() {
 
     let finalTravelTime;
 
-    const otpRoutes = await fetchOTPRoute(oCoords, dCoords, departureTime, arriveBy, dayType);
-    if (otpRoutes && otpRoutes.length > 0) {
-      setRouteOptions(otpRoutes);
-      setSelectedRouteIndex(0);
-      setHasInteractedWithInitialModal(false);  // ADD THIS LINE
-      setOtpTravelTime(Math.round(otpRoutes[0].duration / 60));
-      finalTravelTime = Math.round(otpRoutes[0].duration / 60);
+  const otpRoutes = await fetchOTPRoute(oCoords, dCoords, departureTime, arriveBy, dayType);
+  if (otpRoutes && otpRoutes.length > 0) {
+    setRouteOptions(otpRoutes);
+    setSelectedRouteIndex(0);
+    setHasInteractedWithInitialModal(false);
+    setOtpTravelTime(Math.round(otpRoutes[0].duration / 60));
+    finalTravelTime = Math.round(otpRoutes[0].duration / 60);
+    
+    // NEW: Save journey with future routes only (current routes come later)
+    if (sessionId) {
+      try {
+        const journey = await createJourney(sessionId, {
+          origin_name: originAddress,
+          destination_name: destinationAddress,
+          query_time: departureTime,
+          is_arrive_by: arriveBy,
+          day_type: dayType,
+          travel_date: travelDate,
+          total_current_routes: 0,  // Not fetched yet
+          total_future_routes: otpRoutes.length
+        });
+        
+        if (journey) {
+          setCurrentJourneyId(journey.id);
+          
+          // Save ONLY future routes at this point
+          await saveRouteOptions(journey.id, [], otpRoutes);
+          
+          console.log('Journey created with future routes:', journey.id);
+        }
+      } catch (error) {
+        console.error('Error saving journey:', error);
+        // Continue anyway - don't block user
+      }
+    }
     } else {
       setShowNoRoutesModal(true);
       setIsCalculating(false);
@@ -4209,27 +4348,36 @@ function App() {
     setSelectedTravelMode(mode);
     setShowTravelModeModal(false);
 
-    if (mode === 'vehicle') {
-      setCompareMode('comparing');
-      setIsLoadingCurrentRoutes(true);
+  if (mode === 'vehicle') {
+    setCompareMode('comparing');
+    setIsLoadingCurrentRoutes(true);
 
-      try {
-        const carRoutes = await fetchTomTomRoute(originCoords, destinationCoords, departureTime, dayType, arriveBy);
-        if (carRoutes && carRoutes.length > 0) {
-          setCurrentRouteOptions(carRoutes);
-          setSelectedCurrentRouteIndex(0);
-          
-          // ADD THESE TWO LINES:
-          //setComparedCurrentRoute(carRoutes[0]);
-          console.log('✓ Auto-set compared current route (driving):', carRoutes[0]);
-        } else {
-          setCurrentRouteOptions([]);
+    try {
+      const carRoutes = await fetchTomTomRoute(originCoords, destinationCoords, departureTime, dayType, arriveBy);
+      if (carRoutes && carRoutes.length > 0) {
+        setCurrentRouteOptions(carRoutes);
+        setSelectedCurrentRouteIndex(0);
+        
+        console.log('✓ Auto-set compared current route (driving):', carRoutes[0]);
+        
+        // NEW: Save auto routes to existing journey
+        if (currentJourneyId) {
+          try {
+            // Save current auto routes (they're in carRoutes)
+            await saveRouteOptions(currentJourneyId, carRoutes, []);
+            console.log('Auto routes saved to journey');
+          } catch (error) {
+            console.error('Error saving auto routes:', error);
+          }
         }
-      } catch (err) {
-        console.error("TomTom fetch failed:", err);
+      } else {
         setCurrentRouteOptions([]);
       }
-      setIsLoadingCurrentRoutes(false);
+    } catch (err) {
+      console.error("TomTom fetch failed:", err);
+      setCurrentRouteOptions([]);
+    }
+    setIsLoadingCurrentRoutes(false);
     } else {
       // Transit mode
       setIsLoadingCurrentRoutes(true);
@@ -4239,9 +4387,18 @@ function App() {
           setCurrentRouteOptions(currentRoutes);
           setSelectedCurrentRouteIndex(0);
           
-          // ADD THESE TWO LINES:
-          //setComparedCurrentRoute(currentRoutes[0]);
           console.log('✓ Auto-set compared current route:', currentRoutes[0]);
+          
+          // NEW: Save current transit routes to existing journey
+          if (currentJourneyId) {
+            try {
+              // Save current transit routes
+              await saveRouteOptions(currentJourneyId, currentRoutes, []);
+              console.log('Current transit routes saved to journey');
+            } catch (error) {
+              console.error('Error saving current routes:', error);
+            }
+          }
         } else {
           setCurrentRouteOptions([]);
         }

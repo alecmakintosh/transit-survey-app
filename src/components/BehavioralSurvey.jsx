@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { saveRoutePreference, saveBehavioralResponse } from '../services/PreferenceService';
+import { updateJourneyCompletion } from '../services/JourneyService';
 
 const COLORS = {
   primary: '#0369a1',
