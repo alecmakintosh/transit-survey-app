@@ -368,7 +368,7 @@ const BehavioralSurvey = ({
                 textAlign: 'center',
                 lineHeight: '1.5'
               }}>
-                Of all the current route options available, is the route you selected your <strong>preferred current route</strong> for this trip?
+                Of all the <strong>current</strong> route options available, is the your <strong>preferred current route</strong> for this trip?
               </p>
 
               {/* Helper Text */}

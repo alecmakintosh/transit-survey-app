@@ -2671,7 +2671,7 @@ function WhatIfComingSoonModal({ isOpen, onClose }) {
           height: '80px',
           margin: '0 auto 24px auto',
           borderRadius: '50%',
-          backgroundColor: 'rgba(3, 105, 161, 0.1)',
+          backgroundColor: 'rgba(22, 163, 74, 0.1)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center'
@@ -2680,7 +2680,7 @@ function WhatIfComingSoonModal({ isOpen, onClose }) {
             width: '56px',
             height: '56px',
             borderRadius: '50%',
-            backgroundColor: COLORS.primary,
+            backgroundColor: COLORS.advance,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center'
@@ -5500,7 +5500,7 @@ function App() {
             Future Toronto Transit Mapper
           </h1>
           <p style={{ color: COLORS.textSecondary, marginBottom: '16px', fontSize: '14px' }}> 
-            Plan your trip and see how the Eglinton Crosstown LRT and Finch West LRT affect you!
+            Plan your trip and see how the Eglinton Crosstown LRT and Finch West LRT might affect you!
 
             Presently only searches within Toronto, Missisauga, Brampton, and York Region are supported.
           </p>
