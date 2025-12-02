@@ -1493,7 +1493,7 @@ function NoRoutesFoundModal({ isOpen, onClose }) {
   );
 }
 
-function UnaffectedRouteModal({ isOpen, onClose }) {
+function UnaffectedRouteModal({ isOpen, onClose, onYes, onUnsure, onNo }) {
   if (!isOpen) return null;
 
   return (
@@ -1615,10 +1615,16 @@ function UnaffectedRouteModal({ isOpen, onClose }) {
           This helps us understand which route best suits your preferences for this trip.
         </p>
 
-        {/* ACTION BUTTONS - Yes (blue) | Unsure (blue) | No (grey) */}
+        {/* ACTION BUTTONS */}
         <div style={{ display: 'flex', gap: '12px' }}>
+          {/* YES - Show thanks modal */}
           <button 
-            onClick={onClose} 
+            onClick={() => {
+              onClose();
+              if (onYes) {
+                setTimeout(() => onYes(), 150);
+              }
+            }}
             style={{ 
               flex: 1, 
               padding: '12px', 
@@ -1636,8 +1642,15 @@ function UnaffectedRouteModal({ isOpen, onClose }) {
           >
             Yes
           </button>
+
+          {/* UNSURE - Show thanks modal */}
           <button 
-            onClick={onClose} 
+            onClick={() => {
+              onClose();
+              if (onUnsure) {
+                setTimeout(() => onUnsure(), 150);
+              }
+            }}
             style={{ 
               flex: 1, 
               padding: '12px', 
@@ -1655,8 +1668,15 @@ function UnaffectedRouteModal({ isOpen, onClose }) {
           >
             Unsure / Just Exploring
           </button>
+
+          {/* NO - Show choose preferred modal */}
           <button 
-            onClick={onClose} 
+            onClick={() => {
+              onClose();
+              if (onNo) {
+                setTimeout(() => onNo(), 150);
+              }
+            }}
             style={{ 
               flex: 1, 
               padding: '12px', 
@@ -1778,7 +1798,7 @@ function UnaffectedOneRouteModal({ isOpen, onClose }) {
   );
 }
 
-function AffectedRouteModal({ isOpen, onClose, onProceed }) {
+function AffectedRouteModal({ isOpen, onClose, onProceed, onNo }) {
   if (!isOpen) return null;
   
   const handleYes = () => {
@@ -1788,7 +1808,9 @@ function AffectedRouteModal({ isOpen, onClose, onProceed }) {
   
   const handleNo = () => {
     onClose();
-    // Just close, don't proceed
+    if (onNo) {
+      setTimeout(() => onNo(), 150);
+    }
   };
   
   const handleUnsure = () => {
@@ -2507,6 +2529,561 @@ function FAQModal({ isOpen, onClose }) {
   );
 }
 
+// ============================================================================
+// MODAL 1: NO ROUTE SELECTED (Small Modal)
+// ============================================================================
+// Triggered when user clicks "Compare Selected Route To Today" with no route
+// ============================================================================
+
+function NoRouteSelectedModal({ isOpen, onClose }) {
+  if (!isOpen) return null;
+
+  return (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.6)',
+      zIndex: 2000,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '20px'
+    }}>
+      <div style={{ 
+        backgroundColor: COLORS.bgPrimary, 
+        padding: '32px', 
+        borderRadius: '12px', 
+        width: '460px',
+        maxWidth: '90vw',
+        boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
+        textAlign: 'center'
+      }}>
+        {/* Visual Icon - Info/compass */}
+        <div style={{
+          width: '80px',
+          height: '80px',
+          margin: '0 auto 24px auto',
+          borderRadius: '50%',
+          backgroundColor: 'rgba(202, 138, 4, 0.1)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <div style={{
+            width: '56px',
+            height: '56px',
+            borderRadius: '50%',
+            backgroundColor: COLORS.warning,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            <i className="fas fa-route" style={{ 
+              fontSize: '24px', 
+              color: 'white' 
+            }}></i>
+          </div>
+        </div>
+
+        {/* Title */}
+        <h2 style={{ 
+          margin: '0 0 16px 0', 
+          fontSize: '20px', 
+          fontWeight: '600', 
+          color: COLORS.textPrimary 
+        }}>
+          No Route Selected
+        </h2>
+
+        {/* Body Text */}
+        <p style={{ 
+          marginBottom: '24px', 
+          color: COLORS.textSecondary, 
+          lineHeight: '1.5',
+          fontSize: '14px'
+        }}>
+          Please plan a route first by entering an origin and destination, then selecting a route option from the sidebar.
+        </p>
+
+        {/* Action Button */}
+        <button 
+          onClick={onClose}
+          style={{
+            width: '100%',
+            padding: '12px',
+            backgroundColor: COLORS.primary,
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            fontSize: '16px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            transition: 'background-color 0.2s'
+          }}
+          onMouseOver={e => e.target.style.backgroundColor = COLORS.primaryHover}
+          onMouseOut={e => e.target.style.backgroundColor = COLORS.primary}
+        >
+          Okay
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// MODAL 2: WHAT-IF SCENARIOS COMING SOON (Small Modal)
+// ============================================================================
+// Triggered when user clicks "Try What-If Scenarios!" button
+// ============================================================================
+
+function WhatIfComingSoonModal({ isOpen, onClose }) {
+  if (!isOpen) return null;
+
+  return (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.6)',
+      zIndex: 2000,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '20px'
+    }}>
+      <div style={{ 
+        backgroundColor: COLORS.bgPrimary, 
+        padding: '32px', 
+        borderRadius: '12px', 
+        width: '460px',
+        maxWidth: '90vw',
+        boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
+        textAlign: 'center'
+      }}>
+        {/* Visual Icon - Lightbulb/idea */}
+        <div style={{
+          width: '80px',
+          height: '80px',
+          margin: '0 auto 24px auto',
+          borderRadius: '50%',
+          backgroundColor: 'rgba(3, 105, 161, 0.1)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <div style={{
+            width: '56px',
+            height: '56px',
+            borderRadius: '50%',
+            backgroundColor: COLORS.primary,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            <i className="fas fa-lightbulb" style={{ 
+              fontSize: '28px', 
+              color: 'white' 
+            }}></i>
+          </div>
+        </div>
+
+        {/* Title */}
+        <h2 style={{ 
+          margin: '0 0 16px 0', 
+          fontSize: '20px', 
+          fontWeight: '600', 
+          color: COLORS.textPrimary 
+        }}>
+          Coming Soon!
+        </h2>
+
+        {/* Body Text */}
+        <p style={{ 
+          marginBottom: '16px', 
+          color: COLORS.textSecondary, 
+          lineHeight: '1.5',
+          fontSize: '14px'
+        }}>
+          What-If Scenarios are currently in development and will be available soon.
+        </p>
+
+        {/* Bold Helper Text */}
+        <p style={{ 
+          marginBottom: '24px', 
+          color: COLORS.textBold, 
+          fontWeight: '500',
+          fontSize: '14px',
+          lineHeight: '1.5'
+        }}>
+          Thank you for your interest! This feature will let you explore how changes to transit service might affect your travel options.
+        </p>
+
+        {/* Action Button */}
+        <button 
+          onClick={onClose}
+          style={{
+            width: '100%',
+            padding: '12px',
+            backgroundColor: COLORS.primary,
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            fontSize: '16px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            transition: 'background-color 0.2s'
+          }}
+          onMouseOver={e => e.target.style.backgroundColor = COLORS.primaryHover}
+          onMouseOut={e => e.target.style.backgroundColor = COLORS.primary}
+        >
+          Okay
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// MODAL 3A: CHOOSE PREFERRED ROUTE FIRST (Small Modal)
+// ============================================================================
+// Shown when user clicks "No" on route preference question
+// ============================================================================
+
+function ChoosePreferredRouteModal({ isOpen, onClose }) {
+  if (!isOpen) return null;
+
+  return (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.6)',
+      zIndex: 4000,  // Higher than other modals
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '20px'
+    }}>
+      <div style={{ 
+        backgroundColor: COLORS.bgPrimary, 
+        padding: '32px', 
+        borderRadius: '12px', 
+        width: '460px',
+        maxWidth: '90vw',
+        boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
+        textAlign: 'center'
+      }}>
+        {/* Visual Icon - Pointer/select */}
+        <div style={{
+          width: '80px',
+          height: '80px',
+          margin: '0 auto 24px auto',
+          borderRadius: '50%',
+          backgroundColor: 'rgba(3, 105, 161, 0.1)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <div style={{
+            width: '56px',
+            height: '56px',
+            borderRadius: '50%',
+            backgroundColor: COLORS.primary,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            <i className="fas fa-hand-pointer" style={{ 
+              fontSize: '24px', 
+              color: 'white' 
+            }}></i>
+          </div>
+        </div>
+
+        {/* Title */}
+        <h2 style={{ 
+          margin: '0 0 16px 0', 
+          fontSize: '20px', 
+          fontWeight: '600', 
+          color: COLORS.textPrimary 
+        }}>
+          To Compare To Today, Choose Your Preferred Route
+        </h2>
+
+        {/* Body Text */}
+        <p style={{ 
+          marginBottom: '24px', 
+          color: COLORS.textSecondary, 
+          lineHeight: '1.5',
+          fontSize: '14px'
+        }}>
+          Please select a preferred route from the sidebar first, then click the compare button to see how it differs from today's options.
+        </p>
+
+        {/* Action Button */}
+        <button 
+          onClick={onClose}
+          style={{
+            width: '100%',
+            padding: '12px',
+            backgroundColor: COLORS.primary,
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            fontSize: '16px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            transition: 'background-color 0.2s'
+          }}
+          onMouseOver={e => e.target.style.backgroundColor = COLORS.primaryHover}
+          onMouseOut={e => e.target.style.backgroundColor = COLORS.primary}
+        >
+          Okay
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// MODAL 3B: THANKS FOR FEEDBACK - UNAFFECTED ROUTE (Small Modal)
+// ============================================================================
+// Shown when user confirms preference on an unaffected route
+// ============================================================================
+
+function ThanksUnaffectedModal({ isOpen, onClose }) {
+  if (!isOpen) return null;
+
+  return (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.6)',
+      zIndex: 4000,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '20px'
+    }}>
+      <div style={{ 
+        backgroundColor: COLORS.bgPrimary, 
+        padding: '32px', 
+        borderRadius: '12px', 
+        width: '460px',
+        maxWidth: '90vw',
+        boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
+        textAlign: 'center'
+      }}>
+        {/* Visual Icon - Thumbs up */}
+        <div style={{
+          width: '80px',
+          height: '80px',
+          margin: '0 auto 24px auto',
+          borderRadius: '50%',
+          backgroundColor: 'rgba(22, 163, 74, 0.1)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <div style={{
+            width: '56px',
+            height: '56px',
+            borderRadius: '50%',
+            backgroundColor: COLORS.advance,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            <i className="fas fa-thumbs-up" style={{ 
+              fontSize: '24px', 
+              color: 'white' 
+            }}></i>
+          </div>
+        </div>
+
+        {/* Title */}
+        <h2 style={{ 
+          margin: '0 0 16px 0', 
+          fontSize: '20px', 
+          fontWeight: '600', 
+          color: COLORS.textPrimary 
+        }}>
+          Thanks for Your Input!
+        </h2>
+
+        {/* Body Text */}
+        <p style={{ 
+          marginBottom: '16px', 
+          color: COLORS.textSecondary, 
+          lineHeight: '1.5',
+          fontSize: '14px'
+        }}>
+          Your feedback helps us understand current travel patterns in Toronto.
+        </p>
+
+        {/* Bold Helper Text */}
+        <p style={{ 
+          marginBottom: '24px', 
+          color: COLORS.textBold, 
+          fontWeight: '500',
+          fontSize: '14px',
+          lineHeight: '1.5'
+        }}>
+          Feel free to explore other trips or try different routes to see how the new transit lines might benefit different journeys!
+        </p>
+
+        {/* Action Button */}
+        <button 
+          onClick={onClose}
+          style={{
+            width: '100%',
+            padding: '12px',
+            backgroundColor: COLORS.primary,
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            fontSize: '16px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            transition: 'background-color 0.2s'
+          }}
+          onMouseOver={e => e.target.style.backgroundColor = COLORS.primaryHover}
+          onMouseOut={e => e.target.style.backgroundColor = COLORS.primary}
+        >
+          Continue Exploring
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// MODAL 3C: THANKS FOR FEEDBACK - AFFECTED ROUTE (Small Modal)
+// ============================================================================
+// Shown when user confirms preference on an affected route and proceeds to survey
+// Note: This would be shown AFTER the behavioral survey completes
+// ============================================================================
+
+function ThanksAffectedModal({ isOpen, onClose }) {
+  if (!isOpen) return null;
+
+  return (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.6)',
+      zIndex: 4000,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '20px'
+    }}>
+      <div style={{ 
+        backgroundColor: COLORS.bgPrimary, 
+        padding: '32px', 
+        borderRadius: '12px', 
+        width: '460px',
+        maxWidth: '90vw',
+        boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
+        textAlign: 'center'
+      }}>
+        {/* Visual Icon - Star/celebration */}
+        <div style={{
+          width: '80px',
+          height: '80px',
+          margin: '0 auto 24px auto',
+          borderRadius: '50%',
+          backgroundColor: 'rgba(22, 163, 74, 0.1)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <div style={{
+            width: '56px',
+            height: '56px',
+            borderRadius: '50%',
+            backgroundColor: COLORS.advance,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            <img 
+              src="/stars.png" 
+              style={{ width: '32px', height: '32px' }}
+              alt="Thank you"
+            />
+          </div>
+        </div>
+
+        {/* Title */}
+        <h2 style={{ 
+          margin: '0 0 16px 0', 
+          fontSize: '20px', 
+          fontWeight: '600', 
+          color: COLORS.textPrimary 
+        }}>
+          Thank You!
+        </h2>
+
+        {/* Body Text */}
+        <p style={{ 
+          marginBottom: '16px', 
+          color: COLORS.textSecondary, 
+          lineHeight: '1.5',
+          fontSize: '14px'
+        }}>
+          Your feedback on the new transit options is invaluable for transportation planning in Toronto.
+        </p>
+
+        {/* Bold Helper Text */}
+        <p style={{ 
+          marginBottom: '24px', 
+          color: COLORS.textBold, 
+          fontWeight: '500',
+          fontSize: '14px',
+          lineHeight: '1.5'
+        }}>
+          Continue exploring to see how the new Eglinton Crosstown and Finch West LRT lines might change other trips around the city!
+        </p>
+
+        {/* Action Button */}
+        <button 
+          onClick={onClose}
+          style={{
+            width: '100%',
+            padding: '12px',
+            backgroundColor: COLORS.primary,
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            fontSize: '16px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            transition: 'background-color 0.2s'
+          }}
+          onMouseOver={e => e.target.style.backgroundColor = COLORS.primaryHover}
+          onMouseOut={e => e.target.style.backgroundColor = COLORS.primary}
+        >
+          Explore More Trips
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // GTFS File Loader Component
 function GTFSFileLoader({ onDataLoaded }) {
   const [uploadedFiles, setUploadedFiles] = useState({
@@ -3178,6 +3755,13 @@ function App() {
   const [comparedCurrentRoute, setComparedCurrentRoute] = useState(null);
   const [comparedFutureRoute, setComparedFutureRoute] = useState(null);
 
+  const [showNoRouteSelectedModal, setShowNoRouteSelectedModal] = useState(false);
+  const [showWhatIfComingSoonModal, setShowWhatIfComingSoonModal] = useState(false);
+  const [showChoosePreferredModal, setShowChoosePreferredModal] = useState(false);
+  const [showThanksUnaffectedModal, setShowThanksUnaffectedModal] = useState(false);
+  const [showThanksAffectedModal, setShowThanksAffectedModal] = useState(false);
+
+
   // Auto-trigger survey when both routes are compared and there's only 1 current route option
   /*
   useEffect(() => {
@@ -3226,6 +3810,14 @@ function App() {
   // Survey completion handler
   const handleSurveyComplete = (responses) => {
     console.log('Behavioral survey responses:', responses);
+    setSurveyCompleted(true);
+    setBehavioralResponses(responses);
+    setShowBehavioralSurvey(false);
+    
+    // ADD: Show thanks modal after survey completes (if route was affected)
+    if (comparedFutureRoute && hasNewRoute(comparedFutureRoute)) {
+      setTimeout(() => setShowThanksAffectedModal(true), 500);
+    }
     
     // Store the responses
     setBehavioralResponses(responses);
@@ -3538,6 +4130,12 @@ function App() {
     console.log('=== handleCompareClick DEBUG ===');
     console.log('selectedRouteIndex:', selectedRouteIndex);
     console.log('routeOptions length:', routeOptions?.length);
+    
+    // ADD THIS NEW CHECK FIRST
+    if (!routeOptions || routeOptions.length === 0 || selectedRouteIndex === null) {
+      setShowNoRouteSelectedModal(true);
+      return;
+    }
     
     // CRITICAL: Set the compared future route when Compare button is clicked
     if (selectedRouteIndex !== null && routeOptions && routeOptions[selectedRouteIndex]) {
@@ -4860,9 +5458,12 @@ function App() {
         onClose={() => setShowNoRoutesModal(false)}
       />
 
-      <UnaffectedRouteModal
+      <UnaffectedRouteModal 
         isOpen={showUnaffectedModal}
         onClose={() => setShowUnaffectedModal(false)}
+        onYes={() => setShowThanksUnaffectedModal(true)}
+        onUnsure={() => setShowThanksUnaffectedModal(true)}
+        onNo={() => setShowThanksUnaffectedModal(true)}
       />
 
       <UnaffectedOneRouteModal
@@ -4870,10 +5471,11 @@ function App() {
         onClose={() => setShowUnaffectedOneRouteModal(false)}
       />
 
-      <AffectedRouteModal
+      <AffectedRouteModal 
         isOpen={showAffectedModal}
         onClose={() => setShowAffectedModal(false)}
         onProceed={triggerMapTransition}
+        onNo={() => setShowChoosePreferredModal(true)}
       />
 
       <NoNewTransitModal
@@ -5034,7 +5636,8 @@ function App() {
             {/* What-If Scenarios - only show in default mode */}
             {compareMode === 'default' && (
               <button
-                onClick={() => navigate('/exit')}
+                //onClick={() => navigate('/exit')}
+                onClick={() => setShowWhatIfComingSoonModal(true)}
                 style={{
                   ...buttonStyle,
                   backgroundColor: COLORS.advance,
@@ -5494,12 +6097,14 @@ function App() {
           onClose={handleSurveyClose}
           hasMultipleCurrentRoutes={currentRouteOptions.length > 1}
           isComparingWithAuto={selectedTravelMode === 'vehicle'}  
+          // ADD NEW CALLBACK:
+          onNoPreference={() => {
+            setShowChoosePreferredModal(true);
+          }}
           onContinueComparing={() => {
-            // Just close the modal, stay in comparison view
             setShowBehavioralSurvey(false);
           }}
           onExploreNewTrip={() => {
-            // Close modal and return to default map
             setShowBehavioralSurvey(false);
             setTimeout(() => {
               setCompareMode('default');
@@ -5555,6 +6160,31 @@ function App() {
       <FAQModal 
         isOpen={showFAQModal}
         onClose={() => setShowFAQModal(false)}
+      />
+
+      <NoRouteSelectedModal 
+        isOpen={showNoRouteSelectedModal}
+        onClose={() => setShowNoRouteSelectedModal(false)}
+      />
+
+      <WhatIfComingSoonModal 
+        isOpen={showWhatIfComingSoonModal}
+        onClose={() => setShowWhatIfComingSoonModal(false)}
+      />
+
+      <ChoosePreferredRouteModal 
+        isOpen={showChoosePreferredModal}
+        onClose={() => setShowChoosePreferredModal(false)}
+      />
+
+      <ThanksUnaffectedModal 
+        isOpen={showThanksUnaffectedModal}
+        onClose={() => setShowThanksUnaffectedModal(false)}
+      />
+
+      <ThanksAffectedModal 
+        isOpen={showThanksAffectedModal}
+        onClose={() => setShowThanksAffectedModal(false)}
       />
     </div>
   );

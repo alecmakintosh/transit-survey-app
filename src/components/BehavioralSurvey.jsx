@@ -83,10 +83,10 @@ const BehavioralSurvey = ({
   onClose,
   onContinueComparing,  
   onExploreNewTrip,
+  onNoPreference,  // ADD THIS
   hasMultipleCurrentRoutes = true,
   isComparingWithAuto = false      
-
-}) => {
+  }) => {
   const initialStep = hasMultipleCurrentRoutes ? 0 : 1;
   const [step, setStep] = useState(initialStep);
   const [showThankYou, setShowThankYou] = useState(false);
@@ -437,6 +437,9 @@ const BehavioralSurvey = ({
                   onClick={() => {
                     setResponses(prev => ({ ...prev, is_preferred_route: 'no' }));
                     onClose();
+                    setTimeout(() => {
+                      if (onNoPreference) onNoPreference();
+                    }, 150);
                   }}
                   style={{ 
                     flex: 1, 
