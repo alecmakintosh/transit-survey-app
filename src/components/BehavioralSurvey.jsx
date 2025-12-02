@@ -124,7 +124,7 @@ const BehavioralSurvey = ({
     { value: 'environmental', label: 'Environmental benefits', icon: 'fas fa-leaf' },
     { value: 'reliability', label: 'Reliability/consistency', icon: 'fas fa-check-circle' },
     { value: 'comfort', label: 'Comfort (can relax/work)', icon: 'fas fa-couch' },
-    // { value: 'other', label: 'Other', icon: 'fas fa-ellipsis-h' }
+    { value: 'other', label: 'Other', icon: 'fas fa-ellipsis-h' }
   ];
 
   // WHEN USER SELECTED AUTO ROUTE (comparing current auto vs future transit)
@@ -133,10 +133,11 @@ const BehavioralSurvey = ({
     { value: 'travel_time', label: 'Total travel time', icon: 'fas fa-clock' },
     { value: 'flexibility', label: 'Flexibility/convenience', icon: 'fas fa-random' },
     { value: 'comfort', label: 'Comfort/privacy', icon: 'fas fa-car' },
+    { value: 'safety', label: 'Safety', icon: 'fas fa-lock' },
     { value: 'carrying_items', label: 'Need to carry items', icon: 'fas fa-shopping-bag' },
     { value: 'weather', label: 'Weather protection', icon: 'fas fa-cloud-rain' },
     { value: 'trip_chaining', label: 'Multiple stops needed', icon: 'fas fa-map-marked-alt' },
-    // { value: 'other', label: 'Other', icon: 'fas fa-ellipsis-h' }
+    { value: 'other', label: 'Other', icon: 'fas fa-ellipsis-h' }
   ];
 
   // Select which factors to show based on comparison type and user's Step 1 choice
@@ -669,7 +670,7 @@ const BehavioralSurvey = ({
               }}>
                 {isComparingWithAuto 
                   ? (responses.route_preference === 'future'
-                      ? "Why did you choose transit over driving?" 
+                      ? "Why would you switch to transit from driving?" 
                       : "Why did you choose driving over transit?")
                   : (responses.route_preference === 'future'
                       ? "Why did you prefer the future transit route?"
@@ -697,7 +698,7 @@ const BehavioralSurvey = ({
                   gap: '8px'
                 }}>
                   <i className="fas fa-info-circle"></i>
-                  You've selected 3 factors (maximum reached)
+                  You've selected 3 factors (maximum reached).
                 </div>
               )}
               
@@ -1350,7 +1351,7 @@ const AutoRouteOptionCard = ({ title, route, selected, onClick, accentColor }) =
           <div style={{ 
             fontSize: '20px',
             fontWeight: '700',
-            color: selected ? COLORS.present : COLORS.advance
+            color: selected ? COLORS.primary : COLORS.advance
           }}>
             {Math.round(route.duration / 60)} min
           </div>
