@@ -2388,7 +2388,7 @@ function FAQModal({ isOpen, onClose }) {
     },
     {
       question: "When I enter my address, why can't I find my exact location?",
-      answer: `The software I'm using to find addresses is not the best; try using the "Click On Map" button to find your address. Sorry!`
+      answer: `The software I'm using to find addresses is not the best; try using the "Click On Map" button to use the map to select your address. Sorry!`
     },
     {
       question: "What does 'new route' mean?",
@@ -2527,6 +2527,8 @@ function FAQModal({ isOpen, onClose }) {
               fontWeight: '600',
               cursor: 'pointer'
             }}
+            onMouseOver={e => e.target.style.backgroundColor = COLORS.primaryHover}
+            onMouseOut={e => e.target.style.backgroundColor = COLORS.primary}
           >
             Close
           </button>
@@ -3063,7 +3065,7 @@ function ThanksAffectedModal({ isOpen, onClose }) {
           fontSize: '14px',
           lineHeight: '1.5'
         }}>
-          Continue exploring to see how the new Eglinton Crosstown and Finch West LRT lines might change other trips around the city!
+          Continue exploring to see how the new Eglinton Crosstown and Finch West LRT lines might change other trips around the region!
         </p>
 
         {/* Action Button */}
@@ -3911,12 +3913,12 @@ function App() {
       }
     }
     
-    setShowBehavioralSurvey(false);
+    //setShowBehavioralSurvey(false);
     
     // Show thanks modal
-    if (comparedFutureRoute && hasNewRoute(comparedFutureRoute)) {
-      setTimeout(() => setShowThanksAffectedModal(true), 500);
-    }
+    //if (comparedFutureRoute && hasNewRoute(comparedFutureRoute)) {
+    //  setTimeout(() => setShowThanksAffectedModal(true), 500);
+    //}
   };
 
   // Survey close handler (without completing)

@@ -96,7 +96,9 @@ const extractModesUsed = (route) => {
  * Detect if route is an AUTO route (from TomTom)
  */
 const isAutoRoute = (route) => {
-  return route && (route.mode === 'CAR' || route.id?.startsWith('car-'));
+  // OTP transit routes don't have a "mode" property
+  // TomTom auto routes have mode: 'CAR'
+  return route && route.mode === 'CAR';
 };
 
 /**
@@ -212,8 +214,8 @@ export const createJourney = async (sessionId, journeyData) => {
       session_id: sessionId,
       
       // Trip parameters (NO COORDINATES)
-      origin_name: sanitizeText(journeyData.origin_name, 200),
-      destination_name: sanitizeText(journeyData.destination_name, 200),
+      //origin_name: sanitizeText(journeyData.origin_name, 200),
+      //destination_name: sanitizeText(journeyData.destination_name, 200),
       location_pair_uuid: journeyData.location_pair_uuid || null,
       
       query_time: validateTime(journeyData.query_time),

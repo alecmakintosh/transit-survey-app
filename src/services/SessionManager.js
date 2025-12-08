@@ -1,7 +1,7 @@
 /**
- * SessionManager.js
+ * SessionManager.js - FIXED VERSION
  * Manages user sessions with persistence across page loads
- * Creates/retrieves sessions from localStorage and Supabase
+ * Compatible with Supabase v2
  */
 
 import { supabase } from '../supabaseClient';
@@ -154,15 +154,26 @@ export const initializeSession = async () => {
     if (storedSession && storedSession.session_id) {
       console.log('Existing session found:', storedSession.session_id);
       
-      // Update session in Supabase (increment page visits, update timestamp)
+      // Try to update session in Supabase (increment page visits)
+      // Use RPC function or manual increment
       try {
-        await supabase
+        // First, get current pages_visited value
+        const { data: currentSession } = await supabase
           .from('user_sessions')
-          .update({
-            pages_visited: supabase.raw('pages_visited + 1'),
-            updated_at: new Date().toISOString()
-          })
-          .eq('session_id', storedSession.session_id);
+          .select('pages_visited')
+          .eq('session_id', storedSession.session_id)
+          .single();
+        
+        if (currentSession) {
+          // Update with incremented value
+          await supabase
+            .from('user_sessions')
+            .update({
+              pages_visited: (currentSession.pages_visited || 0) + 1,
+              updated_at: new Date().toISOString()
+            })
+            .eq('session_id', storedSession.session_id);
+        }
       } catch (updateError) {
         console.warn('Could not update session, but continuing:', updateError);
       }
@@ -229,16 +240,29 @@ export const linkUserProfile = async (sessionId, userProfileId) => {
  */
 export const endSession = async (sessionId) => {
   try {
-    const { error } = await supabase
+    // First get session start time
+    const { data: sessionData } = await supabase
       .from('user_sessions')
-      .update({
-        session_end: new Date().toISOString(),
-        session_duration_seconds: supabase.raw('EXTRACT(EPOCH FROM (NOW() - session_start))')
-      })
-      .eq('session_id', sessionId);
+      .select('session_start')
+      .eq('session_id', sessionId)
+      .single();
     
-    if (error) {
-      console.error('Error ending session:', error);
+    if (sessionData && sessionData.session_start) {
+      const startTime = new Date(sessionData.session_start);
+      const endTime = new Date();
+      const durationSeconds = Math.floor((endTime - startTime) / 1000);
+      
+      const { error } = await supabase
+        .from('user_sessions')
+        .update({
+          session_end: endTime.toISOString(),
+          session_duration_seconds: durationSeconds
+        })
+        .eq('session_id', sessionId);
+      
+      if (error) {
+        console.error('Error ending session:', error);
+      }
     }
     
     return true;
@@ -253,12 +277,21 @@ export const endSession = async (sessionId) => {
  */
 export const incrementInteractionCount = async (sessionId) => {
   try {
-    await supabase
+    // Get current count first
+    const { data: currentSession } = await supabase
       .from('user_sessions')
-      .update({
-        total_interactions: supabase.raw('total_interactions + 1')
-      })
-      .eq('session_id', sessionId);
+      .select('total_interactions')
+      .eq('session_id', sessionId)
+      .single();
+    
+    if (currentSession) {
+      await supabase
+        .from('user_sessions')
+        .update({
+          total_interactions: (currentSession.total_interactions || 0) + 1
+        })
+        .eq('session_id', sessionId);
+    }
   } catch (error) {
     // Silent fail - not critical
     console.warn('Could not increment interaction count:', error);

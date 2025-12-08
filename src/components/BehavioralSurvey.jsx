@@ -991,7 +991,7 @@ const BehavioralSurvey = ({
                     cursor: (responses.trip_frequency !== null) ? 'pointer' : 'not-allowed',
                     fontSize: '14px',
                     fontWeight: '600',
-                    opacity: (!responses.trip_frequency !== null) ? 1 : 0.6,
+                    opacity: (responses.trip_frequency !== null) ? 1 : 0.6,
                     transition: 'background-color 0.2s'
                   }}
                   onMouseOver={e => {

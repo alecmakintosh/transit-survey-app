@@ -38,6 +38,7 @@ const LandingPage = () => {
         <strong>This is a research tool.</strong> Your route searches and 
         preferences are collected anonymously to improve transit planning. 
         You can optionally provide your email to receive follow-up surveys.
+        You will be asked questions throughout the website as part of your usage.
         <br/>
         <a href="/privacy" style={{ color: '#0369a1', fontSize: '12px' }}>
           Privacy Policy
