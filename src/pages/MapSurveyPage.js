@@ -5869,12 +5869,12 @@ const isRouteReadyToCompare = routeOptions.length > 0 &&
           // Single map in default mode
           <MapContainer 
             center={[43.7, -79.4]} 
-            zoom={11.8} 
+            zoom={12} 
             style={{ height: "100%", width: "100%" }}
             zoomControl={false}
           >
             <TileLayer
-              url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+              url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
             />
             
             <MapHandler setMapInstance={setMapInstance} />
@@ -5978,7 +5978,7 @@ const isRouteReadyToCompare = routeOptions.length > 0 &&
                   zoomControl={false}
                 >
                 <TileLayer
-                  url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+                  url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
                 />
                 
                 <MapHandler setMapInstance={setMapInstance} />
@@ -6100,7 +6100,7 @@ const isRouteReadyToCompare = routeOptions.length > 0 &&
                     zoomControl={false}
                   >
                     <TileLayer
-                      url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+                      url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
                     />
                     
                     <MapHandler setMapInstance={setCurrentMapInstance} />
@@ -6212,7 +6212,7 @@ const isRouteReadyToCompare = routeOptions.length > 0 &&
                     zoomControl={false}
                   >
                     <TileLayer
-                      url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+                      url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
                     />
 
                     <MapHandler setMapInstance={setCurrentMapInstance} />
