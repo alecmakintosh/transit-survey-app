@@ -310,7 +310,7 @@ const sortItineraries = (itineraries) => {
 // Configuration for new routes
 const NEW_ROUTES_CONFIG = {
   routeIdentifiers: [
-    { type: 'longName', value: 'LINE 5 (EGLINTON)' },
+    { type: 'longName', value: 'LINE 5 (EGLINTON)' }
     //{ type: 'longName', value: 'LINE 6 (FINCH WEST)' }
   ]
 };
