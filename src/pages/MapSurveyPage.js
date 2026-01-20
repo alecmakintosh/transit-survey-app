@@ -311,7 +311,7 @@ const sortItineraries = (itineraries) => {
 const NEW_ROUTES_CONFIG = {
   routeIdentifiers: [
     { type: 'longName', value: 'LINE 5 (EGLINTON)' },
-    { type: 'longName', value: 'LINE 6 (FINCH WEST)' }
+    //{ type: 'longName', value: 'LINE 6 (FINCH WEST)' }
   ]
 };
 
@@ -691,7 +691,7 @@ function getNextDateForDay(targetDay) {
 // Enhanced OTP fetch function with API selection
 const fetchOTPRoute = async (fromCoords, toCoords, time, isArriveBy, dayType, useCurrentAPI = false) => {
   try {
-    const baseDate = dayType === 'weekday' ? "2025-09-10" : "2025-09-13";
+    const baseDate = dayType === 'weekday' ? "2026-01-21" : "2026-01-24";
     
     const primaryQuery = `{
       plan(
