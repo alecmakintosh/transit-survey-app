@@ -2080,7 +2080,7 @@ function NoNewTransitModal({ isOpen, onClose }) {
           lineHeight: '1.5',
           fontSize: '14px'
         }}>
-          None of the routes found for this trip use the new Eglinton Crosstown LRT or Finch West LRT.
+          None of the routes found for this trip use the new Eglinton Crosstown LRT.
         </p>
 
         {/* Bold Helper Text */}
@@ -2191,7 +2191,7 @@ function NewTransitAvailableModal({ isOpen, onClose }) {
           lineHeight: '1.5',
           fontSize: '14px'
         }}>
-          At least one of the routes found uses the new Eglinton Crosstown LRT or Finch West LRT (marked with a ✨ star).
+          At least one of the routes found uses the new Eglinton Crosstown LRT (marked with a ✨ star).
         </p>
 
         {/* Bold Helper Text */}
@@ -2368,7 +2368,7 @@ function FAQModal({ isOpen, onClose }) {
     },
     {
       question: "What new routes are currently included?",
-      answer: "Currently the Eglinton Crosstown LRT and Finch West LRT are included. Lines that are further from completion, such as the Ontario Line, are not included as of now."
+      answer: "Currently only the Eglinton Crosstown LRT is included. Lines that are further from completion, such as the Ontario Line, are not included as of now."
     },
     {
       question: "How accurate are the route predictions and travel times?",
@@ -2392,7 +2392,7 @@ function FAQModal({ isOpen, onClose }) {
     },
     {
       question: "What does 'new route' mean?",
-      answer: "Routes marked with a star (✨) use newly opened or planned transit lines that aren't available in current service. This currently only includes the Eglinton Crosstown LRT and Finch West LRT."
+      answer: "Routes marked with a star (✨) use newly opened or planned transit lines that aren't available in current service. This currently only includes the Eglinton Crosstown LRT."
     },
     {
       question: "How is travel time calculated?",
@@ -3065,7 +3065,7 @@ function ThanksAffectedModal({ isOpen, onClose }) {
           fontSize: '14px',
           lineHeight: '1.5'
         }}>
-          Continue exploring to see how the new Eglinton Crosstown and Finch West LRT lines might change other trips around the region!
+          Continue exploring to see how the new Eglinton Crosstown line might change other trips around the region!
         </p>
 
         {/* Action Button */}
@@ -5686,7 +5686,7 @@ const isRouteReadyToCompare = routeOptions.length > 0 &&
             Future Toronto Transit Mapper
           </h1>
           <p style={{ color: COLORS.textSecondary, marginBottom: '16px', fontSize: '14px' }}> 
-            Plan your trip and see how the Eglinton Crosstown LRT and Finch West LRT might affect you!
+            Plan your trip and see how the Eglinton Crosstown LRT might affect you!
 
             Presently only searches within Toronto, Missisauga, Brampton, and York Region are supported.
           </p>
