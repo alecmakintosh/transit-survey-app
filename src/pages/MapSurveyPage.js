@@ -4156,6 +4156,7 @@ function App() {
       return;
     }
 
+    /*
     const selectedRoute = routeOptions[selectedRouteIndex];
     const routeDetails = selectedRoute ? {
       route_option_count: routeOptions.length,
@@ -4182,6 +4183,7 @@ function App() {
     });
 
     if (error) console.error("Log insert error:", error);
+    */
 
     if (!seenODPairs.has(odKey)) {
       setSeenODPairs(prev => new Set(prev).add(odKey));
