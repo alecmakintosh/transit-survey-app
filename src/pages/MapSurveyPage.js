@@ -4155,7 +4155,7 @@ function App() {
       }))
     } : null;
 
-    const { error } = await supabase.from('behavioural_responses').insert({
+    const { error } = await supabase.from('behavioral_responses').insert({
       origin: originAddress,
       destination: destinationAddress,
       travel_time_old_min: finalTravelTime,
