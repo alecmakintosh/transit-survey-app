@@ -1,7 +1,11 @@
 /**
- * JourneyService.js - UPDATED VERSION
- * Handles both TRANSIT routes (from OTP) and AUTO routes (from TomTom)
- * Properly stores different route types with their unique characteristics
+ * JourneyService.js - v2.0 ENHANCED
+ * 
+ * NEW FEATURES:
+ * - Journey splitting: future_inquiry vs current_inquiry as separate rows
+ * - Modal tracking: Track which modals are shown
+ * - Parent journey linking: Link current inquiries back to future inquiries
+ * - Handles both TRANSIT routes (from OTP) and AUTO routes (from TomTom)
  */
 
 import { supabase } from '../supabaseClient';
@@ -96,8 +100,6 @@ const extractModesUsed = (route) => {
  * Detect if route is an AUTO route (from TomTom)
  */
 const isAutoRoute = (route) => {
-  // OTP transit routes don't have a "mode" property
-  // TomTom auto routes have mode: 'CAR'
   return route && route.mode === 'CAR';
 };
 
@@ -110,19 +112,16 @@ const processAutoRoute = (route, index, scenarioType, journeyId) => {
     scenario_type: scenarioType,
     route_index: index,
     
-    // Core characteristics
     total_duration_seconds: route.duration || 0,
     total_distance_meters: route.distance || 0,
-    num_transfers: 0,  // No transfers in auto routes
-    num_legs: 1,  // Auto routes are single-leg
+    num_transfers: 0,
+    num_legs: 1,
     
-    // Walk characteristics (all zero for auto)
     total_walk_time_seconds: 0,
     total_walk_distance_meters: 0,
     max_single_walk_seconds: 0,
     num_walk_segments: 0,
     
-    // Mode composition
     modes_used: ['CAR'],
     has_walk: false,
     has_bus: false,
@@ -131,19 +130,15 @@ const processAutoRoute = (route, index, scenarioType, journeyId) => {
     has_rail: false,
     has_ferry: false,
     
-    // New LRT detection (not applicable for auto)
     uses_line_5_eglinton: false,
     uses_line_6_finch: false,
     uses_any_new_lrt: false,
     
-    // Timing
     start_time: route.departureTime ? new Date(route.departureTime).toTimeString().split(' ')[0] : '00:00:00',
     end_time: route.arrivalTime ? new Date(route.arrivalTime).toTimeString().split(' ')[0] : '00:00:00',
     
-    // Full route data (includes TomTom-specific fields)
     route_data_jsonb: {
       ...route,
-      // Store auto-specific metadata
       traffic_delay_seconds: route.delay || 0,
       has_toll_road: route.hasTollRoad || false,
       major_roads: route.majorRoads || [],
@@ -167,19 +162,16 @@ const processTransitRoute = (route, index, scenarioType, journeyId) => {
     scenario_type: scenarioType,
     route_index: index,
     
-    // Route characteristics
     total_duration_seconds: route.duration || 0,
     total_distance_meters: route.legs?.reduce((sum, leg) => sum + (leg.distance || 0), 0) || null,
     num_transfers: route.legs?.filter((leg, idx) => idx > 0 && leg.mode !== 'WALK').length || 0,
     num_legs: route.legs?.length || 0,
     
-    // Walk statistics
     total_walk_time_seconds: walkStats.totalWalkTime,
     total_walk_distance_meters: walkStats.totalWalkDistance,
     max_single_walk_seconds: walkStats.maxSingleWalk,
     num_walk_segments: walkStats.numWalkSegments,
     
-    // Mode composition
     modes_used: modesUsed,
     has_walk: modesUsed.includes('WALK'),
     has_bus: modesUsed.includes('BUS'),
@@ -188,40 +180,50 @@ const processTransitRoute = (route, index, scenarioType, journeyId) => {
     has_rail: modesUsed.includes('RAIL'),
     has_ferry: modesUsed.includes('FERRY'),
     
-    // New LRT detection
     uses_line_5_eglinton: lrtUsage.line5,
     uses_line_6_finch: lrtUsage.line6,
     uses_any_new_lrt: lrtUsage.any,
     
-    // Timing
     start_time: route.startTime ? new Date(route.startTime).toTimeString().split(' ')[0] : '00:00:00',
     end_time: route.endTime ? new Date(route.endTime).toTimeString().split(' ')[0] : '00:00:00',
     
-    // Full route data
     route_data_jsonb: route,
     
-    // Walk-only detection
     is_walk_only: modesUsed.length === 1 && modesUsed[0] === 'WALK'
   };
 };
 
 /**
  * Create journey record
+ * 
+ * NEW: Now supports journey_type: 'future_inquiry' or 'current_inquiry'
+ * 
+ * @param {string} sessionId - User session ID
+ * @param {object} journeyData - Journey details
+ * @param {string} journeyData.journey_type - 'future_inquiry' or 'current_inquiry'
+ * @param {string} journeyData.parent_journey_id - For current_inquiry, the parent future_inquiry ID
+ * @param {number} journeyData.comparison_number - For multiple comparisons (1, 2, 3...)
+ * @param {string} journeyData.modal_shown - Primary modal shown
  */
 export const createJourney = async (sessionId, journeyData) => {
   try {
     const sanitizedData = {
       session_id: sessionId,
       
-      // Trip parameters (NO COORDINATES)
-      //origin_name: sanitizeText(journeyData.origin_name, 200),
-      //destination_name: sanitizeText(journeyData.destination_name, 200),
-      location_pair_uuid: journeyData.location_pair_uuid || null,
+      // NEW: Journey type and hierarchy
+      journey_type: journeyData.journey_type || 'future_inquiry',
+      parent_journey_id: journeyData.parent_journey_id || null,
+      comparison_number: journeyData.comparison_number || 1,
       
+      // Trip parameters (NO COORDINATES)
       query_time: validateTime(journeyData.query_time),
       is_arrive_by: Boolean(journeyData.is_arrive_by),
       day_type: validateDayType(journeyData.day_type),
       travel_date: journeyData.travel_date || null,
+      
+      // NEW: Modal tracking
+      modal_shown: journeyData.modal_shown || null,
+      modals_shown_sequence: journeyData.modals_shown_sequence || [],
       
       // Summary stats
       total_current_routes_shown: journeyData.total_current_routes || 0,
@@ -246,12 +248,74 @@ export const createJourney = async (sessionId, journeyData) => {
       throw error;
     }
     
-    console.log('Journey created:', data.id);
+    console.log(`Journey created (${sanitizedData.journey_type}):`, data.id);
     return data;
     
   } catch (error) {
     console.error('Failed to create journey:', error);
     return null;
+  }
+};
+
+/**
+ * NEW: Get the next comparison number for a parent journey
+ * Used when user wants to compare multiple different current routes
+ */
+export const getNextComparisonNumber = async (parentJourneyId) => {
+  try {
+    const { data, error } = await supabase
+      .from('journeys')
+      .select('comparison_number')
+      .eq('parent_journey_id', parentJourneyId)
+      .order('comparison_number', { ascending: false })
+      .limit(1);
+    
+    if (error) throw error;
+    
+    if (data && data.length > 0) {
+      return data[0].comparison_number + 1;
+    }
+    
+    return 1;
+  } catch (error) {
+    console.error('Error getting next comparison number:', error);
+    return 1;
+  }
+};
+
+/**
+ * NEW: Update journey with modal interactions
+ */
+export const trackJourneyModal = async (journeyId, modalName) => {
+  try {
+    // Get current modals_shown_sequence
+    const { data: journey, error: fetchError } = await supabase
+      .from('journeys')
+      .select('modals_shown_sequence, modal_shown')
+      .eq('id', journeyId)
+      .single();
+    
+    if (fetchError) throw fetchError;
+    
+    const currentSequence = journey.modals_shown_sequence || [];
+    const updatedSequence = [...currentSequence, modalName];
+    
+    const { error } = await supabase
+      .from('journeys')
+      .update({
+        modal_shown: journey.modal_shown || modalName, // Set first modal as primary
+        modals_shown_sequence: updatedSequence
+      })
+      .eq('id', journeyId);
+    
+    if (error) throw error;
+    
+    console.log(`Modal tracked: ${modalName} for journey ${journeyId}`);
+    return true;
+    
+  } catch (error) {
+    console.error('Failed to track journey modal:', error);
+    return false;
   }
 };
 
@@ -328,8 +392,32 @@ export const updateJourneyCompletion = async (journeyId, updates) => {
   }
 };
 
+/**
+ * NEW: Get parent journey details
+ * Used to link current_inquiry back to its parent future_inquiry
+ */
+export const getParentJourney = async (parentJourneyId) => {
+  try {
+    const { data, error } = await supabase
+      .from('journeys')
+      .select('*')
+      .eq('id', parentJourneyId)
+      .single();
+    
+    if (error) throw error;
+    return data;
+    
+  } catch (error) {
+    console.error('Error getting parent journey:', error);
+    return null;
+  }
+};
+
 export default {
   createJourney,
+  getNextComparisonNumber,
+  trackJourneyModal,
   saveRouteOptions,
-  updateJourneyCompletion
+  updateJourneyCompletion,
+  getParentJourney
 };

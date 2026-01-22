@@ -3773,6 +3773,8 @@ function App() {
   const [hasInteractedWithInitialModal, setHasInteractedWithInitialModal] = useState(false);
 
   const [currentJourneyId, setCurrentJourneyId] = useState(null);
+  const [futureJourneyId, setFutureJourneyId] = useState(null);
+  const [currentComparisonNumber, setCurrentComparisonNumber] = useState(1);
 
 
   useEffect(() => {
@@ -4090,41 +4092,54 @@ function App() {
 
     let finalTravelTime;
 
-  const otpRoutes = await fetchOTPRoute(oCoords, dCoords, departureTime, arriveBy, dayType);
-  if (otpRoutes && otpRoutes.length > 0) {
-    setRouteOptions(otpRoutes);
-    setSelectedRouteIndex(0);
-    setHasInteractedWithInitialModal(false);
-    setOtpTravelTime(Math.round(otpRoutes[0].duration / 60));
-    finalTravelTime = Math.round(otpRoutes[0].duration / 60);
-    
-    // NEW: Save journey with future routes only (current routes come later)
-    if (sessionId) {
-      try {
-        const journey = await createJourney(sessionId, {
-          origin_name: originAddress,
-          destination_name: destinationAddress,
-          query_time: departureTime,
-          is_arrive_by: arriveBy,
-          day_type: dayType,
-          travel_date: travelDate,
-          total_current_routes: 0,  // Not fetched yet
-          total_future_routes: otpRoutes.length
-        });
-        
-        if (journey) {
-          setCurrentJourneyId(journey.id);
+    const otpRoutes = await fetchOTPRoute(oCoords, dCoords, departureTime, arriveBy, dayType);
+    if (otpRoutes && otpRoutes.length > 0) {
+      setRouteOptions(otpRoutes);
+      setSelectedRouteIndex(0);
+      setHasInteractedWithInitialModal(false);
+      setOtpTravelTime(Math.round(otpRoutes[0].duration / 60));
+      finalTravelTime = Math.round(otpRoutes[0].duration / 60);
+      
+      // ============================================================================
+      // UPDATED: Create FUTURE journey (separate from current)
+      // ============================================================================
+      if (sessionId) {
+        try {
+          const journey = await createJourney(sessionId, {
+            // NEW: Specify this is a future inquiry
+            journey_type: 'future_inquiry',
+            
+            // Trip parameters
+            origin_name: originAddress,
+            destination_name: destinationAddress,
+            query_time: departureTime,
+            is_arrive_by: arriveBy,
+            day_type: dayType,
+            travel_date: travelDate,
+            
+            // Route counts
+            total_current_routes: 0,  // Not fetched yet
+            total_future_routes: otpRoutes.length
+          });
           
-          // Save ONLY future routes at this point
-          await saveRouteOptions(journey.id, [], otpRoutes);
-          
-          console.log('Journey created with future routes:', journey.id);
+          if (journey) {
+            // IMPORTANT: Store this as the FUTURE journey ID
+            // We'll use this later when creating the CURRENT journey
+            setFutureJourneyId(journey.id);  // NEW state variable needed!
+            
+            // Also keep the old setCurrentJourneyId for backward compatibility
+            setCurrentJourneyId(journey.id);
+            
+            // Save ONLY future routes at this point
+            await saveRouteOptions(journey.id, [], otpRoutes);
+            
+            console.log('Future inquiry journey created:', journey.id);
+          }
+        } catch (error) {
+          console.error('Error saving journey:', error);
+          // Continue anyway - don't block user
         }
-      } catch (error) {
-        console.error('Error saving journey:', error);
-        // Continue anyway - don't block user
       }
-    }
     } else {
       setShowNoRoutesModal(true);
       setIsCalculating(false);
@@ -4155,7 +4170,7 @@ function App() {
       }))
     } : null;
 
-    const { error } = await supabase.from('behavioral_responses').insert({
+    const { error } = await supabase.from('survey_responses').insert({
       origin: originAddress,
       destination: destinationAddress,
       travel_time_old_min: finalTravelTime,
