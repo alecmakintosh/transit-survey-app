@@ -15,6 +15,8 @@ import { saveRoutePreference, saveBehavioralResponse } from '../services/Prefere
 import { updateJourneyCompletion } from '../services/JourneyService';
 
 import BehavioralSurvey from '../components/BehavioralSurvey';
+import { createJourney, saveRouteOptions, getNextComparisonNumber } from '../services/JourneyService';
+import { trackComparisonEvent } from '../services/EventTracker';
 
 // Fix for default markers in react-leaflet
 delete L.Icon.Default.prototype._getIconUrl;
@@ -3776,7 +3778,6 @@ function App() {
   const [futureJourneyId, setFutureJourneyId] = useState(null);
   const [currentComparisonNumber, setCurrentComparisonNumber] = useState(1);
 
-
   useEffect(() => {
     const initSession = async () => {
       try {
@@ -4367,6 +4368,17 @@ function App() {
     setSelectedTravelMode(mode);
     setShowTravelModeModal(false);
 
+    let comparisonNum = 1;
+    if (futureJourneyId) {
+      comparisonNum = await getNextComparisonNumber(futureJourneyId);
+      console.log(`Creating comparison #${comparisonNum}`);
+    }
+    
+    // ============================================================================
+    // STEP 2: Fetch routes based on selected mode
+    // ============================================================================
+    let fetchedRoutes = [];
+
   if (mode === 'vehicle') {
     setCompareMode('comparing');
     setIsLoadingCurrentRoutes(true);
@@ -4428,6 +4440,74 @@ function App() {
       setIsLoadingCurrentRoutes(false);
       setCompareMode('comparing');
     }
+
+    if (sessionId && futureJourneyId && fetchedRoutes.length > 0) {
+    try {
+      console.log('Creating current_inquiry journey...');
+      
+      const currentJourney = await createJourney(sessionId, {
+        // NEW: This is a current inquiry (separate from future)
+        journey_type: 'current_inquiry',
+        
+        // LINK back to the future inquiry
+        parent_journey_id: futureJourneyId,
+        
+        // Comparison number (1, 2, 3... if user compares multiple times)
+        comparison_number: comparisonNum,
+        
+        // Same trip parameters as parent journey
+        query_time: departureTime,
+        is_arrive_by: arriveBy,
+        day_type: dayType,
+        travel_date: travelDate,
+        
+        // Route counts for THIS comparison
+        total_current_routes: fetchedRoutes.length,
+        total_future_routes: 0,  // This journey is about current routes only
+        
+        // Optional: Track which modal was shown
+        modal_shown: 'TravelModeModal'
+      });
+      
+      if (currentJourney) {
+        console.log('✓ Current inquiry journey created:', currentJourney.id);
+        console.log('  Linked to parent journey:', futureJourneyId);
+        console.log('  Comparison number:', comparisonNum);
+        
+        // Update currentJourneyId to point to the NEW journey
+        // (This is what the survey will reference)
+        setCurrentJourneyId(currentJourney.id);
+        
+        // Save current routes to THIS NEW journey
+        await saveRouteOptions(currentJourney.id, fetchedRoutes, []);
+        console.log('✓ Routes saved to current inquiry journey');
+        
+        // Track comparison event
+        if (trackComparisonEvent) {
+          await trackComparisonEvent(currentJourney.id, sessionId, {
+            eventType: 'comparison_initiated',
+            futureRouteIndex: selectedRouteIndex,
+            comparisonType: mode === 'vehicle' ? 'auto_vs_transit' : 'transit_vs_transit',
+            metadata: {
+              travelMode: mode,
+              futureRouteDuration: routeOptions[selectedRouteIndex]?.duration,
+              comparisonNumber: comparisonNum,
+              numberOfCurrentRoutes: fetchedRoutes.length
+            }
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error creating current journey:', error);
+      // Continue anyway - don't block user experience
+    }
+  } else {
+    console.warn('Cannot create current journey:', {
+      hasSessionId: !!sessionId,
+      hasFutureJourneyId: !!futureJourneyId,
+      hasRoutes: fetchedRoutes.length > 0
+    });
+  }
   };
 
   const formatTime = (timeString) => {
