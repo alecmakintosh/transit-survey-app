@@ -4295,6 +4295,8 @@ function App() {
     console.log('selectedRouteIndex:', selectedRouteIndex);
     console.log('routeOptions length:', routeOptions?.length);
     
+    trackButtonClick(sessionId, 'compare_button', futureJourneyId);
+
     // ADD THIS NEW CHECK FIRST
     if (!routeOptions || routeOptions.length === 0 || selectedRouteIndex === null) {
       setShowNoRouteSelectedModal(true);
@@ -5957,7 +5959,9 @@ const isRouteReadyToCompare = routeOptions.length > 0 &&
             {compareMode === 'default' && (
               <button
                 //onClick={() => navigate('/exit')}
-                onClick={() => setShowWhatIfComingSoonModal(true)}
+                onClick={() => {setShowWhatIfComingSoonModal(true);
+                  trackButtonClick(sessionId, 'what_if_button', futureJourneyId);
+                }}
                 disabled={!isRouteReadyToCompare}
                 style={{
                   ...buttonStyle,
