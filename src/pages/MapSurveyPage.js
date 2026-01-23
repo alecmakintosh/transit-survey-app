@@ -4386,6 +4386,7 @@ function App() {
     try {
       const carRoutes = await fetchTomTomRoute(originCoords, destinationCoords, departureTime, dayType, arriveBy);
       if (carRoutes && carRoutes.length > 0) {
+        fetchedRoutes = carRoutes;
         setCurrentRouteOptions(carRoutes);
         setSelectedCurrentRouteIndex(0);
         
@@ -4415,6 +4416,7 @@ function App() {
       try {
         const currentRoutes = await fetchOTPRoute(originCoords, destinationCoords, departureTime, arriveBy, dayType, true);
         if (currentRoutes && currentRoutes.length > 0) {
+          fetchedRoutes = currentRoutes;
           setCurrentRouteOptions(currentRoutes);
           setSelectedCurrentRouteIndex(0);
           
