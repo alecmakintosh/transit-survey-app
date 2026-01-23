@@ -4543,6 +4543,16 @@ function App() {
 
   // Handle route selection
   const handleRouteSelection = (index) => {
+    trackInteraction(sessionId, {
+      eventType: 'click',
+      target: 'future_route_card',
+      value: { 
+        routeIndex: index, 
+        duration: routeOptions[index]?.duration,
+        hasNewLRT: routeOptions[index]?.usesAnyNewLRT
+      }
+    }, futureJourneyId);
+
     // Store which future route is being compared
     if (routeOptions && routeOptions[index]) {
       setComparedFutureRoute(routeOptions[index]);
@@ -4559,6 +4569,16 @@ function App() {
   const handleCurrentRouteSelection = (index) => {
     console.log(`Selecting route ${index} out of ${currentRouteOptions.length} routes`);
     console.log(`Previous selectedCurrentRouteIndex: ${selectedCurrentRouteIndex}`);
+
+    trackInteraction(sessionId, {
+      eventType: 'click',
+      target: 'current_route_card',
+      value: { 
+        routeIndex: index, 
+        duration: currentRouteOptions[index]?.duration,
+        mode: selectedTravelMode
+      }
+    }, currentJourneyId);
     
     // Store the current route being compared
     if (currentRouteOptions && currentRouteOptions[index]) {
