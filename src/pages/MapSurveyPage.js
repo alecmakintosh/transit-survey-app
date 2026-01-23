@@ -17,6 +17,7 @@ import { updateJourneyCompletion } from '../services/JourneyService';
 import BehavioralSurvey from '../components/BehavioralSurvey';
 import { createJourney, saveRouteOptions, getNextComparisonNumber } from '../services/JourneyService';
 import { trackComparisonEvent } from '../services/EventTracker';
+import { trackInteraction, trackButtonClick } from '../services/EventTracker';
 
 // Fix for default markers in react-leaflet
 delete L.Icon.Default.prototype._getIconUrl;
@@ -4277,9 +4278,11 @@ function App() {
       setOriginCoords(oCoords);
       setDestinationCoords(dCoords);
 
+      trackButtonClick(sessionId, 'calculate_routes_button', futureJourneyId);
       planTrip(oCoords, dCoords, trimmedOrigin, trimmedDestination);
     } else {
       if (originCoords && destinationCoords) {
+        trackButtonClick(sessionId, 'calculate_routes_button', futureJourneyId);
         planTrip(originCoords, destinationCoords, origin, destination);
       }
     }
