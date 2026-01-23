@@ -273,6 +273,54 @@ export const endSession = async (sessionId) => {
 };
 
 /**
+ * End session using sendBeacon (more reliable for page unload)
+ * This guarantees the request completes even if page is closing
+ */
+export const endSessionReliable = async (sessionId) => {
+  try {
+    // Get session start time
+    const { data: sessionData } = await supabase
+      .from('user_sessions')
+      .select('session_start')
+      .eq('session_id', sessionId)
+      .single();
+    
+    if (sessionData && sessionData.session_start) {
+      const startTime = new Date(sessionData.session_start);
+      const endTime = new Date();
+      const durationSeconds = Math.floor((endTime - startTime) / 1000);
+      
+      // Use sendBeacon for guaranteed delivery
+      const updateData = {
+        session_end: endTime.toISOString(),
+        session_duration_seconds: durationSeconds
+      };
+      
+      // Construct the URL for Supabase REST API
+      const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+      const supabaseKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
+      
+      const url = `${supabaseUrl}/rest/v1/user_sessions?session_id=eq.${sessionId}`;
+      
+      const blob = new Blob(
+        [JSON.stringify(updateData)],
+        { type: 'application/json' }
+      );
+      
+      // sendBeacon guarantees delivery even if page is closing
+      navigator.sendBeacon(url, blob);
+      
+      console.log('Session end tracked via sendBeacon');
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Failed to end session:', error);
+    return false;
+  }
+};
+
+/**
  * Increment interaction counter for session
  */
 export const incrementInteractionCount = async (sessionId) => {

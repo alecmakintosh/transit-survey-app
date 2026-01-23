@@ -6,7 +6,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { useNavigate } from 'react-router-dom'; 
 import polyline from "@mapbox/polyline";
 import L from 'leaflet';
-import { initializeSession, endSession, trackPageView } from '../services/SessionManager';
+import { initializeSession, endSession, trackPageView, endSessionReliable } from '../services/SessionManager';
 import { getUserProfile } from '../services/UserProfileService';
 import { createUserProfile } from '../services/UserProfileService';
 import { linkUserProfile } from '../services/SessionManager';
@@ -3812,6 +3812,33 @@ function App() {
     };
   }, []);  // Empty dependency array - runs once on mount
 
+  useEffect(() => {
+    const handleBeforeUnload = (event) => {
+      if (sessionId) {
+        // Use sendBeacon for reliable last-second tracking
+        endSession(sessionId);
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden' && sessionId) {
+        // Tab is hidden or being closed
+        endSession(sessionId);
+      }
+    };
+
+    // Listen for browser close/tab close
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    // Listen for tab switching/hiding
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [sessionId]);
+
   // Auto-trigger survey when both routes are compared and there's only 1 current route option
   /*
   useEffect(() => {
@@ -4311,10 +4338,12 @@ function App() {
       console.log('✗ Could not set compared future route');
     }
 
-    // Check if OD changed
-    if (origin !== lastPlannedOrigin || destination !== lastPlannedDestination) {
-      setShowChangedODModal(true);
-      return;
+    // Only check if we have a previous plan
+    if (lastPlannedOrigin && lastPlannedDestination) {
+      if (origin !== lastPlannedOrigin || destination !== lastPlannedDestination) {
+        setShowChangedODModal(true);
+        return;
+      }
     }
 
     // Check if route does not use new transit and has more than one route option
