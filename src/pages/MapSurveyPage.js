@@ -10,7 +10,7 @@ import { initializeSession, endSession, trackPageView } from '../services/Sessio
 import { getUserProfile } from '../services/UserProfileService';
 import { createUserProfile } from '../services/UserProfileService';
 import { linkUserProfile } from '../services/SessionManager';
-import { createJourney, saveRouteOptions } from '../services/JourneyService';
+//import { createJourney, saveRouteOptions } from '../services/JourneyService';
 import { saveRoutePreference, saveBehavioralResponse } from '../services/PreferenceService';
 import { updateJourneyCompletion } from '../services/JourneyService';
 
